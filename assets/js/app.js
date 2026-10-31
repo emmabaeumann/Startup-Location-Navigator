@@ -1,15 +1,15 @@
-/* Smart Start Location Navigator — UI layer (vanilla JS, no build step) */
+/* FoundNorth – UI layer (vanilla JS, no build step) */
 (function () {
   'use strict';
   var D = window.SSN_DATA, E = window.SSN_ENGINE;
   var Q = E.QUESTIONS;
-  var STORE_KEY = 'ssn-navigator-v1';
+  var STORE_KEY = 'foundnorth-v1';
   var STEPS = Q.map(function (q) { return { kind: 'q', q: q, block: q.block }; }).concat([{ kind: 'prio', block: 'priorities' }]);
   var app = document.getElementById('app');
   var srStatus = document.getElementById('sr-status');
   var dialog = document.getElementById('detail');
 
-  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null };
+  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null, openInfo: {} };
 
   /* ---------- utils ---------- */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
@@ -40,9 +40,11 @@
     for (var i = 1; i <= 5; i++) out += '<i class="' + (v >= i ? 'on' : (v >= i - 0.5 ? 'half' : '')) + '"></i>';
     return out + '</span>';
   }
-  function wdots(v) {
+  function wdots(w) {
+    var lvl = w.value === 0 ? 0 : Math.min(w.level, 3);
     var out = '<span class="wdots" aria-hidden="true">';
-    for (var i = 1; i <= 4; i++) out += '<i class="' + (v >= i ? 'on' : '') + '"></i>';
+    for (var i = 1; i <= 3; i++) out += '<i class="' + (lvl >= i ? 'on' : '') + '"></i>';
+    if (w.bonus) out += '<b class="wplus">+</b>';
     return out + '</span>';
   }
   function announce(msg) { srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
@@ -54,7 +56,7 @@
   function load() {
     try {
       var raw = localStorage.getItem(STORE_KEY);
-      if (raw) { var s = JSON.parse(raw); state.answers = s.answers || {}; state.skipped = s.skipped || {}; state.step = s.step || 0; state.view = s.view || 'landing'; }
+      if (raw) { var s = JSON.parse(raw); state.answers = sanitize(s.answers || {}); state.skipped = s.skipped || {}; state.step = s.step || 0; state.view = s.view || 'landing'; }
     } catch (e) { /* ignore */ }
     if (state.view === 'method') state.view = 'landing';
   }
@@ -154,31 +156,30 @@
     var key = state.view + ':' + (state.view === 'wizard' ? state.step : '');
     if (key === lastRenderKey) Array.prototype.forEach.call(app.querySelectorAll('.anim'), function (el) { el.classList.remove('anim'); });
     lastRenderKey = key;
-    document.title = ({ wizard: 'Questions — ', results: 'Your result — ', method: 'Method & sources — ' }[state.view] || '') + 'Smart Start Location Navigator';
+    document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundNorth';
   }
 
   function viewLanding() {
-    var res = E.evaluate({});
     var started = Object.keys(state.answers).length > 0;
-    var mini = res.rows.map(function (r) {
-      return '<div class="mini-rank__row"><span class="code">' + r.id + '</span><span class="mini-rank__bar"><span style="width:' + r.score + '%"></span></span><span style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">' + r.score + '</span></div>';
+    var crits = D.CRITERIA.map(function (c, i) {
+      return '<li><span class="crit-num">' + (i + 1) + '</span><span><strong>' + esc(c.name) + '</strong><small>' + esc(c.hint) + '</small></span></li>';
     }).join('');
     var chips = D.COUNTRIES.map(function (c) { return '<span class="chip"><span class="code code--soft">' + c.id + '</span>' + esc(c.name) + '</span>'; }).join('');
     return '<section class="landing anim">' +
       '<div class="hero"><div>' +
-        '<span class="eyebrow">TUM Smart Start · Founder decision helper</span>' +
+        '<span class="eyebrow">Founder decision helper · 6 countries · 10 criteria</span>' +
         '<h1>Where should you <em>found</em> your startup?</h1>' +
-        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get the most advantageous of six founding locations — with every reason, trade-off and source on the table.</p>' +
+        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get the most advantageous of six founding locations – with every reason, trade-off and source on the table.</p>' +
         '<div class="countries-strip" aria-label="Countries compared">' + chips + '</div>' +
         '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my location') + icon('arrow') + '</button>' +
         (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
         '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
       '</div>' +
-      '<aside class="hero__card" aria-label="Neutral starting ranking"><h2>Before you answer: the neutral ranking</h2><div class="mini-rank">' + mini + '</div><small>Equal weights, no personal profile. Your answers will reshape this — live.</small></aside>' +
+      '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol><small>No ranking without your profile: what is best depends on who you are and what you need.</small></aside>' +
       '</div>' +
       '<div class="features">' +
-        '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data — every score links to its source and date.</p></div>' +
-        '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your citizenship, home, investors and exit plans change the weights — grounded in research on founder location choices.</p></div>' +
+        '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source and date.</p></div>' +
+        '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your citizenship, home, investors and exit plans change the weights – grounded in research on founder location choices.</p></div>' +
         '<div class="feature"><span class="feature__icon">' + icon('scale') + '</span><h3>Transparent and deterministic</h3><p>No AI and no black box: the same answers always give the same result, and a robustness check tells you how close the call is.</p></div>' +
       '</div></section>';
   }
@@ -197,7 +198,7 @@
     var blockIdx = E.BLOCKS.indexOf(block) + 1;
     var body = step.kind === 'prio' ? viewPriorities() : viewQuestion(step.q);
     var leader = res.top;
-    var mobile = '<div class="rail-mobile" role="note"><span>Leading now: <b>' + (leader ? esc(leader.country.name) : '—') + '</b>' + (leader ? ' · ' + leader.score : '') + '</span><span class="rail-mobile__list">' +
+    var mobile = '<div class="rail-mobile" role="note"><span>Leading now: <b>' + (leader ? esc(leader.country.name) : '–') + '</b>' + (leader ? ' · ' + leader.score : '') + '</span><span class="rail-mobile__list">' +
       res.rows.slice(1, 4).filter(function (r) { return !r.excluded; }).map(function (r) { return r.id + ' ' + r.score; }).join(' · ') + '</span></div>';
     return '<section class="wizard">' +
       '<nav class="steps" aria-label="Progress"><p class="steps__title">Your profile</p>' + blocksHtml +
@@ -208,10 +209,11 @@
         body.main +
         '<div class="qfoot">' +
           '<button type="button" class="btn btn--ghost" data-action="prev">' + icon('back') + 'Back</button>' +
-          (step.kind === 'q' ? '<button type="button" class="textbtn" data-action="skip">Not sure yet — skip</button>' : '') +
           '<span class="qfoot__spacer"></span>' +
-          (state.step < STEPS.length - 1 ? '<button type="button" class="textbtn" data-action="results">See results now</button>' : '') +
-          '<button type="button" class="btn btn--primary" data-action="next">' + (state.step === STEPS.length - 1 ? 'Show my location' : 'Continue') + icon('arrow') + '</button>' +
+          '<div class="qfoot__main">' +
+            '<button type="button" class="btn btn--primary" data-action="next">' + (state.step === STEPS.length - 1 ? 'Show recommended location' : 'Continue') + icon('arrow') + '</button>' +
+            (step.kind === 'q' ? '<button type="button" class="textbtn textbtn--small" data-action="skip">Not sure yet – skip</button>' : '') +
+          '</div>' +
         '</div>' +
       '</div></div>' +
       viewRail(res) +
@@ -227,7 +229,7 @@
         '<span class="option__l">' + esc(o.l) + '</span>' + (o.s ? '<span class="option__s">' + esc(o.s) + '</span>' : '') + '<span class="option__check" aria-hidden="true"></span></button>';
     }).join('');
     return {
-      head: '<h1 tabindex="-1">' + esc(q.title) + '</h1><p>' + esc(q.help) + (multi ? '' : '') + '</p>' + (state.skipped[q.id] ? '<p class="skipped-note">You skipped this — it currently has no effect on the result.</p>' : ''),
+      head: '<h1 tabindex="-1">' + esc(q.title) + '</h1><p>' + esc(q.help) + (multi ? '' : '') + '</p>' + (state.skipped[q.id] ? '<p class="skipped-note">You skipped this – it currently has no effect on the result.</p>' : ''),
       main: '<div class="options" role="group" aria-label="' + esc(q.title) + (multi ? ' (select all that apply)' : '') + '">' + opts + '</div>'
     };
   }
@@ -239,12 +241,16 @@
       var btns = E.LEVELS.map(function (L) {
         return '<button type="button" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-pressed="' + (lvl === L.v) + '">' + L.l + '</button>';
       }).join('');
-      return '<div class="prio__row"><div class="prio__label"><strong id="pl-' + c.id + '">' + esc(c.name) + '</strong>' + (withHint ? '<span>' + esc(c.hint) + '</span>' : '') + '</div><div class="seg" role="group" aria-labelledby="pl-' + c.id + '">' + btns + '</div></div>';
+      var key = (withHint ? 'q-' : 'r-') + c.id;
+      var open = !!state.openInfo[key];
+      var info = c.info ? '<button type="button" class="infobtn" data-action="info" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="info-' + key + '" title="' + esc(c.info) + '"><span aria-hidden="true">i</span><span class="sr-only">What does ' + esc(c.name) + ' mean?</span></button>' : '';
+      return '<div class="prio__row"><div class="prio__label"><strong id="pl-' + key + '">' + esc(c.name) + info + '</strong>' + (withHint ? '<span>' + esc(c.hint) + '</span>' : '') +
+        (open ? '<p class="infopanel" id="info-' + key + '">' + esc(c.info) + '</p>' : '') + '</div><div class="seg" role="group" aria-labelledby="pl-' + key + '">' + btns + '</div></div>';
     }).join('');
   }
   function viewPriorities() {
     return {
-      head: '<h1 tabindex="-1">What matters most for your launch?</h1><p>Pick one level per factor. Untouched factors count as “nice to have”. You can fine-tune this on the results page.</p>',
+      head: '<h1 tabindex="-1">What matters most for your launch?</h1><p>Pick one level per factor. Untouched factors count as “somewhat important”. Tap <span class="infobtn infobtn--inline" aria-hidden="true">i</span> for an explanation. You can fine-tune this on the results page.</p>',
       main: '<div class="prio">' + prioRows(true) + '</div>'
     };
   }
@@ -271,7 +277,7 @@
       why = '<p class="rail__why">Each click re-scores all six countries against the evidence base.</p>';
     }
     return '<aside class="rail" aria-label="Live ranking"><div class="rail__head"><h2>Live ranking</h2><span>fit score / 100</span></div><ol class="rank-list">' + items + '</ol>' + why +
-      '<p class="rail__foot">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers.</p></aside>';
+      '<p class="rail__foot">100 = top score on every factor you weight. Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers.</p></aside>';
   }
 
   /* ---------- results ---------- */
@@ -284,43 +290,43 @@
     var verdictPill = res.verdict === 'robust' ? '<span class="pill pill--robust">Robust result</span>' :
       res.verdict === 'close' ? '<span class="pill pill--close">Close call with ' + esc(res.runnerUp.country.name) + '</span>' : '<span class="pill pill--only">Only option under your filters</span>';
     var robText = res.robustness && res.robustness.total ? 'Stays #1 in ' + res.robustness.same + ' of ' + res.robustness.total + ' cases when any one priority shifts by a level.' : '';
-    // contributions
     var parts = D.CRITERIA.map(function (c) { return { id: c.id, v: top.contrib[c.id] }; }).filter(function (p) { return p.v > 0.4; }).sort(function (a, b) { return b.v - a.v; });
-    var bar = parts.map(function (p, i) { return '<span style="width:' + p.v.toFixed(2) + '%;background:' + CONTRIB_COLORS[i % CONTRIB_COLORS.length] + '" title="' + esc(crit(p.id).short) + ': ' + p.v.toFixed(1) + ' pts"></span>'; }).join('');
+    var bar = parts.map(function (p, i) { return '<span style="width:' + p.v.toFixed(2) + '%;background:' + CONTRIB_COLORS[i % CONTRIB_COLORS.length] + '" title="' + esc(crit(p.id).short) + ': ' + p.v.toFixed(1) + ' points"></span>'; }).join('');
     var legend = parts.map(function (p, i) { return '<span><i style="background:' + CONTRIB_COLORS[i % CONTRIB_COLORS.length] + '"></i>' + esc(crit(p.id).short) + ' ' + Math.round(p.v) + '</span>'; }).join('');
-    var pers = top.personal.reduce(function (s, i) { return s + i.pts; }, 0);
     var whyNames = res.explain.why.map(function (id) { return crit(id).short.toLowerCase(); });
     var lead = 'Recommended set-up: <strong>' + esc(top.country.entity) + '</strong> · hubs: ' + esc(top.country.hub) + '.' +
       (whyNames.length ? ' Strongest for you on ' + esc(whyNames.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.' : '');
+    var scoreInfoOpen = !!state.openInfo.score;
 
     var winner = '<section class="card winner anim" aria-labelledby="winner-title">' +
       '<span class="eyebrow">Your most advantageous location</span>' +
       '<h1 id="winner-title" class="winner__name" tabindex="-1">' + esc(top.country.name) + '</h1>' +
-      '<div class="winner__row"><div class="scorebig"><b>' + top.score + '</b><span>/ 100 fit</span></div>' + verdictPill +
-        (res.gap != null ? '<span class="pill pill--glass">+' + Math.round(res.gap) + ' vs #2</span>' : '') + '</div>' +
+      '<div class="winner__row"><div class="scorebig"><b>' + top.score + '</b><span>/ 100 fit</span></div>' +
+        '<button type="button" class="infobtn infobtn--dark" data-action="info" data-key="score" aria-expanded="' + scoreInfoOpen + '" aria-controls="info-score" title="What does the fit score mean?"><span aria-hidden="true">i</span><span class="sr-only">What does the fit score mean?</span></button>' + verdictPill + '</div>' +
+      (scoreInfoOpen ? '<p class="infopanel infopanel--dark" id="info-score">The fit score shows how close this country comes to the best possible result for <em>your</em> priorities. 100 would mean the top score (5 of 5) on every factor you weight; 0 the lowest score everywhere. It is not a probability or a grade, and differences of 2–3 points are within the precision of the data.</p>' : '') +
       '<p class="winner__lead">' + lead + '</p>' +
-      '<div class="contrib"><span style="font-size:13px;color:#9CC8F2;font-weight:600">What makes up the score' + (pers ? ' (plus ' + (pers > 0 ? '+' : '') + pers + ' personal points)' : '') + '</span><div class="contrib__bar" role="img" aria-label="Score contribution by criterion: ' + esc(parts.map(function (p) { return crit(p.id).short + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><div class="contrib__legend">' + legend + '</div></div>' +
+      '<div class="contrib"><span style="font-size:13px;color:#9CC8F2;font-weight:600">What makes up the ' + top.score + ' points</span><div class="contrib__bar" role="img" aria-label="Score contribution by criterion: ' + esc(parts.map(function (p) { return crit(p.id).short + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><div class="contrib__legend">' + legend + '</div></div>' +
       (robText ? '<p style="font-size:13.5px;color:#D3E3F5;position:relative;z-index:1">' + esc(robText) + '</p>' : '') +
       '</section>';
 
-    var ranking = '<section class="card" aria-labelledby="rank-title"><h2 id="rank-title">Full ranking</h2><p class="card__sub">Fit score after your priorities and personal factors.</p><ol class="ranking">' +
+    var ranking = '<section class="card" aria-labelledby="rank-title"><h2 id="rank-title">Full ranking</h2><p class="card__sub">Fit score for your priorities (100 = top score on every factor you weight).</p><ol class="ranking">' +
       res.rows.map(function (r, i) {
+        var tag = r.excluded ? r.excluded : (r.residence ? ({ home: 'you live here', free: 'free movement', visa: 'visa needed', limited: 'residence limited' })[r.residence.level] : '');
         return '<li class="' + (r.excluded ? 'is-excluded' : '') + '"><span class="ranking__pos">' + (r.excluded ? '–' : (i + 1)) + '</span><span class="code' + (i === 0 ? '' : ' code--soft') + '">' + r.id + '</span>' +
-          '<span class="ranking__body"><span class="ranking__name">' + esc(r.country.name) + (r.excluded ? '<small>' + esc(r.excluded) + '</small>' : (r.residence && r.residence.level !== 'free' && r.residence.level !== 'home' ? '<small>' + (r.residence.level === 'visa' ? 'visa needed' : 'residence limited') + '</small>' : '')) + '</span><span class="bar"><span style="width:' + r.score + '%"></span></span></span>' +
+          '<span class="ranking__body"><span class="ranking__name">' + esc(r.country.name) + (tag ? '<small>' + esc(tag) + '</small>' : '') + '</span><span class="bar"><span style="width:' + r.score + '%"></span></span></span>' +
           '<span class="ranking__score">' + r.score + '</span></li>';
-      }).join('') + '</ol>' +
-      (top.personal.length ? '<div class="personal"><h3>Personal factors for ' + esc(top.country.name) + '</h3><ul>' + top.personal.map(function (p) { return '<li>' + (p.pts > 0 ? '+' : '') + p.pts + ' · ' + esc(p.text) + '</li>'; }).join('') + '</ul></div>' : '') +
-      '</section>';
+      }).join('') + '</ol></section>';
 
-    var cellFact = function (k, c) { return D.SCORES[k][c].value; };
     var whyList = res.explain.why.length ? res.explain.why.map(function (c) {
       var cell = D.SCORES[top.id][c];
-      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(cellFact(top.id, c)) + ' ' + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
-    }).join('') : '<li class="empty">No single standout — the score comes from a balanced profile.</li>';
+      var fact = c === 'residence' && top.residence ? top.residence.text : cell.value;
+      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(fact) + ' ' + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
+    }).join('') : '<li class="empty">No single standout: the score comes from a balanced profile.</li>';
     var tradeList = res.explain.tradeoffs.length ? res.explain.tradeoffs.map(function (c) {
       var cell = D.SCORES[top.id][c];
+      var fact = c === 'residence' && top.residence ? top.residence.text : cell.value;
       var better = res.rows.filter(function (r) { return !r.excluded && r.id !== top.id; }).sort(function (a, b) { return b.scores[c].value - a.scores[c].value; })[0];
-      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(cellFact(top.id, c)) + (better && better.scores[c].value > top.scores[c].value ? ' — ' + esc(better.country.name) + ' is stronger here. ' : ' ') + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
+      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(fact) + (better && better.scores[c].value > top.scores[c].value ? ' – ' + esc(better.country.name) + ' is stronger here. ' : ' ') + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
     }).join('') : '<li class="empty">No major weakness on the factors you care about.</li>';
     var watchList = res.warnings.length ? res.warnings.map(function (w) { return '<li>' + esc(w.text) + ' ' + (w.src ? srcLink(w.src) : '') + '</li>'; }).join('') : '<li class="empty">Nothing specific to flag for your profile.</li>';
     var insights = '<div class="insights">' +
@@ -328,21 +334,7 @@
       '<section class="insight insight--trade"><h3>Trade-offs</h3><ul>' + tradeList + '</ul></section>' +
       '<section class="insight insight--watch"><h3>Watch out</h3><ul>' + watchList + '</ul></section></div>';
 
-    // matrix
     var orderIds = res.rows.map(function (r) { return r.id; });
-    var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
-    var bodyRows = D.CRITERIA.map(function (c) {
-      var w = res.weights[c.id].value;
-      return '<tr><th scope="row">' + esc(c.name) + wdots(w) + '<small>' + (w === 0 ? 'not weighted' : ['', 'nice to have', 'important', 'critical', 'critical +'][w]) + '</small></th>' +
-        orderIds.map(function (k) {
-          var s = res.rows.filter(function (r) { return r.id === k; })[0].scores[c.id];
-          var conf = D.SCORES[k][c.id].confidence;
-          return '<td class="' + (k === top.id ? 'col-win' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(country(k).name + ', ' + c.name + ': ' + s.value + ' of 5. Show evidence') + '">' + dots(s.value) + (conf === 'low' ? '<span class="conf-low" aria-hidden="true">est.</span>' : '') + '</button></td>';
-        }).join('') + '</tr>';
-    }).join('');
-    var matrix = '<section class="card" aria-labelledby="mx-title"><h2 id="mx-title">Compare all six, criterion by criterion</h2><p class="card__sub">Click any cell to see the fact, the reasoning and the source.</p>' +
-      '<div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Scores from 1 to 5 per country and criterion</caption><thead>' + head + '</thead><tbody>' + bodyRows + '</tbody></table></div>' +
-      '<div class="matrix-legend"><span>' + dots(5) + ' 1–5 evidence score, adjusted to your profile</span><span><span class="conf-low">est.</span> low data confidence</span><span>' + wdots(3) + ' your weight</span></div></section>';
 
     // roadmap
     var tab = state.roadmapTab && country(state.roadmapTab) ? state.roadmapTab : top.id;
@@ -354,18 +346,36 @@
       '<div class="entity-box"><span>Legal form: <b>' + esc(country(tab).entity) + '</b></span>' + (rs ? '<span>Residence: <b>' + esc(rs.text) + '</b></span>' : '') + '</div>' +
       '<ol class="roadmap">' + steps + '</ol></section>';
 
-    var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><h2 id="wi-title">What if your priorities change?</h2><p class="card__sub">Adjust a level — the result updates instantly.</p><div class="prio whatif">' + prioRows(false) + '</div></section>';
-
     var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">Your answers</h2><p class="card__sub">Click to change an answer. Skipped questions have no effect.</p><div class="answers">' +
       Q.map(function (q, i) { var l = answerLabel(q); return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '"><small>' + esc(q.title) + '</small><span>' + esc(l || 'Not answered') + '</span></button>'; }).join('') +
       '</div></section>';
 
+    // matrix
+    var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
+    var bodyRows = D.CRITERIA.map(function (c) {
+      var w = res.weights[c.id];
+      return '<tr><th scope="row">' + esc(c.name) + '<small>' + wdots(w) + ' ' + esc(E.LEVELS[w.level].l) + (w.bonus ? ' +' + w.bonus + ' from your answers' : '') + (w.value === 0 && w.level > 0 ? ' · set to 0 by your answers' : '') + '</small></th>' +
+        orderIds.map(function (k) {
+          var s = res.rows.filter(function (r) { return r.id === k; })[0].scores[c.id];
+          var cell = D.SCORES[k][c.id];
+          var tag = cell.nodata ? '<span class="conf-low" aria-hidden="true">no data</span>' : (cell.confidence === 'low' ? '<span class="conf-low" aria-hidden="true">est.</span>' : '');
+          return '<td class="' + (k === top.id ? 'col-win' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(country(k).name + ', ' + c.name + ': ' + s.value + ' of 5. Show evidence') + '">' + dots(s.value) + tag + '</button></td>';
+        }).join('') + '</tr>';
+    }).join('');
+    var matrix = '<section class="card" aria-labelledby="mx-title"><h2 id="mx-title">Compare all six, criterion by criterion</h2><p class="card__sub">Click any cell to see the fact, the reasoning and the source.</p>' +
+      '<div class="howto"><strong>How to read this</strong><ul>' +
+        '<li><b>Country dots (1–5):</b> how the country performs on this criterion, using fixed evidence thresholds, e.g. profit tax ≤ 13% = 5, ≤ 18% = 4. Five dots is the best possible, one dot the weakest. Some values are adjusted to your answers.</li>' +
+        '<li><b>Your weight (0–3 squares):</b> how much the criterion counts for you: Not important = 0, Somewhat important = 1, Important = 2, Crucial = 3. “+1 from your answers” means an answer (e.g. planning VC) raised it.</li>' +
+        '<li><b>est. / no data:</b> estimate from secondary data, or no reliable data (set to the neutral 3).</li></ul></div>' +
+      '<div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Scores from 1 to 5 per country and criterion</caption><thead>' + head + '</thead><tbody>' + bodyRows + '</tbody></table></div></section>';
+
+    var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><h2 id="wi-title">What if your priorities change?</h2><p class="card__sub">Adjust a level and the whole page updates instantly.</p><div class="prio whatif">' + prioRows(false) + '</div></section>';
+
     return '<section class="results">' +
-      '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' — add more for a sharper result' : '') + '</span>' +
+      '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' – add more for a sharper result' : '') + '</span>' +
       '<div class="results__actions"><button type="button" class="btn btn--ghost" data-action="goto" data-step="0">' + icon('edit') + 'Edit answers</button><button type="button" class="btn btn--ghost" data-action="share">' + icon('link') + 'Copy share link</button><button type="button" class="btn btn--dark" data-action="print">' + icon('print') + 'Save as PDF</button></div></div>' +
-      '<div class="grid-2">' + winner + ranking + '</div>' + insights + matrix +
-      '<div class="grid-2">' + roadmap + whatif + '</div>' + answers +
-      '<p style="font-size:13px;color:var(--muted)">Deterministic result — no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
+      '<div class="grid-2">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
+      '<p style="font-size:13px;color:var(--muted)">Deterministic result: no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
       '</section>';
   }
 
@@ -380,25 +390,26 @@
     }).join('');
     var lit = D.LITERATURE.map(function (l) { return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.c) + '</a><span>' + esc(l.use) + '</span></li>'; }).join('');
     return '<section class="method anim">' +
-      '<div><span class="eyebrow">Method &amp; sources</span><h1 tabindex="-1">How the recommendation is calculated</h1><p style="margin-top:10px;font-size:17px">A transparent multi-criteria model. No AI is used at run time — identical answers always produce identical results.</p></div>' +
-      '<div class="card"><h2>1 · Evidence scores (1–5)</h2><p>For each country and criterion we collected the current legal and statistical facts (statutes, tax authorities, OECD, Eurostat, WIPO, national registers) and translated them into a 1–5 score using fixed anchor scales. Anchors are absolute, not relative to the six countries, so a score means the same thing everywhere.</p><table class="anchors"><tbody>' + anchors + '</tbody></table></div>' +
-      '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each priority maps to a weight: Not needed = 0, Nice to have = 1 (default), Important = 2, Critical = 3. Some answers add one level (capped at 4), and every change is shown on the results page:</p><ul>' +
-        '<li>Planning venture capital → +1 on VC access; grants → +1 on public funding</li><li>Bootstrapping → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not needed” always stays 0.</li></ul></div>' +
-      '<div class="card"><h2>3 · Profile adjustments to scores</h2><ul>' +
+      '<div><span class="eyebrow">Method &amp; sources</span><h1 tabindex="-1">How the recommendation is calculated</h1><p style="margin-top:10px;font-size:17px">A transparent multi-criteria model. No AI is used at run time – identical answers always produce identical results.</p></div>' +
+      '<div class="card"><h2>1 · Evidence scores (1–5)</h2><p>For each country and criterion we collected the current legal and statistical facts (statutes, tax authorities, OECD, Eurostat, WIPO, national registers) and translated them into a 1–5 score using fixed anchor scales. Anchors are absolute, not relative to the six countries, so a score means the same thing everywhere. Where we found no reliable data, the score is set to the neutral midpoint 3 and labelled “no data”, so missing evidence does not penalise a country.</p><table class="anchors"><tbody>' + anchors + '</tbody></table></div>' +
+      '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each priority maps to a weight: Not important = 0, Somewhat important = 1 (default), Important = 2, Crucial = 3. Some answers add one level (capped at 4), and every change is shown in the comparison matrix:</p><ul>' +
+        '<li>Planning venture capital → +1 on VC access; grants → +1 on public funding; accelerator → +1 on talent &amp; ecosystem</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not important” always stays 0.</li></ul></div>' +
+      '<div class="card"><h2>3 · Profile adjustments to scores</h2><p>All adjustments are whole steps and keep scores within 1–5:</p><ul>' +
+        '<li><b>Residence &amp; home base</b> is scored from your answers: 5 where you already live (home advantage, Dahl &amp; Sorenson 2012), 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. With several citizenships, the most favourable one counts. Without answers it stays at 3.</li>' +
         '<li>Investors based in a country → +1 on that country’s VC access (US investors usually expect a Delaware C-Corp).</li>' +
         '<li>US grants: −1 for non-US founders because SBIR/STTR requires &gt; 50% US ownership; +1 for US citizens.</li>' +
-        '<li>Sector: small documented boosts to the ecosystem score (e.g. fintech in London/Zurich, life sciences in Basel/Lausanne, industrial hardware in Germany, Liechtenstein’s blockchain law).</li>' +
+        '<li>Sector: +1 on the ecosystem score only where a source supports it – fintech (Zurich in the GFCI top 10; Liechtenstein’s blockchain law TVTG), health &amp; life sciences (Lausanne/Basel clusters), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). Other sectors have no effect.</li>' +
         '<li>Target market: market-access score set from a fixed table for your target region (EU single market, DACH, UK, US, global or home).</li>' +
-        '<li>No capital secured yet: −1 on setup in Switzerland and Liechtenstein, where minimum capital must be fully paid in.</li></ul>' +
-        '<p style="margin-top:10px">All adjusted scores stay within 1–5.</p></div>' +
-      '<div class="card"><h2>4 · Fit score and personal factors</h2><p>The fit score is an additive multi-attribute value model (Keeney &amp; Raiffa):</p><div class="formula">Fit(country) = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
-        '<p style="margin-top:12px">Then personal points are added: <b>+5</b> home advantage where you live (Dahl &amp; Sorenson 2012 find better survival and profits for locally rooted founders), <b>−5</b> where you would need a visa or permit, <b>−10</b> where residence is quota-limited or hard to get. The total is capped to 0–100.</p></div>' +
+        '<li>Less than €10k secured: −1 on setup in Switzerland and Liechtenstein, where the minimum capital must be fully paid in.</li></ul></div>' +
+      '<div class="card"><h2>4 · Fit score: what 100 means</h2><p>The fit score is an additive multi-attribute value model (Keeney &amp; Raiffa):</p><div class="formula">Fit(country) = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
+        '<p style="margin-top:12px"><b>100</b> means the country reaches the top score (5 of 5) on every factor you weight; <b>0</b> means the lowest score (1 of 5) everywhere. The score is relative to your priorities: it is not a probability and not a grade. Because the underlying scores are whole steps, differences of 2–3 points should not be over-interpreted; the robustness check tells you how solid the lead is.</p></div>' +
       '<div class="card"><h2>5 · Filters, robustness and limits</h2><ul>' +
         '<li>Relocation answers exclude countries (Europe only → no US; staying put → only your home country). Excluded countries remain visible.</li>' +
-        '<li>Robustness: every weight is shifted up and down by one level; we count how often the winner stays #1. “Robust” requires ≥ 85% and a lead of at least 4 points — otherwise we call it a close call.</li>' +
+        '<li>Robustness: every weight is shifted up and down by one level; we count how often the winner stays #1. “Robust” requires ≥ 85% and a lead of at least 4 points, otherwise we call it a close call. These thresholds are a convention, not an empirical result.</li>' +
         '<li>Scores are country-level; city costs (London, Zurich, Bay Area) can differ markedly.</li>' +
-        '<li>Liechtenstein is not covered by most international indices — several of its scores are marked as estimates.</li>' +
-        '<li>Tax rules simplified to the standard founder case; holdings, cantons and personal circumstances can change outcomes materially.</li>' +
+        '<li>Liechtenstein is not covered by most international indices; several of its scores are estimates or “no data”.</li>' +
+        '<li>Exit tax compares the standard case (shares held privately). Holding structures exist in several countries and are shown as tips, not scored.</li>' +
+        '<li>Some legal details still need verification against primary texts that were not accessible during research (e.g. whether Swiss GmbH formation always needs a public deed, Liechtenstein permit quotas, Art. 180a PGR). They are marked in the evidence cells.</li>' +
         '<li>This tool supports a decision; it is not legal or tax advice.</li></ul></div>' +
       '<div class="card"><h2>Peer-reviewed foundations</h2><ul class="srclist">' + lit + '</ul></div>' +
       '<div class="card"><h2>All data sources (' + Object.keys(D.SOURCES).length + ')</h2><p>Research cut-off ' + esc(D.DATA_AS_OF) + '. Primary legal and official sources are preferred; secondary sources are used where primary data was not accessible and are labelled as such.</p>' + srcs + '</div>' +
@@ -411,8 +422,9 @@
     var res = E.evaluate(state.answers);
     var row = res.rows.filter(function (r) { return r.id === k; })[0];
     var s = row.scores[c], cell = D.SCORES[k][c], cr = crit(c);
+    if (c === 'residence' && row.residence) cell = { value: row.residence.text, note: cell.note, sources: cell.sources, confidence: cell.confidence };
     var adj = s.adj.length ? '<p><b>Adjusted for your profile:</b> ' + esc(s.adj.join('; ')) + ' (base ' + s.base + ' → ' + s.value + ')</p>' : '';
-    var srcs = cell.sources.length ? cell.sources.map(function (id) { return srcLink(id, src(id).t + ' — ' + src(id).p); }).join('<br>') : '<span style="color:var(--muted)">No primary source found — score is an estimate.</span>';
+    var srcs = cell.sources.length ? cell.sources.map(function (id) { return srcLink(id, src(id).t + ' – ' + src(id).p); }).join('<br>') : '<span style="color:var(--muted)">No primary source found – score is an estimate.</span>';
     document.getElementById('detail-body').innerHTML =
       '<div class="dialog__head"><div><span class="eyebrow">' + esc(country(k).name) + '</span><h2 id="detail-title">' + esc(cr.name) + '</h2></div><button type="button" class="dialog__close" data-action="close" aria-label="Close">' + icon('close') + '</button></div>' +
       '<div style="display:flex;align-items:center;gap:10px">' + dots(s.value) + '<b>' + s.value + ' / 5</b></div>' +
@@ -465,6 +477,11 @@
         announce(liveSummary());
         break;
       case 'tab': state.roadmapTab = t.getAttribute('data-k'); var yy = window.scrollY; render(); window.scrollTo(0, yy); var tb = app.querySelector('[data-action="tab"][data-k="' + state.roadmapTab + '"]'); if (tb) tb.focus({ preventScroll: true }); break;
+      case 'info':
+        var ik = t.getAttribute('data-key'); state.openInfo[ik] = !state.openInfo[ik];
+        var y2 = window.scrollY; render(); window.scrollTo(0, y2);
+        var ib = app.querySelector('[data-action="info"][data-key="' + ik + '"]'); if (ib) ib.focus({ preventScroll: true });
+        break;
       case 'cell': openCell(t.getAttribute('data-k'), t.getAttribute('data-c')); break;
       case 'close': dialog.close(); break;
       case 'share':

@@ -237,7 +237,7 @@
   function prioRows(withHint) {
     var pr = state.answers.priorities || {};
     return D.CRITERIA.map(function (c) {
-      var lvl = typeof pr[c.id] === 'number' ? pr[c.id] : 1;
+      var lvl = typeof pr[c.id] === 'number' ? pr[c.id] : E.defaultLevel(c.id, state.answers);
       var btns = E.LEVELS.map(function (L) {
         return '<button type="button" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-pressed="' + (lvl === L.v) + '">' + L.l + '</button>';
       }).join('');
@@ -250,7 +250,7 @@
   }
   function viewPriorities() {
     return {
-      head: '<h1 tabindex="-1">What matters most for your launch?</h1><p>Pick one level per factor. Untouched factors count as “somewhat important”. Tap <span class="infobtn infobtn--inline" aria-hidden="true">i</span> for an explanation. You can fine-tune this on the results page.</p>',
+      head: '<h1 tabindex="-1">How important is each of these to you?</h1><p>Pick one level per goal. Untouched goals count as “somewhat important”; easy residence &amp; local roots starts at “important” because home advantage is strongly supported by research (unless you would move anywhere). Tap <span class="infobtn infobtn--inline" aria-hidden="true">i</span> for an explanation. You can fine-tune this on the results page.</p>',
       main: '<div class="prio">' + prioRows(true) + '</div>'
     };
   }
@@ -354,7 +354,7 @@
     var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
     var bodyRows = D.CRITERIA.map(function (c) {
       var w = res.weights[c.id];
-      return '<tr><th scope="row">' + esc(c.name) + '<small>' + wdots(w) + ' ' + esc(E.LEVELS[w.level].l) + (w.bonus ? ' +' + w.bonus + ' from your answers' : '') + (w.value === 0 && w.level > 0 ? ' · set to 0 by your answers' : '') + '</small></th>' +
+      return '<tr><th scope="row">' + esc(c.name) + '<small>' + wdots(w) + ' ' + esc(E.LEVELS[w.level].l) + (w.isDefault && c.id === 'residence' && w.level === 2 ? ' (default – strong evidence for home advantage)' : '') + (w.bonus ? ' +' + w.bonus + ' from your answers' : '') + (w.value === 0 && w.level > 0 ? ' · set to 0 by your answers' : '') + '</small></th>' +
         orderIds.map(function (k) {
           var s = res.rows.filter(function (r) { return r.id === k; })[0].scores[c.id];
           var cell = D.SCORES[k][c.id];
@@ -364,7 +364,7 @@
     }).join('');
     var matrix = '<section class="card" aria-labelledby="mx-title"><h2 id="mx-title">Compare all six, criterion by criterion</h2><p class="card__sub">Click any cell to see the fact, the reasoning and the source.</p>' +
       '<div class="howto"><strong>How to read this</strong><ul>' +
-        '<li><b>Country dots (1–5):</b> how the country performs on this criterion, using fixed evidence thresholds, e.g. profit tax ≤ 13% = 5, ≤ 18% = 4. Five dots is the best possible, one dot the weakest. Some values are adjusted to your answers.</li>' +
+        '<li><b>Country dots (1–5):</b> how well the country meets this goal, using fixed evidence thresholds. More dots is always better – for taxes that means <em>lower</em> tax (e.g. profit tax ≤ 13% = 5 dots, ≤ 18% = 4). Some values are adjusted to your answers.</li>' +
         '<li><b>Your weight (0–3 squares):</b> how much the criterion counts for you: Not important = 0, Somewhat important = 1, Important = 2, Crucial = 3. “+1 from your answers” means an answer (e.g. planning VC) raised it.</li>' +
         '<li><b>est. / no data:</b> estimate from secondary data, or no reliable data (set to the neutral 3).</li></ul></div>' +
       '<div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Scores from 1 to 5 per country and criterion</caption><thead>' + head + '</thead><tbody>' + bodyRows + '</tbody></table></div></section>';
@@ -392,7 +392,7 @@
     return '<section class="method anim">' +
       '<div><span class="eyebrow">Method &amp; sources</span><h1 tabindex="-1">How the recommendation is calculated</h1><p style="margin-top:10px;font-size:17px">A transparent multi-criteria model. No AI is used at run time – identical answers always produce identical results.</p></div>' +
       '<div class="card"><h2>1 · Evidence scores (1–5)</h2><p>For each country and criterion we collected the current legal and statistical facts (statutes, tax authorities, OECD, Eurostat, WIPO, national registers) and translated them into a 1–5 score using fixed anchor scales. Anchors are absolute, not relative to the six countries, so a score means the same thing everywhere. Where we found no reliable data, the score is set to the neutral midpoint 3 and labelled “no data”, so missing evidence does not penalise a country.</p><table class="anchors"><tbody>' + anchors + '</tbody></table></div>' +
-      '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each priority maps to a weight: Not important = 0, Somewhat important = 1 (default), Important = 2, Crucial = 3. Some answers add one level (capped at 4), and every change is shown in the comparison matrix:</p><ul>' +
+      '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each criterion is phrased as a goal (e.g. “Low tax on company profits”), and you say how important it is: Not important = 0, Somewhat important = 1 (default), Important = 2, Crucial = 3. Exception: “Easy residence &amp; local roots” starts at Important, because home advantage is one of the most robust findings in location research (Dahl &amp; Sorenson 2012); if you say you would move anywhere, it starts at Somewhat important. Some answers add one level (capped at 4), and every change is shown in the comparison matrix:</p><ul>' +
         '<li>Planning venture capital → +1 on VC access; grants → +1 on public funding; accelerator → +1 on talent &amp; ecosystem</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not important” always stays 0.</li></ul></div>' +
       '<div class="card"><h2>3 · Profile adjustments to scores</h2><p>All adjustments are whole steps and keep scores within 1–5:</p><ul>' +
         '<li><b>Residence &amp; home base</b> is scored from your answers: 5 where you already live (home advantage, Dahl &amp; Sorenson 2012), 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. With several citizenships, the most favourable one counts. Without answers it stays at 3.</li>' +

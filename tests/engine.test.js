@@ -72,3 +72,9 @@ test('unknown data is neutral, not penalised', () => {
   assert.strictEqual(D.SCORES.LI.grants.score, 3);
   assert.ok(D.SCORES.LI.grants.nodata);
 });
+
+test('residence defaults to important unless the founder would move anywhere', () => {
+  assert.strictEqual(E.computeWeights({}).residence.value, 2);
+  assert.strictEqual(E.computeWeights({ relocation: 'anywhere' }).residence.value, 1);
+  assert.strictEqual(E.computeWeights({ relocation: 'anywhere', priorities: { residence: 3 } }).residence.value, 3);
+});

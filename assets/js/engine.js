@@ -125,12 +125,20 @@
   function cits(a) { return Array.isArray(a.citizenship) ? a.citizenship : (a.citizenship ? [a.citizenship] : []); }
 
   /* ---------- 1. Weights ---------- */
+  // Default level: 1 ("somewhat important"), except residence & local roots = 2 ("important"),
+  // because home advantage is one of the most robust findings (Dahl & Sorenson 2012).
+  // Founders who say they would move anywhere signal mobility → back to 1.
+  function defaultLevel(id, a) {
+    if (id === 'residence') return a.relocation === 'anywhere' ? 1 : 2;
+    return 1;
+  }
   function computeWeights(a) {
     var pr = a.priorities || {};
     var w = {};
     D.CRITERIA.forEach(function (c) {
-      var lvl = (typeof pr[c.id] === 'number') ? pr[c.id] : 1;
-      w[c.id] = { level: lvl, value: lvl, bonus: 0, reasons: [] };
+      var explicit = typeof pr[c.id] === 'number';
+      var lvl = explicit ? pr[c.id] : defaultLevel(c.id, a);
+      w[c.id] = { level: lvl, value: lvl, bonus: 0, reasons: [], isDefault: !explicit };
     });
     function bump(id, why) {
       if (w[id].level === 0) return; // an explicit "not important" always wins
@@ -348,7 +356,7 @@
     };
   }
 
-  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights };
+  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights, defaultLevel: defaultLevel };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SSN_ENGINE = api;
 })(this);

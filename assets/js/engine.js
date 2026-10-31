@@ -40,7 +40,7 @@
         { v: 'anywhere', l: 'Yes, anywhere', s: 'Including the United States' }
       ] },
     { id: 'sector', block: 'startup', type: 'single', title: 'What are you building?',
-      help: 'Some ecosystems are measurably stronger in certain sectors. Sectors without solid evidence do not change the result.',
+      help: 'Some ecosystems are measurably stronger in certain sectors. Your result page explains exactly how your sector was treated.',
       options: [
         { v: 'software', l: 'Software & SaaS' }, { v: 'ai', l: 'AI & deep tech' },
         { v: 'fintech', l: 'Fintech & crypto' }, { v: 'life', l: 'Health & life sciences' },
@@ -314,6 +314,8 @@
     if (k === 'CH') w.push({ type: 'info', text: 'Choose your canton deliberately: the profit tax ranges from ≈ 11.9% (Zug) to ≈ 19.6% (Zurich) and above.', src: 'kpmg_ch' });
     if (k === 'DE' && (a.capital === 'none' || a.capital === 'lt10')) w.push({ type: 'tip', text: 'With little capital, a UG (haftungsbeschränkt) can be founded from €1 and converted into a GmbH later.', src: 'gmbhg' });
     if (k === 'DE' && (a.exit === 'sale' || a.exit === 'ipo')) w.push({ type: 'tip', text: 'Planning an exit from Germany? Holding your shares through a holding GmbH can cut the tax on the sale from ≈ 28.5% to ≈ 1.5% (§8b KStG). Set it up early with a tax adviser.', src: 'kstg8b' });
+    var sn = D.SECTOR_NOTES[a.sector];
+    if (sn) w.push({ type: 'info', text: sn.text, src: sn.src });
     var lowConf = D.CRITERIA.filter(function (c) { return D.SCORES[k][c.id].confidence === 'low'; }).map(function (c) { return c.short; });
     if (lowConf.length >= 2) w.push({ type: 'info', text: 'Data for ' + top.country.name + ' is thin on: ' + lowConf.join(', ') + '. Treat those scores as estimates.', src: null });
     return w;

@@ -328,7 +328,7 @@
       var better = res.rows.filter(function (r) { return !r.excluded && r.id !== top.id; }).sort(function (a, b) { return b.scores[c].value - a.scores[c].value; })[0];
       return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(fact) + (better && better.scores[c].value > top.scores[c].value ? ' – ' + esc(better.country.name) + ' is stronger here. ' : ' ') + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
     }).join('') : '<li class="empty">No major weakness on the factors you care about.</li>';
-    var watchList = res.warnings.length ? res.warnings.map(function (w) { return '<li>' + esc(w.text) + ' ' + (w.src ? srcLink(w.src) : '') + '</li>'; }).join('') : '<li class="empty">Nothing specific to flag for your profile.</li>';
+    var watchList = res.warnings.length ? res.warnings.map(function (w) { var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []); return '<li>' + esc(w.text) + ' ' + ss.map(function (x) { return srcLink(x); }).join(' ') + '</li>'; }).join('') : '<li class="empty">Nothing specific to flag for your profile.</li>';
     var insights = '<div class="insights">' +
       '<section class="insight insight--why"><h3>Why it fits</h3><ul>' + whyList + '</ul></section>' +
       '<section class="insight insight--trade"><h3>Trade-offs</h3><ul>' + tradeList + '</ul></section>' +
@@ -398,7 +398,7 @@
         '<li><b>Residence &amp; home base</b> is scored from your answers: 5 where you already live (home advantage, Dahl &amp; Sorenson 2012), 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. With several citizenships, the most favourable one counts. Without answers it stays at 3.</li>' +
         '<li>Investors based in a country → +1 on that country’s VC access (US investors usually expect a Delaware C-Corp).</li>' +
         '<li>US grants: −1 for non-US founders because SBIR/STTR requires &gt; 50% US ownership; +1 for US citizens.</li>' +
-        '<li>Sector: +1 on the ecosystem score only where a source supports it – fintech (Zurich in the GFCI top 10; Liechtenstein’s blockchain law TVTG), health &amp; life sciences (Lausanne/Basel clusters), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). Other sectors have no effect.</li>' +
+        '<li>Sector: +1 on the ecosystem score only where a source supports it – fintech (Zurich in the GFCI top 10; Liechtenstein’s blockchain law TVTG), health &amp; life sciences (Lausanne/Basel clusters), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). For AI, the leading hubs (US, UK) already hold the maximum ecosystem and VC scores, so a bonus would change nothing; software &amp; SaaS is the least location-bound sector; for climate &amp; energy we found no comparable evidence. The results page explains how your sector was treated.</li>' +
         '<li>Target market: market-access score set from a fixed table for your target region (EU single market, DACH, UK, US, global or home).</li>' +
         '<li>Less than €10k secured: −1 on setup in Switzerland and Liechtenstein, where the minimum capital must be fully paid in.</li></ul></div>' +
       '<div class="card"><h2>4 · Fit score: what 100 means</h2><p>The fit score is an additive multi-attribute value model (Keeney &amp; Raiffa):</p><div class="formula">Fit(country) = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +

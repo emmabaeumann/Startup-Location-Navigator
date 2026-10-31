@@ -301,6 +301,18 @@
     hardware: { DE: 1, CH: 1, src: ['wb_manuf'], label: 'Hardware, mobility & industrial: manufacturing is ≈ 19% of GDP in Germany and ≈ 18% in Switzerland, vs ≈ 8% in the UK and ≈ 12% in Portugal (World Bank, 2024).' }
   };
 
+  /* How each sector is treated – shown on the results page so the effect (or non-effect) is transparent. */
+  var SECTOR_NOTES = {
+    software: { text: 'Software & SaaS is the least location-bound sector: you can sell remotely, so VC access, talent and your target market drive the difference – all already scored.', src: null },
+    ai: { text: 'AI & deep tech: AI took more than 65% of all US venture funding in 2025, and the US and UK lead Stanford’s Global AI Vibrancy ranking. Both already hold the top ecosystem and VC scores here, so no extra bonus is needed; Germany ranks around 8th, consistent with its score of 4.', src: ['nvca_yb', 'stanford_ai'] },
+    fintech: { text: 'Fintech & crypto: +1 on the ecosystem score for Switzerland (Zurich in the GFCI top 10) and Liechtenstein (blockchain law TVTG). London and New York already hold the top score.', src: ['gfci', 'tvtg'] },
+    life: { text: 'Health & life sciences: +1 on the ecosystem score for Switzerland (Lausanne/Basel clusters).', src: ['gser26_emerging'] },
+    hardware: { text: 'Hardware, mobility & industrial: +1 on the ecosystem score for Germany and Switzerland, where manufacturing is ≈ 19% and ≈ 18% of GDP.', src: ['wb_manuf'] },
+    climate: { text: 'Climate & energy: we found no comparable country-level evidence for a sector bonus, so this choice does not change the scores. Grants and VC access tend to matter most – weight them accordingly.', src: null },
+    consumer: { text: 'Consumer & marketplaces: success depends mostly on access to your target market and on costs, which are already scored – no sector bonus applied.', src: null },
+    other: null
+  };
+
   /* Practical roadmap per country (each step points to an official source). */
   var ROADMAP = {
     DE: [
@@ -394,6 +406,7 @@
     tvtg: { t: 'Token and TT Service Provider Act (TVTG)', p: 'FMA Liechtenstein', u: 'https://www.fma-li.li/en/supervision-regulation/fintech/tvtg', type: 'law' },
     wb_manuf: { t: 'Manufacturing, value added (% of GDP), indicator NV.IND.MANF.ZS', p: 'World Bank (via TheGlobalEconomy)', u: 'https://www.theglobaleconomy.com/rankings/Share_of_manufacturing/', type: 'intl' },
     dahl_sorenson: { t: 'Dahl & Sorenson (2012): Home sweet home – entrepreneurs’ location choices and performance', p: 'Management Science 58(6)', u: 'https://doi.org/10.1287/mnsc.1110.1476', type: 'academic' },
+    stanford_ai: { t: 'Global AI Vibrancy Tool (AI Index)', p: 'Stanford HAI', u: 'https://www.businesswire.com/news/home/20241121006002/en/United-States-China-and-United-Kingdom-Lead-the-Global-AI-Ranking-According-to-Stanford-HAIs-Global-AI-Vibrancy-Tool', type: 'academic' },
     irs_abroad: { t: 'U.S. citizens and resident aliens abroad', p: 'IRS', u: 'https://www.irs.gov/individuals/international-taxpayers/us-citizens-and-resident-aliens-abroad', type: 'official' },
     stripe_flip: { t: 'What is a Delaware flip?', p: 'Stripe', u: 'https://stripe.com/resources/more/what-is-a-delaware-flip', type: 'expert' },
     uk_ltd: { t: 'Set up a private limited company', p: 'GOV.UK', u: 'https://www.gov.uk/limited-company-formation', type: 'official' },
@@ -435,7 +448,7 @@
 
   var api = {
     DATA_AS_OF: DATA_AS_OF, COUNTRIES: COUNTRIES, CRITERIA: CRITERIA, SCORES: SCORES,
-    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ,
+    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
     ROADMAP: ROADMAP, SOURCES: SOURCES, LITERATURE: LITERATURE
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -1,4 +1,4 @@
-# FoundNorth – where to found your startup
+# FoundersNavigator – where to found your startup
 
 An interactive, evidence-based decision helper for founders asking: **in which of six countries – Germany, Switzerland, Liechtenstein, the United Kingdom, the United States or Portugal – should I found my startup?**
 

@@ -1,9 +1,9 @@
-/* FoundNorth – UI layer (vanilla JS, no build step) */
+/* FoundersNavigator – UI layer (vanilla JS, no build step) */
 (function () {
   'use strict';
   var D = window.SSN_DATA, E = window.SSN_ENGINE;
   var Q = E.QUESTIONS;
-  var STORE_KEY = 'foundnorth-v1';
+  var STORE_KEY = 'foundersnavigator-v1';
   var STEPS = Q.map(function (q) { return { kind: 'q', q: q, block: q.block }; }).concat([{ kind: 'prio', block: 'priorities' }]);
   var app = document.getElementById('app');
   var srStatus = document.getElementById('sr-status');
@@ -106,7 +106,7 @@
 
   /* ---------- answers ---------- */
   function snapshotOrder() { var r = E.evaluate(state.answers); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
-  function change(mutator, label) {
+  function change(mutator, label, qid) {
     state.example = null;
     var before = snapshotOrder();
     mutator();
@@ -116,12 +116,12 @@
     Object.keys(after).forEach(function (k) {
       if (after[k].excluded) return;
       var d = after[k].total - before[k].total;
-      if (!best || Math.abs(d) > Math.abs(best.d)) best = { k: k, d: d };
+      if (!best || Math.abs(d) > Math.abs(best.d) + 0.01 || (Math.abs(Math.abs(d) - Math.abs(best.d)) <= 0.01 && d > best.d)) best = { k: k, d: d };
     });
-    state.lastMove = (best && Math.abs(best.d) >= 0.5) ? { k: best.k, d: best.d, label: label } : null;
+    state.lastMove = (best && Math.abs(best.d) >= 0.5) ? { k: best.k, d: best.d, label: label } : { none: true, label: label, qid: qid };
     save();
   }
-  function setSingle(q, v) { change(function () { state.answers[q.id] = v; delete state.skipped[q.id]; }, q.title); }
+  function setSingle(q, v) { change(function () { state.answers[q.id] = v; delete state.skipped[q.id]; }, q.title, q.id); }
   function toggleMulti(q, v) {
     change(function () {
       var cur = Array.isArray(state.answers[q.id]) ? state.answers[q.id].slice() : [];
@@ -132,9 +132,9 @@
       else { cur = cur.filter(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return !o.exclusive; }); cur.push(v); }
       if (cur.length) state.answers[q.id] = cur; else delete state.answers[q.id];
       delete state.skipped[q.id];
-    }, q.title);
+    }, q.title, q.id);
   }
-  function skip(q) { change(function () { delete state.answers[q.id]; state.skipped[q.id] = true; }, q.title); }
+  function skip(q) { change(function () { delete state.answers[q.id]; state.skipped[q.id] = true; }, q.title, q.id); }
   function setPriority(cid, lvl) {
     change(function () { state.answers.priorities = state.answers.priorities || {}; state.answers.priorities[cid] = lvl; }, crit(cid).name);
   }
@@ -157,7 +157,7 @@
     var key = state.view + ':' + (state.view === 'wizard' ? state.step : '');
     if (key === lastRenderKey) Array.prototype.forEach.call(app.querySelectorAll('.anim'), function (el) { el.classList.remove('anim'); });
     lastRenderKey = key;
-    document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundNorth';
+    document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundersNavigator';
   }
 
   function viewLanding() {
@@ -175,7 +175,7 @@
         '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my most advantageous location') + icon('arrow') + '</button>' +
         (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
         '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
-        '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundNorth simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
+        '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundersNavigator simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
       '</div>' +
       '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol></aside>' +
       '</div>' +
@@ -275,7 +275,12 @@
         '<div class="bar"><span style="width:' + r.score + '%"></span></div></li>';
     }).join('');
     var why = '';
-    if (state.lastMove) {
+    if (state.lastMove && state.lastMove.none) {
+      var reason = 'this answer does not affect any score for your current profile.';
+      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = 'this passport gives no additional rights compared with your other one(s).';
+      else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = ef.effect.charAt(0).toLowerCase() + ef.effect.slice(1); }
+      why = '<p class="rail__why"><strong>No change:</strong> ' + esc(reason) + '</p>';
+    } else if (state.lastMove) {
       var c = country(state.lastMove.k);
       why = '<p class="rail__why"><strong>Why it moved:</strong> your answer to “' + esc(state.lastMove.label) + '” moved ' + esc(c.name) + ' ' + (state.lastMove.d > 0 ? 'up' : 'down') + ' ' + Math.abs(Math.round(state.lastMove.d)) + ' point' + (Math.abs(Math.round(state.lastMove.d)) === 1 ? '' : 's') + '.</p>';
     } else {
@@ -317,7 +322,7 @@
 
     var ranking = '<section class="card" aria-labelledby="rank-title"><h2 id="rank-title">Full ranking</h2><p class="card__sub">Fit score for your priorities (100 = top score on every factor you weight).</p><ol class="ranking">' +
       res.rows.map(function (r, i) {
-        var tag = r.excluded ? r.excluded : (r.residence ? ({ home: 'you live here', free: 'free movement', visa: 'visa needed', limited: 'residence limited' })[r.residence.level] : '');
+        var tag = r.excluded ? r.excluded : (r.residence ? ({ home: 'you live here', citizen: 'your passport', free: 'free movement', visa: 'visa needed', limited: 'residence limited' })[r.residence.level] : '');
         return '<li class="' + (r.excluded ? 'is-excluded' : '') + '"><span class="ranking__pos">' + (r.excluded ? '–' : (i + 1)) + '</span><span class="code' + (i === 0 ? '' : ' code--soft') + '">' + r.id + '</span>' +
           '<span class="ranking__body"><span class="ranking__name">' + esc(r.country.name) + (tag ? '<small>' + esc(tag) + '</small>' : '') + '</span><span class="bar"><span style="width:' + r.score + '%"></span></span></span>' +
           '<span class="ranking__score">' + r.score + '</span></li>';

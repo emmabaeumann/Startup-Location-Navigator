@@ -1,5 +1,5 @@
 /*
- * FoundNorth – deterministic recommendation engine
+ * FoundersNavigator – deterministic recommendation engine
  * -------------------------------------------------
  * Same answers in → same result out. No randomness, no network, no AI.
  *
@@ -19,9 +19,10 @@
     { id: 'citizenship', block: 'you', type: 'multi', title: 'Which citizenship(s) do you hold?',
       help: 'Select all that apply. Decides where you can live and work without a visa.',
       options: [
-        { v: 'eu', l: 'EU / EEA', s: 'Any EU country, Iceland, Norway' },
-        { v: 'ch', l: 'Switzerland', s: 'Swiss passport' },
-        { v: 'uk', l: 'United Kingdom', s: 'British passport' },
+        { v: 'de', l: 'Germany' }, { v: 'pt', l: 'Portugal' },
+        { v: 'euother', l: 'Other EU / EEA', s: 'Any other EU country, Iceland, Norway' },
+        { v: 'ch', l: 'Switzerland' }, { v: 'li', l: 'Liechtenstein' },
+        { v: 'uk', l: 'United Kingdom' },
         { v: 'us', l: 'United States', s: 'US passport or green card' },
         { v: 'other', l: 'Other', s: 'Any other passport' }
       ] },
@@ -114,8 +115,8 @@
     global: { US: 5, UK: 4, DE: 4, CH: 3, PT: 3, LI: 2 }
   };
 
-  var RES_SCORE = { home: 5, free: 4, visa: 2, limited: 1 };
-  var RES_RANK = { home: 4, free: 3, visa: 2, limited: 1 };
+  var RES_SCORE = { home: 5, citizen: 5, free: 4, visa: 2, limited: 1 };
+  var RES_RANK = { home: 5, citizen: 4, free: 3, visa: 2, limited: 1 };
 
   var IDS = D.COUNTRIES.map(function (c) { return c.id; });
   var COUNTRY_IN_LIST = { DE: 1, CH: 1, LI: 1, UK: 1, US: 1, PT: 1 };
@@ -171,8 +172,7 @@
       var tbl = D.RESIDENCE[c] || {};
       var r = tbl[k];
       if (!r) return;
-      var lvl = r.level === 'home' ? 'free' : r.level; // own passport but not living there → free movement
-      var cand = { level: lvl, text: r.level === 'home' ? 'Your passport country' : r.text };
+      var cand = { level: r.level, text: r.text };
       if (!best || RES_RANK[cand.level] > RES_RANK[best.level]) best = cand;
     });
     return best;
@@ -356,7 +356,8 @@
       if (!answered) t = 'Skipped – no effect on the result.';
       else if (q.id === 'citizenship') {
         var parts = [];
-        var fr = byLevel('free'), vi = byLevel('visa'), li = byLevel('limited');
+        var ci = byLevel('citizen'), fr = byLevel('free'), vi = byLevel('visa'), li = byLevel('limited');
+        if (ci.length) parts.push('full citizen rights in ' + names(ci));
         if (fr.length) parts.push('free movement in ' + names(fr));
         if (vi.length) parts.push('visa or permit needed for ' + names(vi));
         if (li.length) parts.push('residence quota-limited in ' + names(li));

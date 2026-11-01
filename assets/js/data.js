@@ -1,5 +1,5 @@
 /*
- * FoundNorth – evidence base
+ * FoundersNavigator – evidence base
  * ------------------------------------------------
  * Every country score (1–5) is derived from the documented facts in `value`/`note`
  * and the cited `sources`. Scores follow the anchor scales in CRITERIA[].anchors.
@@ -60,7 +60,7 @@
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Your right to live there, your local roots',
       info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.',
-      anchors: '5 = you already live there · 4 = free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
+      anchors: '5 = you already live there or hold its citizenship · 4 = free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
   ];
 
   /* S = score table. Each cell: score, value (one-line fact), note, sources, confidence. */
@@ -241,32 +241,56 @@
   /* Residence & work rights by citizenship → destination.
      level: 'home' | 'free' | 'visa' | 'limited' */
   var RESIDENCE = {
-    eu: {
+    de: {
+      DE: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      PT: { level: 'free', text: 'EU free movement' },
+      CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
+      LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
+      UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to German nationals; otherwise O-1 or others' }
+    },
+    pt: {
+      PT: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      DE: { level: 'free', text: 'EU free movement' },
+      CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
+      LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
+      UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Portuguese nationals (since 2024); otherwise O-1 or others' }
+    },
+    euother: {
       DE: { level: 'free', text: 'EU free movement' },
       PT: { level: 'free', text: 'EU free movement' },
       CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
       LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
       UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor (DE, PT and many EU states), O-1 or others' }
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor for many EU nationalities, otherwise O-1 or others' }
     },
     ch: {
-      CH: { level: 'home', text: 'Home country' },
+      CH: { level: 'citizen', text: 'Your passport country – no permit needed' },
       DE: { level: 'free', text: 'Free movement under the EU–Swiss agreement' },
       PT: { level: 'free', text: 'Free movement under the EU–Swiss agreement' },
       LI: { level: 'limited', text: 'Residence permits are quota-limited; commuting is common' },
       UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor available to Swiss nationals' }
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Swiss nationals' }
+    },
+    li: {
+      LI: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      DE: { level: 'free', text: 'EEA free movement' },
+      PT: { level: 'free', text: 'EEA free movement' },
+      CH: { level: 'free', text: 'Free movement under the EFTA Convention' },
+      UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
+      US: { level: 'visa', text: 'Visa needed – Liechtenstein is not an E-2 treaty country; O-1 or others' }
     },
     uk: {
-      UK: { level: 'home', text: 'Home country' },
+      UK: { level: 'citizen', text: 'Your passport country – no permit needed' },
       DE: { level: 'visa', text: 'Residence permit for self-employment needed (§21 AufenthG)' },
       PT: { level: 'visa', text: 'Visa needed – e.g. Startup Visa or D2 entrepreneur visa' },
       CH: { level: 'limited', text: 'Third-country quotas apply to UK nationals since 2021' },
       LI: { level: 'limited', text: 'Third-country rules; permits are scarce' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor available to UK nationals' }
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to UK nationals' }
     },
     us: {
-      US: { level: 'home', text: 'Home country' },
+      US: { level: 'citizen', text: 'Your passport country – no permit needed' },
       DE: { level: 'visa', text: 'Residence permit for self-employment needed (§21 AufenthG)' },
       PT: { level: 'visa', text: 'Visa needed – e.g. Startup Visa or D2 entrepreneur visa' },
       UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
@@ -289,7 +313,7 @@
   /* Residence & home base is calculated from the profile; this base cell is used until citizenship/residence is known. */
   COUNTRIES.forEach(function (c) {
     SCORES[c.id].residence = { score: 3, value: 'Depends on your citizenship(s) and where you live',
-      note: 'Scored from your answers: 5 if you already live here (home advantage), 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. Without answers it stays at the neutral 3.',
+      note: 'Scored from your answers: 5 if you already live here (home advantage) or hold its citizenship, 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. Without answers it stays at the neutral 3.',
       sources: RESIDENCE_SOURCES.concat(['dahl_sorenson']), confidence: 'medium' };
   });
 
@@ -316,9 +340,9 @@
   /* Example profiles for a one-click demo */
   var EXAMPLES = [
     { id: 'deeptech', title: 'TUM deep-tech founder', sub: 'EU citizen in Munich · AI · grants + VC',
-      answers: { citizenship: ['eu'], residence: 'DE', relocation: 'europe', sector: 'ai', market: 'eu', funding: ['grants', 'vc'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'all', priorities: { grants: 3, vc: 3, talent: 2 } } },
+      answers: { citizenship: ['de'], residence: 'DE', relocation: 'europe', sector: 'ai', market: 'eu', funding: ['grants', 'vc'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'all', priorities: { grants: 3, vc: 3, talent: 2 } } },
     { id: 'bootstrap', title: 'Bootstrapped e-commerce', sub: 'EU citizen · low costs · keep the profits',
-      answers: { citizenship: ['eu'], residence: 'euother', relocation: 'europe', sector: 'consumer', market: 'eu', funding: ['bootstrap'], capital: 'lt10', investors: ['none'], exit: 'hold', esop: 'no', priorities: { cost: 3, setup: 3, corpTax: 2, vc: 0, grants: 0 } } },
+      answers: { citizenship: ['euother'], residence: 'euother', relocation: 'europe', sector: 'consumer', market: 'eu', funding: ['bootstrap'], capital: 'lt10', investors: ['none'], exit: 'hold', esop: 'no', priorities: { cost: 3, setup: 3, corpTax: 2, vc: 0, grants: 0 } } },
     { id: 'fintech', title: 'Fintech with UK angels', sub: 'British founder in London · angels + VC',
       answers: { citizenship: ['uk'], residence: 'UK', relocation: 'europe', sector: 'fintech', market: 'uk', funding: ['angels', 'vc'], capital: '25to100', investors: ['UK'], exit: 'sale', esop: 'all', priorities: { esop: 3, vc: 3, setup: 2 } } }
   ];

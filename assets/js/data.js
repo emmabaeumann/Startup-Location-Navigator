@@ -241,23 +241,7 @@
   /* Residence & work rights by citizenship → destination.
      level: 'home' | 'free' | 'visa' | 'limited' */
   var RESIDENCE = {
-    de: {
-      DE: { level: 'citizen', text: 'Your passport country – full rights' },
-      PT: { level: 'free', text: 'EU free movement' },
-      CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
-      LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
-      UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to German nationals; otherwise O-1 or others' }
-    },
-    pt: {
-      PT: { level: 'citizen', text: 'Your passport country – full rights' },
-      DE: { level: 'free', text: 'EU free movement' },
-      CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
-      LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
-      UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Portuguese nationals (since 2024); otherwise O-1 or others' }
-    },
-    euother: {
+    eu: {
       DE: { level: 'free', text: 'EU free movement' },
       PT: { level: 'free', text: 'EU free movement' },
       CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },

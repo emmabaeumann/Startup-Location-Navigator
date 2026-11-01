@@ -19,8 +19,7 @@
     { id: 'citizenship', block: 'you', type: 'multi', title: 'Which citizenship(s) do you hold?',
       help: 'Founding a company is possible with any passport – but your passport decides where you can live and work while building it. Select all that apply.',
       options: [
-        { v: 'de', l: 'Germany' }, { v: 'pt', l: 'Portugal' },
-        { v: 'euother', l: 'Other EU / EEA', s: 'Any other EU country, Iceland, Norway' },
+        { v: 'eu', l: 'EU / EEA', s: 'Any EU country, Iceland, Norway' },
         { v: 'ch', l: 'Switzerland' }, { v: 'li', l: 'Liechtenstein' },
         { v: 'uk', l: 'United Kingdom' },
         { v: 'us', l: 'United States', s: 'US passport or green card' },

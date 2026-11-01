@@ -177,12 +177,13 @@
         '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my most advantageous location') + icon('arrow') + '</button>' +
         (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
         '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
-        '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundersNavigator simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
       '</div>' +
-      '<aside class="hero__card preview" aria-label="Example of the live ranking"><div class="rail__head"><h2>Live ranking</h2><span class="preview__tag">Example view</span></div>' +
+      '<div class="hero__side"><aside class="hero__card preview" aria-label="Example of the live ranking"><div class="rail__head"><h2>Live ranking</h2><span class="preview__tag">Example view</span></div>' +
         '<ol class="rank-list">' + rows + '</ol>' +
         '<p class="rail__why"><strong>Why it moved:</strong> each answer re-scores all six countries – and tells you why.</p>' +
       '</aside>' +
+      '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundersNavigator simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
+      '</div>' +
       '</div>' +
       '<div class="features">' +
         '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source and date.</p></div>' +

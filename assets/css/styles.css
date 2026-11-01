@@ -440,3 +440,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .preview__tag { font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--pink-ink); background: var(--pink-soft); padding: 4px 8px; border-radius: 6px; }
 .bar .grow { width: var(--w); animation: grow .9s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes grow { from { width: 0; } to { width: var(--w); } }
+
+/* Landing: right column (preview + disclaimer) matches the height of the left column */
+.hero { align-items: stretch; }
+.hero > div:first-child { display: flex; flex-direction: column; justify-content: center; }
+.hero__side { display: flex; flex-direction: column; gap: 14px; }
+.hero__side .preview { flex: 1; justify-content: space-between; }
+.hero__side .preview .rank-list { flex: 1; justify-content: space-evenly; }
+.hero__side .hero__note { margin-top: 0; max-width: none; }
+.hero__side .preview { padding: 22px 24px; gap: 12px; }
+.hero__side .preview .rank-list { gap: 8px; }
+.hero__side .hero__note { padding: 10px 14px; font-size: 13.5px; }

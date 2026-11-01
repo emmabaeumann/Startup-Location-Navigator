@@ -17,7 +17,7 @@
 
   var QUESTIONS = [
     { id: 'citizenship', block: 'you', type: 'multi', title: 'Which citizenship(s) do you hold?',
-      help: 'Select all that apply. Decides where you can live and work without a visa.',
+      help: 'Founding a company is possible with any passport – but your passport decides where you can live and work while building it. Select all that apply.',
       options: [
         { v: 'de', l: 'Germany' }, { v: 'pt', l: 'Portugal' },
         { v: 'euother', l: 'Other EU / EEA', s: 'Any other EU country, Iceland, Norway' },
@@ -115,7 +115,7 @@
     global: { US: 5, UK: 4, DE: 4, CH: 3, PT: 3, LI: 2 }
   };
 
-  var RES_SCORE = { home: 5, citizen: 5, free: 4, visa: 2, limited: 1 };
+  var RES_SCORE = { home: 5, citizen: 4, free: 4, visa: 2, limited: 1 };
   var RES_RANK = { home: 5, citizen: 4, free: 3, visa: 2, limited: 1 };
 
   var IDS = D.COUNTRIES.map(function (c) { return c.id; });

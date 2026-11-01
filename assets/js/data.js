@@ -60,7 +60,7 @@
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Your right to live there, your local roots',
       info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.',
-      anchors: '5 = you already live there or hold its citizenship · 4 = free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
+      anchors: '5 = you already live there · 4 = your passport country or free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
   ];
 
   /* S = score table. Each cell: score, value (one-line fact), note, sources, confidence. */
@@ -242,7 +242,7 @@
      level: 'home' | 'free' | 'visa' | 'limited' */
   var RESIDENCE = {
     de: {
-      DE: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      DE: { level: 'citizen', text: 'Your passport country – full rights' },
       PT: { level: 'free', text: 'EU free movement' },
       CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
       LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
@@ -250,7 +250,7 @@
       US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to German nationals; otherwise O-1 or others' }
     },
     pt: {
-      PT: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      PT: { level: 'citizen', text: 'Your passport country – full rights' },
       DE: { level: 'free', text: 'EU free movement' },
       CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
       LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
@@ -266,7 +266,7 @@
       US: { level: 'visa', text: 'Visa needed – E-2 treaty investor for many EU nationalities, otherwise O-1 or others' }
     },
     ch: {
-      CH: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      CH: { level: 'citizen', text: 'Your passport country – full rights' },
       DE: { level: 'free', text: 'Free movement under the EU–Swiss agreement' },
       PT: { level: 'free', text: 'Free movement under the EU–Swiss agreement' },
       LI: { level: 'limited', text: 'Residence permits are quota-limited; commuting is common' },
@@ -274,7 +274,7 @@
       US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Swiss nationals' }
     },
     li: {
-      LI: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      LI: { level: 'citizen', text: 'Your passport country – full rights' },
       DE: { level: 'free', text: 'EEA free movement' },
       PT: { level: 'free', text: 'EEA free movement' },
       CH: { level: 'free', text: 'Free movement under the EFTA Convention' },
@@ -282,7 +282,7 @@
       US: { level: 'visa', text: 'Visa needed – Liechtenstein is not an E-2 treaty country; O-1 or others' }
     },
     uk: {
-      UK: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      UK: { level: 'citizen', text: 'Your passport country – full rights' },
       DE: { level: 'visa', text: 'Residence permit for self-employment needed (§21 AufenthG)' },
       PT: { level: 'visa', text: 'Visa needed – e.g. Startup Visa or D2 entrepreneur visa' },
       CH: { level: 'limited', text: 'Third-country quotas apply to UK nationals since 2021' },
@@ -290,7 +290,7 @@
       US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to UK nationals' }
     },
     us: {
-      US: { level: 'citizen', text: 'Your passport country – no permit needed' },
+      US: { level: 'citizen', text: 'Your passport country – full rights' },
       DE: { level: 'visa', text: 'Residence permit for self-employment needed (§21 AufenthG)' },
       PT: { level: 'visa', text: 'Visa needed – e.g. Startup Visa or D2 entrepreneur visa' },
       UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
@@ -313,7 +313,7 @@
   /* Residence & home base is calculated from the profile; this base cell is used until citizenship/residence is known. */
   COUNTRIES.forEach(function (c) {
     SCORES[c.id].residence = { score: 3, value: 'Depends on your citizenship(s) and where you live',
-      note: 'Scored from your answers: 5 if you already live here (home advantage) or hold its citizenship, 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. Without answers it stays at the neutral 3.',
+      note: 'Scored from your answers: 5 if you already live here (home advantage), 4 if you hold its citizenship or have free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. Without answers it stays at the neutral 3.',
       sources: RESIDENCE_SOURCES.concat(['dahl_sorenson']), confidence: 'medium' };
   });
 

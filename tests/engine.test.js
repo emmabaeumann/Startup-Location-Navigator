@@ -55,7 +55,7 @@ test('several citizenships: the most favourable residence status counts', () => 
   const de = r.rows.find(x => x.id === 'DE');
   assert.strictEqual(de.scores.residence.value, 4);
   const uk = E.evaluate({ citizenship: ['euother', 'uk'] }).rows.find(x => x.id === 'UK');
-  assert.strictEqual(uk.scores.residence.value, 5);
+  assert.strictEqual(uk.scores.residence.value, 4);
 });
 
 test('living in a country gives the home-base maximum', () => {
@@ -96,10 +96,11 @@ test('every answer gets a plain-language explanation', () => {
   for (const e of r.effects) assert.ok(e.effect.length > 10);
 });
 
-test('own passport country gets the top residence score', () => {
+test('own passport country counts like free movement; only living there gives 5', () => {
   const r = E.evaluate({ citizenship: ['ch'] });
-  assert.strictEqual(r.rows.find(x => x.id === 'CH').scores.residence.value, 5);
+  assert.strictEqual(r.rows.find(x => x.id === 'CH').scores.residence.value, 4);
   assert.strictEqual(r.rows.find(x => x.id === 'DE').scores.residence.value, 4);
-  const both = E.evaluate({ citizenship: ['ch', 'de'] });
-  assert.strictEqual(both.rows.find(x => x.id === 'DE').scores.residence.value, 5);
+  assert.strictEqual(r.rows.find(x => x.id === 'UK').scores.residence.value, 2);
+  const home = E.evaluate({ citizenship: ['ch'], residence: 'CH' });
+  assert.strictEqual(home.rows.find(x => x.id === 'CH').scores.residence.value, 5);
 });

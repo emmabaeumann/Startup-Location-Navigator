@@ -295,7 +295,7 @@
   }
 
   /* ---------- results ---------- */
-  var CONTRIB_COLORS = ['#FD0262', '#FF7AA8', '#9CC8F2', '#5FA2E3', '#2F80D1', '#C9DEF5', '#7C93B4', '#B4C3D8', '#E3ECF7'];
+  var CONTRIB_COLORS = ['#FD0262', '#FF7AA8', '#9CC8F2', '#5FA2E3', '#2F80D1', '#C9DEF5', '#7C93B4', '#B4C3D8', '#E3ECF7', '#4A6FA5'];
 
   function viewResults() {
     var res = E.evaluate(state.answers);
@@ -361,9 +361,9 @@
       '<div class="entity-box"><span>Legal form: <b>' + esc(country(tab).entity) + '</b></span>' + (rs ? '<span>Residence: <b>' + esc(rs.text) + '</b></span>' : '') + '</div>' +
       '<ol class="roadmap">' + steps + '</ol></section>';
 
-    var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">How your answers were used</h2><p class="card__sub">Every answer and exactly what it changed. Click an answer to edit it.</p><ul class="effects">' +
-      res.effects.map(function (e, i) { return '<li class="' + (e.answered ? '' : 'is-skipped') + '"><button type="button" class="effects__answer" data-action="goto" data-step="' + i + '"><small>' + esc(e.title) + '</small><span>' + esc(e.answer) + '</span></button><p>' + esc(e.effect) + '</p></li>'; }).join('') +
-      '</ul></section>';
+    var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">Your answers</h2><p class="card__sub">Click to change an answer. Skipped questions have no effect.</p><div class="answers">' +
+      Q.map(function (q, i) { var l = answerLabel(q); var ef = res.effects[i]; return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '" title="' + esc(ef ? ef.effect : '') + '"><small>' + esc(q.title) + '</small><span>' + esc(l || 'Not answered') + '</span></button>'; }).join('') +
+      '</div></section>';
 
     // matrix
     var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
@@ -390,7 +390,7 @@
       (state.example ? '<div class="example-banner"><span>Example profile: <b>' + esc(state.example) + '</b></span><button type="button" class="textbtn" data-action="goto" data-step="0">Make it yours – edit the answers</button></div>' : '') +
       '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' – add more for a sharper result' : '') + '</span>' +
       '<div class="results__actions"><button type="button" class="btn btn--ghost" data-action="goto" data-step="0">' + icon('edit') + 'Edit answers</button><button type="button" class="btn btn--ghost" data-action="share">' + icon('link') + 'Copy share link</button><button type="button" class="btn btn--dark" data-action="print">' + icon('print') + 'Save as PDF</button></div></div>' +
-      '<div class="grid-2">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
+      '<div class="grid-2 grid-2--equal">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
       '<p class="result-note"><strong>How to use this result:</strong> it is an evidence-based orientation built on simplified, standardised cases – a starting point for your shortlist, not legal or tax advice. Confirm the details for your situation with an adviser before you act.</p>' +
       '<p style="font-size:13px;color:var(--muted)">Deterministic result: no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
       '</section>';

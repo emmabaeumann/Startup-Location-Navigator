@@ -451,3 +451,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hero__side .preview { padding: 22px 24px; gap: 12px; }
 .hero__side .preview .rank-list { gap: 8px; }
 .hero__side .hero__note { padding: 10px 14px; font-size: 13.5px; }
+
+/* Results: ranking card as tall as the recommendation card */
+.grid-2--equal { align-items: stretch; }
+.grid-2--equal > .card { display: flex; flex-direction: column; }
+.grid-2--equal .ranking { flex: 1; justify-content: space-evenly; }

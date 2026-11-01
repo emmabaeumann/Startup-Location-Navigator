@@ -107,6 +107,7 @@
   /* ---------- answers ---------- */
   function snapshotOrder() { var r = E.evaluate(state.answers); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
   function change(mutator, label) {
+    state.example = null;
     var before = snapshotOrder();
     mutator();
     var after = snapshotOrder();
@@ -162,7 +163,7 @@
   function viewLanding() {
     var started = Object.keys(state.answers).length > 0;
     var crits = D.CRITERIA.map(function (c, i) {
-      return '<li><span class="crit-num">' + (i + 1) + '</span><span><strong>' + esc(c.name) + '</strong><small>' + esc(c.hint) + '</small></span></li>';
+      return '<li><span class="crit-num">' + (i + 1) + '</span><span><strong>' + esc(c.name) + '</strong></span></li>';
     }).join('');
     var chips = D.COUNTRIES.map(function (c) { return '<span class="chip"><span class="code code--soft">' + c.id + '</span>' + esc(c.name) + '</span>'; }).join('');
     return '<section class="landing anim">' +
@@ -176,13 +177,16 @@
         '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
         '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundNorth simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
       '</div>' +
-      '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol><small>No ranking without your profile: what is best depends on who you are and what you need.</small></aside>' +
+      '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol></aside>' +
       '</div>' +
       '<div class="features">' +
         '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source and date.</p></div>' +
         '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your citizenship, home, investors and exit plans change the weights – grounded in research on founder location choices.</p></div>' +
         '<div class="feature"><span class="feature__icon">' + icon('scale') + '</span><h3>Transparent and deterministic</h3><p>No AI and no black box: the same answers always give the same result, and a robustness check tells you how close the call is.</p></div>' +
-      '</div></section>';
+      '</div>' +
+      '<div class="examples"><div><h2>Try an example</h2><p>See a full result in one click – then edit the answers to make it yours.</p></div><div class="examples__list">' +
+        D.EXAMPLES.map(function (ex) { return '<button type="button" class="example" data-action="example" data-id="' + ex.id + '"><strong>' + esc(ex.title) + '</strong><span>' + esc(ex.sub) + '</span>' + icon('arrow') + '</button>'; }).join('') +
+      '</div></div></section>';
   }
 
   function viewWizard() {
@@ -308,6 +312,7 @@
       '<p class="winner__lead">' + lead + '</p>' +
       '<div class="contrib"><span style="font-size:13px;color:#9CC8F2;font-weight:600">What makes up the ' + top.score + ' points</span><div class="contrib__bar" role="img" aria-label="Score contribution by criterion: ' + esc(parts.map(function (p) { return crit(p.id).short + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><div class="contrib__legend">' + legend + '</div></div>' +
       (robText ? '<p style="font-size:13.5px;color:#D3E3F5;position:relative;z-index:1">' + esc(robText) + '</p>' : '') +
+      changeHtml(res) +
       '</section>';
 
     var ranking = '<section class="card" aria-labelledby="rank-title"><h2 id="rank-title">Full ranking</h2><p class="card__sub">Fit score for your priorities (100 = top score on every factor you weight).</p><ol class="ranking">' +
@@ -342,14 +347,14 @@
     var tabs = orderIds.map(function (k) { return '<button type="button" role="tab" class="tab" aria-selected="' + (k === tab) + '" data-action="tab" data-k="' + k + '"><span class="code' + (k === tab ? '' : ' code--soft') + '">' + k + '</span>' + esc(country(k).name) + '</button>'; }).join('');
     var steps = D.ROADMAP[tab].map(function (s) { return '<li><div><strong>' + esc(s.t) + '</strong><p>' + esc(s.d) + ' ' + srcLink(s.src) + '</p></div></li>'; }).join('');
     var rs = res.rows.filter(function (r) { return r.id === tab; })[0].residence;
-    var roadmap = '<section class="card" aria-labelledby="rm-title"><h2 id="rm-title">Your founding roadmap</h2><p class="card__sub">Concrete first steps, each linked to an official or expert source.</p>' +
+    var roadmap = '<section class="card" aria-labelledby="rm-title"><h2 id="rm-title">Your founding roadmap</h2><p class="card__sub">Your first five steps to found in ' + esc(country(tab).name) + ' – with a source to check each one.</p>' +
       '<div class="tabs" role="tablist" aria-label="Country roadmap">' + tabs + '</div>' +
       '<div class="entity-box"><span>Legal form: <b>' + esc(country(tab).entity) + '</b></span>' + (rs ? '<span>Residence: <b>' + esc(rs.text) + '</b></span>' : '') + '</div>' +
       '<ol class="roadmap">' + steps + '</ol></section>';
 
-    var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">Your answers</h2><p class="card__sub">Click to change an answer. Skipped questions have no effect.</p><div class="answers">' +
-      Q.map(function (q, i) { var l = answerLabel(q); return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '"><small>' + esc(q.title) + '</small><span>' + esc(l || 'Not answered') + '</span></button>'; }).join('') +
-      '</div></section>';
+    var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">How your answers were used</h2><p class="card__sub">Every answer and exactly what it changed. Click an answer to edit it.</p><ul class="effects">' +
+      res.effects.map(function (e, i) { return '<li class="' + (e.answered ? '' : 'is-skipped') + '"><button type="button" class="effects__answer" data-action="goto" data-step="' + i + '"><small>' + esc(e.title) + '</small><span>' + esc(e.answer) + '</span></button><p>' + esc(e.effect) + '</p></li>'; }).join('') +
+      '</ul></section>';
 
     // matrix
     var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
@@ -373,12 +378,21 @@
     var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><h2 id="wi-title">What if your priorities change?</h2><p class="card__sub">Adjust a level and the whole page updates instantly.</p><div class="prio whatif">' + prioRows(false) + '</div></section>';
 
     return '<section class="results">' +
+      (state.example ? '<div class="example-banner"><span>Example profile: <b>' + esc(state.example) + '</b></span><button type="button" class="textbtn" data-action="goto" data-step="0">Make it yours – edit the answers</button></div>' : '') +
       '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' – add more for a sharper result' : '') + '</span>' +
       '<div class="results__actions"><button type="button" class="btn btn--ghost" data-action="goto" data-step="0">' + icon('edit') + 'Edit answers</button><button type="button" class="btn btn--ghost" data-action="share">' + icon('link') + 'Copy share link</button><button type="button" class="btn btn--dark" data-action="print">' + icon('print') + 'Save as PDF</button></div></div>' +
       '<div class="grid-2">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
       '<p class="result-note"><strong>How to use this result:</strong> it is an evidence-based orientation built on simplified, standardised cases – a starting point for your shortlist, not legal or tax advice. Confirm the details for your situation with an adviser before you act.</p>' +
       '<p style="font-size:13px;color:var(--muted)">Deterministic result: no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
       '</section>';
+  }
+
+  function changeHtml(res) {
+    if (!res.changes) return '';
+    if (!res.changes.length) return '<div class="changes"><strong>What would change the result?</strong><p>No single priority change would move another country to #1.</p></div>';
+    return '<div class="changes"><strong>What would change the result?</strong><ul>' + res.changes.map(function (c) {
+      return '<li>If “' + esc(crit(c.c).name) + '” were <b>' + esc(E.LEVELS[c.to].l.toLowerCase()) + '</b> (now ' + esc(E.LEVELS[c.from].l.toLowerCase()) + '), <b>' + esc(country(c.winner).name) + '</b> would lead.</li>';
+    }).join('') + '</ul></div>';
   }
 
   /* ---------- method page ---------- */
@@ -395,10 +409,10 @@
       '<div><span class="eyebrow">Method &amp; sources</span><h1 tabindex="-1">How the recommendation is calculated</h1><p style="margin-top:10px;font-size:17px">A transparent multi-criteria model. No AI is used at run time – identical answers always produce identical results.</p></div>' +
       '<div class="card"><h2>1 · Evidence scores (1–5)</h2><p>For each country and criterion we collected the current legal and statistical facts (statutes, tax authorities, OECD, Eurostat, WIPO, national registers) and translated them into a 1–5 score using fixed anchor scales. Anchors are absolute, not relative to the six countries, so a score means the same thing everywhere. Where we found no reliable data, the score is set to the neutral midpoint 3 and labelled “no data”, so missing evidence does not penalise a country.</p><table class="anchors"><tbody>' + anchors + '</tbody></table></div>' +
       '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each criterion is phrased as a goal (e.g. “Low tax on company profits”), and you say how important it is: Not important = 0, Somewhat important = 1 (default), Important = 2, Crucial = 3. Exception: “Easy residence &amp; local roots” starts at Important, because home advantage is one of the most robust findings in location research (Dahl &amp; Sorenson 2012); if you say you would move anywhere, it starts at Somewhat important. Some answers add one level (capped at 4), and every change is shown in the comparison matrix:</p><ul>' +
-        '<li>Planning venture capital → +1 on VC access; grants → +1 on public funding; accelerator → +1 on talent &amp; ecosystem</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not important” always stays 0.</li></ul></div>' +
+        '<li>Planning venture capital → +1 on VC access; grants or business angels → +1 on public funding (angel tax reliefs such as UK SEIS/EIS are scored there); accelerator → +1 on talent &amp; ecosystem. Each criterion is raised by at most one level.</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not important” always stays 0.</li></ul></div>' +
       '<div class="card"><h2>3 · Profile adjustments to scores</h2><p>All adjustments are whole steps and keep scores within 1–5:</p><ul>' +
         '<li><b>Residence &amp; home base</b> is scored from your answers: 5 where you already live (home advantage, Dahl &amp; Sorenson 2012), 4 with free movement for one of your passports, 2 if a visa or permit is needed, 1 if residence is quota-limited. With several citizenships, the most favourable one counts. Without answers it stays at 3.</li>' +
-        '<li>Investors based in a country → +1 on that country’s VC access (US investors usually expect a Delaware C-Corp).</li>' +
+        '<li>Existing investors based in a country → +1 on “local roots” for that country: investors are part of your network, not of the local VC market.</li>' +
         '<li>US grants: −1 for non-US founders because SBIR/STTR requires &gt; 50% US ownership; +1 for US citizens.</li>' +
         '<li>Sector: +1 on the ecosystem score only where a source supports it – fintech (Zurich in the GFCI top 10; Liechtenstein’s blockchain law TVTG), health &amp; life sciences (Lausanne/Basel clusters), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). For AI, the leading hubs (US, UK) already hold the maximum ecosystem and VC scores, so a bonus would change nothing; software &amp; SaaS is the least location-bound sector; for climate &amp; energy we found no comparable evidence. The results page explains how your sector was treated.</li>' +
         '<li>Target market: market-access score set from a fixed table for your target region (EU single market, DACH, UK, US, global or home).</li>' +
@@ -448,10 +462,14 @@
       case 'home': e.preventDefault(); go('landing'); break;
       case 'start': go('wizard', { step: firstOpenStep() }); break;
       case 'method': go('method'); break;
+      case 'example':
+        var ex = D.EXAMPLES.filter(function (x) { return x.id === t.getAttribute('data-id'); })[0];
+        if (ex) { state.answers = JSON.parse(JSON.stringify(ex.answers)); state.skipped = {}; state.example = ex.title; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null; go('results'); }
+        break;
       case 'results': go('results'); break;
       case 'restart':
         if (!Object.keys(state.answers).length || window.confirm('Start over? Your answers in this browser will be cleared.')) {
-          state.answers = {}; state.skipped = {}; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
+          state.answers = {}; state.skipped = {}; state.example = null; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
           if (location.hash) history.replaceState(null, '', location.pathname + location.search);
           go('landing');
         }

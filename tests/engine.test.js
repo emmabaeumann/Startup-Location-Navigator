@@ -78,3 +78,20 @@ test('residence defaults to important unless the founder would move anywhere', (
   assert.strictEqual(E.computeWeights({ relocation: 'anywhere' }).residence.value, 1);
   assert.strictEqual(E.computeWeights({ relocation: 'anywhere', priorities: { residence: 3 } }).residence.value, 3);
 });
+
+test('US investors raise the US (local roots), even though US VC access is already at the maximum', () => {
+  const base = E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'US').total;
+  const withInv = E.evaluate({ citizenship: ['eu'], investors: ['US'] }).rows.find(r => r.id === 'US').total;
+  assert.ok(withInv > base);
+});
+
+test('business angels raise the weight of public funding (once)', () => {
+  assert.strictEqual(E.computeWeights({ funding: ['angels'] }).grants.value, 2);
+  assert.strictEqual(E.computeWeights({ funding: ['angels', 'grants'] }).grants.value, 2);
+});
+
+test('every answer gets a plain-language explanation', () => {
+  const r = E.evaluate(D.EXAMPLES[0].answers);
+  assert.strictEqual(r.effects.length, E.QUESTIONS.length);
+  for (const e of r.effects) assert.ok(e.effect.length > 10);
+});

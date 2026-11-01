@@ -59,8 +59,8 @@
       anchors: 'Base: 4 = large single market (EU 27 / US) · 3 = national market with partial or treaty access. Adjusted by your target market.' },
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Your right to live there, your local roots',
-      info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s) and where you live.',
-      anchors: '5 = you already live there · 4 = free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get' }
+      info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.',
+      anchors: '5 = you already live there · 4 = free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
   ];
 
   /* S = score table. Each cell: score, value (one-line fact), note, sources, confidence. */
@@ -187,8 +187,8 @@
       corpTax: { score: 3, value: '≈ 25.6% on €100k profit (21% federal + state average)',
         note: 'Federal corporate tax 21% plus state tax where the company operates; OECD combined average 25.6%.',
         sources: ['taxfound_cit', 'oecd_cit'], confidence: 'high' },
-      exitTax: { score: 4, value: '15–20% (+3.8% NIIT) · QSBS can exclude up to $15m',
-        note: 'Long-term capital gains 15–20% plus 3.8% net investment income tax. Section 1202 QSBS (C-Corp stock issued after 4 Jul 2025): 50% excluded after 3 years, 75% after 4, 100% after 5, capped at $15m per issuer. Applies to US taxpayers; state tax may apply.',
+      exitTax: { score: 4, value: '≈ 23.8% without QSBS · 0% with QSBS after 5 years (up to $15m)',
+        note: 'Long-term capital gains 15–20% plus 3.8% net investment income tax (≈ 23.8% top rate = score 3). Section 1202 QSBS (C-Corp stock issued after 4 Jul 2025): 50% excluded after 3 years, 75% after 4, 100% after 5, capped at $15m per issuer (= score 5). The 4 is a deliberate blend because many VC-backed founders qualify. State income tax (e.g. up to 13.3% in California) is not included; QSBS benefits US taxpayers.',
         sources: ['qsbs_obbba'], confidence: 'high' },
       vc: { score: 5, value: '≈ $339bn VC invested in 2025',
         note: 'PitchBook-NVCA: US start-ups raised $339.4bn across 16,709 deals in 2025 (NVCA Yearbook: ≈ $320bn).',
@@ -215,8 +215,8 @@
       corpTax: { score: 3, value: '≈ 18.5% on €100k profit (15% on first €50k, 19% above, + up to 1.5% municipal)',
         note: 'IRC 19% for 2026 (scheduled 18% in 2027, 17% in 2028); SMEs pay 15% on the first €50,000. On €100,000: €7,500 + €9,500 = 17%, plus a municipal surcharge of up to 1.5% → ≈ 18.5%. State surcharge only above €1.5m profit.',
         sources: ['pt_irc26'], confidence: 'high' },
-      exitTax: { score: 3, value: '28% flat; only 50% counted for unlisted micro/small companies',
-        note: 'Gains on shares are taxed at 28% (art. 72 CIRS). For unlisted micro and small Portuguese companies only 50% of the gain is counted (art. 43 CIRS) – conditions apply; verify with an adviser.',
+      exitTax: { score: 4, value: '≈ 14%: 28% on 50% of the gain (unlisted micro/small companies)',
+        note: 'Gains on shares are taxed at a flat 28% (art. 72 CIRS). For unlisted micro and small Portuguese companies, which covers most start-ups, only 50% of the gain is counted (art. 43 CIRS) → ≈ 14% effective. Larger companies: 28% (score 2). Conditions apply; verify with an adviser.',
         sources: ['pt_cirs43'], confidence: 'medium' },
       vc: { score: 2, value: '≈ €0.7bn VC raised in 2024',
         note: 'tech.eu counted €681m across 48 rounds in 2024 and €190m in H1 2025. No full-year 2025 figure was available, and the source and currency differ from the other countries – the band is wide enough that this does not change the score.',
@@ -227,7 +227,7 @@
       talent: { score: 3, value: 'GII 2025 rank 31 · Porto among emerging ecosystems (2026)',
         note: 'Portugal ranks 31st of 139 in the GII 2025; Porto appears in Startup Genome’s 2026 emerging-ecosystem ranking (#51–60).',
         sources: ['gii_pt', 'gser26_eu'], confidence: 'high' },
-      esop: { score: 3, value: 'Start-up regime: taxed only on sale, 50% of the gain exempt',
+      esop: { score: 4, value: 'Start-up regime: taxed only on sale, 50% of the gain exempt',
         note: 'Lei 21/2023 (art. 43-C EBF) defers taxation of qualifying SME stock options until the shares are sold and exempts half of the gain; conditions apply.',
         sources: ['pt_startuplaw'], confidence: 'medium' },
       cost: { score: 5, value: 'Below the EU average in most categories (2024)',
@@ -312,6 +312,16 @@
     consumer: { text: 'Consumer & marketplaces: success depends mostly on access to your target market and on costs, which are already scored – no sector bonus applied.', src: null },
     other: null
   };
+
+  /* Example profiles for a one-click demo */
+  var EXAMPLES = [
+    { id: 'deeptech', title: 'TUM deep-tech founder', sub: 'EU citizen in Munich · AI · grants + VC',
+      answers: { citizenship: ['eu'], residence: 'DE', relocation: 'europe', sector: 'ai', market: 'eu', funding: ['grants', 'vc'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'all', priorities: { grants: 3, vc: 3, talent: 2 } } },
+    { id: 'bootstrap', title: 'Bootstrapped e-commerce', sub: 'EU citizen · low costs · keep the profits',
+      answers: { citizenship: ['eu'], residence: 'euother', relocation: 'europe', sector: 'consumer', market: 'eu', funding: ['bootstrap'], capital: 'lt10', investors: ['none'], exit: 'hold', esop: 'no', priorities: { cost: 3, setup: 3, corpTax: 2, vc: 0, grants: 0 } } },
+    { id: 'fintech', title: 'Fintech with UK angels', sub: 'British founder in London · angels + VC',
+      answers: { citizenship: ['uk'], residence: 'UK', relocation: 'europe', sector: 'fintech', market: 'uk', funding: ['angels', 'vc'], capital: '25to100', investors: ['UK'], exit: 'sale', esop: 'all', priorities: { esop: 3, vc: 3, setup: 2 } } }
+  ];
 
   /* Practical roadmap per country (each step points to an official source). */
   var ROADMAP = {
@@ -448,7 +458,7 @@
 
   var api = {
     DATA_AS_OF: DATA_AS_OF, COUNTRIES: COUNTRIES, CRITERIA: CRITERIA, SCORES: SCORES,
-    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
+    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES, EXAMPLES: EXAMPLES,
     ROADMAP: ROADMAP, SOURCES: SOURCES, LITERATURE: LITERATURE
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -64,7 +64,7 @@
         { v: 'vc', l: 'Venture capital', s: 'Institutional rounds' }
       ] },
     { id: 'capital', block: 'capital', type: 'single', title: 'How much capital is already secured?',
-      help: 'The brackets follow the legal minimum capital: CHF 10k in Liechtenstein, €12.5k paid in for a German GmbH, CHF 20k in Switzerland.',
+      help: 'Some legal forms require share capital to be paid in before the company is registered.',
       options: [
         { v: 'none', l: 'Nothing yet' }, { v: 'lt10', l: 'Less than €10k' }, { v: '10to25', l: '€10k – €25k' },
         { v: '25to100', l: '€25k – €100k' }, { v: '100to1m', l: '€100k – €1M' }, { v: 'gt1m', l: 'More than €1M' }
@@ -142,12 +142,13 @@
     });
     function bump(id, why) {
       if (w[id].level === 0) return; // an explicit "not important" always wins
-      if (w[id].value >= 4) return;
+      if (w[id].value >= 4 || w[id].bonus >= 1) { if (w[id].reasons.indexOf(why) === -1 && w[id].bonus >= 1) w[id].reasons.push(why); return; }
       w[id].value += 1; w[id].bonus += 1;
       w[id].reasons.push(why);
     }
     if (has(a.funding, 'vc')) bump('vc', 'You plan to raise venture capital');
     if (has(a.funding, 'grants')) bump('grants', 'You plan to use grants');
+    if (has(a.funding, 'angels')) bump('grants', 'Investor tax reliefs (e.g. UK SEIS/EIS) target business angels');
     if (has(a.funding, 'accelerator')) bump('talent', 'Accelerators depend on a strong local ecosystem');
     if (has(a.funding, 'bootstrap')) { bump('corpTax', 'Bootstrapped companies live on retained profits'); bump('cost', 'Bootstrapping makes burn rate critical'); }
     if (a.exit === 'sale' || a.exit === 'ipo') bump('exitTax', 'You plan an exit');
@@ -201,12 +202,13 @@
       out[k].residence.status = rs;
     });
     // Investors' home jurisdictions
+    // Existing investors are part of your local network → "local roots", not the size of the VC market
     var inv = Array.isArray(a.investors) ? a.investors : [];
-    if (has(inv, 'DE')) adj('DE', 'vc', 1, 'your investors are based here');
-    if (has(inv, 'CHLI')) { adj('CH', 'vc', 1, 'your investors are based here'); adj('LI', 'vc', 1, 'your investors are based in CH/LI'); }
-    if (has(inv, 'UK')) adj('UK', 'vc', 1, 'your investors are based here');
-    if (has(inv, 'US')) adj('US', 'vc', 1, 'your investors are based here (US VCs usually expect a Delaware C-Corp)');
-    if (has(inv, 'EU')) { adj('PT', 'vc', 1, 'your investors are EU-based'); adj('DE', 'vc', 1, 'your investors are EU-based'); }
+    if (has(inv, 'DE')) adj('DE', 'residence', 1, 'your investors are based here');
+    if (has(inv, 'CHLI')) { adj('CH', 'residence', 1, 'your investors are based here'); adj('LI', 'residence', 1, 'your investors are based in CH/LI'); }
+    if (has(inv, 'UK')) adj('UK', 'residence', 1, 'your investors are based here');
+    if (has(inv, 'US')) adj('US', 'residence', 1, 'your investors are based here');
+    if (has(inv, 'EU')) { adj('PT', 'residence', 1, 'your investors are EU-based'); adj('DE', 'residence', 1, 'your investors are EU-based'); }
     // SBIR ownership rule
     var cl = cits(a);
     if (has(cl, 'us')) adj('US', 'grants', 1, 'SBIR/STTR is open to US-owned companies');
@@ -338,7 +340,89 @@
     return { why: why.map(function (c) { return c.id; }), tradeoffs: trade.map(function (c) { return c.id; }) };
   }
 
-  function evaluate(a) {
+  /* ---------- How each answer was used (plain-language transparency) ---------- */
+  function names(list) {
+    var n = list.map(function (k) { return D.COUNTRIES[IDS.indexOf(k)].name; });
+    return n.length > 1 ? n.slice(0, -1).join(', ') + ' and ' + n[n.length - 1] : (n[0] || '');
+  }
+  function answerEffects(a, res) {
+    var out = [];
+    var byLevel = function (lvl) { return res.rows.filter(function (r) { return r.residence && r.residence.level === lvl; }).map(function (r) { return r.id; }); };
+    QUESTIONS.forEach(function (q) {
+      var v = a[q.id];
+      var answered = q.type === 'multi' ? (Array.isArray(v) && v.length) : v != null;
+      var label = answered ? (Array.isArray(v) ? v : [v]).map(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return o ? o.l : x; }).join(', ') : 'Not answered';
+      var t = '';
+      if (!answered) t = 'Skipped – no effect on the result.';
+      else if (q.id === 'citizenship') {
+        var parts = [];
+        var fr = byLevel('free'), vi = byLevel('visa'), li = byLevel('limited');
+        if (fr.length) parts.push('free movement in ' + names(fr));
+        if (vi.length) parts.push('visa or permit needed for ' + names(vi));
+        if (li.length) parts.push('residence quota-limited in ' + names(li));
+        t = 'Sets your residence score: ' + parts.join('; ') + '.';
+      } else if (q.id === 'residence') {
+        t = COUNTRY_IN_LIST[v] ? names([v]) + ' gets the top residence score (5) for your existing home base.' : 'Not one of the six countries, so no home-base bonus.';
+      } else if (q.id === 'relocation') {
+        if (v === 'europe') t = 'The United States is excluded (still shown, greyed out).';
+        else if (v === 'stay') t = COUNTRY_IN_LIST[a.residence] ? 'Only ' + names([a.residence]) + ' is ranked; the others are shown for reference.' : 'No country excluded, because your home is outside the six.';
+        else t = 'No exclusions, and residence starts at “somewhat important” because you are mobile.';
+      } else if (q.id === 'sector') {
+        var sa = D.SECTOR_ADJ[v];
+        t = sa ? '+1 on the ecosystem score for ' + names(IDS.filter(function (k) { return sa[k]; })) + '.' : (v === 'ai' ? 'No bonus needed: the leading AI hubs (US, UK) already hold the top score.' : (v === 'software' ? 'No sector bonus: software is the least location-bound sector.' : 'No sector bonus: no comparable country-level evidence.'));
+      } else if (q.id === 'market') {
+        var best = res.rows.filter(function (r) { return r.scores.market.value === 5; }).map(function (r) { return r.id; });
+        t = best.length ? 'Market access is highest (5) for ' + names(best) + '.' : 'No effect, because your home is outside the six countries.';
+      } else if (q.id === 'funding') {
+        var f = [];
+        if (has(v, 'vc')) f.push('VC access');
+        if (has(v, 'grants') || has(v, 'angels')) f.push('public funding (incl. angel tax reliefs)');
+        if (has(v, 'accelerator')) f.push('talent & ecosystem');
+        if (has(v, 'bootstrap')) f.push('low profit tax and low living cost');
+        t = f.length ? 'Raises the weight of ' + (f.length > 1 ? f.slice(0, -1).join(', ') + ' and ' + f[f.length - 1] : f[0]) + ' by one level.' : 'No effect.';
+      } else if (q.id === 'capital') {
+        if (v === 'none' || v === 'lt10') t = '−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000), where the minimum capital must be fully paid in. In Germany a UG can start from €1.';
+        else if (v === '10to25') t = 'Enough for every minimum except possibly Switzerland’s CHF 20,000 (fully paid in) – no score change.';
+        else t = 'Minimum capital is no constraint in any of the six countries – no effect on scores.';
+      } else if (q.id === 'investors') {
+        var map = { DE: ['DE'], CHLI: ['CH', 'LI'], UK: ['UK'], US: ['US'], EU: ['PT', 'DE'] };
+        var ks = [];
+        v.forEach(function (x) { (map[x] || []).forEach(function (k) { if (ks.indexOf(k) === -1) ks.push(k); }); });
+        t = ks.length ? '+1 on “local roots” for ' + names(ks) + ' (your existing network).' : (has(v, 'elsewhere') ? 'No score effect (outside the six countries) – see the note under “Watch out”.' : 'No existing investors – no effect on scores.');
+      } else if (q.id === 'exit') {
+        t = v === 'hold' ? 'Raises the weight of low profit tax by one level.' : (v === 'undecided' ? 'No effect – both tax criteria keep your chosen weight.' : 'Raises the weight of low exit tax by one level.');
+      } else if (q.id === 'esop') {
+        t = v === 'all' ? 'Raises the weight of founder-friendly stock options by one level.' : (v === 'no' ? 'Stock-option rules are not counted (weight 0).' : 'No change – stock options keep the weight you chose.');
+      }
+      out.push({ q: q.id, title: q.title, answer: label, effect: t, answered: !!answered });
+    });
+    return out;
+  }
+
+  /* ---------- What would change the result? ---------- */
+  function whatChanges(a, res) {
+    if (!res.top) return [];
+    var cur = res.weights, found = [];
+    D.CRITERIA.forEach(function (c) {
+      var curLvl = cur[c.id].level;
+      for (var lvl = 0; lvl <= 3; lvl++) {
+        if (lvl === curLvl) continue;
+        var b = JSON.parse(JSON.stringify(a));
+        b.priorities = b.priorities || {};
+        b.priorities[c.id] = lvl;
+        var r = evaluate(b, true);
+        if (r.top && r.top.id !== res.top.id) {
+          found.push({ c: c.id, from: curLvl, to: lvl, dist: Math.abs(lvl - curLvl), winner: r.top.id });
+        }
+      }
+    });
+    found.sort(function (x, y) { return x.dist - y.dist || D.CRITERIA.map(function (c) { return c.id; }).indexOf(x.c) - D.CRITERIA.map(function (c) { return c.id; }).indexOf(y.c); });
+    var seen = {}, out = [];
+    found.forEach(function (f) { if (!seen[f.c] && out.length < 3) { seen[f.c] = 1; out.push(f); } });
+    return out;
+  }
+
+  function evaluate(a, light) {
     a = a || {};
     var weights = computeWeights(a);
     var scores = adjustedScores(a);
@@ -346,14 +430,16 @@
     var eligible = rows.filter(function (r) { return !r.excluded; });
     var top = eligible[0] || null;
     var gap = eligible.length > 1 ? top.total - eligible[1].total : null;
-    var rob = top ? robustness(a, weights, scores, top.id) : null;
+    var rob = top && !light ? robustness(a, weights, scores, top.id) : null;
     var verdict = 'only';
-    if (eligible.length > 1) verdict = (rob.share >= 0.85 && gap >= 4) ? 'robust' : 'close';
-    return {
+    if (eligible.length > 1 && rob) verdict = (rob.share >= 0.85 && gap >= 4) ? 'robust' : 'close';
+    var res = {
       weights: weights, rows: rows, top: top, runnerUp: eligible[1] || null, gap: gap,
       robustness: rob, verdict: verdict, answered: answeredCount(a), totalQuestions: QUESTIONS.length,
       warnings: warnings(a, top), explain: explain(top, weights)
     };
+    if (!light) { res.effects = answerEffects(a, res); res.changes = whatChanges(a, res); }
+    return res;
   }
 
   var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights, defaultLevel: defaultLevel };

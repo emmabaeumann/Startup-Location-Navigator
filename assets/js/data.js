@@ -337,16 +337,6 @@
     other: null
   };
 
-  /* Example profiles for a one-click demo */
-  var EXAMPLES = [
-    { id: 'deeptech', title: 'TUM deep-tech founder', sub: 'EU citizen in Munich · AI · grants + VC',
-      answers: { citizenship: ['de'], residence: 'DE', relocation: 'europe', sector: 'ai', market: 'eu', funding: ['grants', 'vc'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'all', priorities: { grants: 3, vc: 3, talent: 2 } } },
-    { id: 'bootstrap', title: 'Bootstrapped e-commerce', sub: 'EU citizen · low costs · keep the profits',
-      answers: { citizenship: ['euother'], residence: 'euother', relocation: 'europe', sector: 'consumer', market: 'eu', funding: ['bootstrap'], capital: 'lt10', investors: ['none'], exit: 'hold', esop: 'no', priorities: { cost: 3, setup: 3, corpTax: 2, vc: 0, grants: 0 } } },
-    { id: 'fintech', title: 'Fintech with UK angels', sub: 'British founder in London · angels + VC',
-      answers: { citizenship: ['uk'], residence: 'UK', relocation: 'europe', sector: 'fintech', market: 'uk', funding: ['angels', 'vc'], capital: '25to100', investors: ['UK'], exit: 'sale', esop: 'all', priorities: { esop: 3, vc: 3, setup: 2 } } }
-  ];
-
   /* Practical roadmap per country (each step points to an official source). */
   var ROADMAP = {
     DE: [
@@ -482,7 +472,7 @@
 
   var api = {
     DATA_AS_OF: DATA_AS_OF, COUNTRIES: COUNTRIES, CRITERIA: CRITERIA, SCORES: SCORES,
-    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES, EXAMPLES: EXAMPLES,
+    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
     ROADMAP: ROADMAP, SOURCES: SOURCES, LITERATURE: LITERATURE
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

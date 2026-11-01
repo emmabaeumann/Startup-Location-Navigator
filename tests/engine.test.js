@@ -91,7 +91,7 @@ test('business angels raise the weight of public funding (once)', () => {
 });
 
 test('every answer gets a plain-language explanation', () => {
-  const r = E.evaluate(D.EXAMPLES[0].answers);
+  const r = E.evaluate({ citizenship: ['de'], residence: 'DE', relocation: 'europe', sector: 'ai', market: 'eu', funding: ['grants', 'vc'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'all' });
   assert.strictEqual(r.effects.length, E.QUESTIONS.length);
   for (const e of r.effects) assert.ok(e.effect.length > 10);
 });

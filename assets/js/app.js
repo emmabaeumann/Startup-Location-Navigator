@@ -162,32 +162,33 @@
 
   function viewLanding() {
     var started = Object.keys(state.answers).length > 0;
-    var crits = D.CRITERIA.map(function (c, i) {
-      return '<li><span class="crit-num">' + (i + 1) + '</span><span><strong>' + esc(c.name) + '</strong></span></li>';
+    var demo = [82, 74, 67, 59, 51, 40];
+    var rows = D.COUNTRIES.map(function (c, i) {
+      return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top"><span class="code' + (i === 0 ? '' : ' code--soft') + '">' + c.id + '</span><span class="rank-item__name">' + esc(c.name) + '</span></div>' +
+        '<div class="bar"><span class="grow" style="--w:' + demo[i] + '%;animation-delay:' + (i * 90) + 'ms"></span></div></li>';
     }).join('');
-    var chips = D.COUNTRIES.map(function (c) { return '<span class="chip"><span class="code code--soft">' + c.id + '</span>' + esc(c.name) + '</span>'; }).join('');
     return '<section class="landing anim">' +
       '<div class="hero"><div>' +
-        '<span class="eyebrow">Founder decision helper · 6 countries · 10 criteria</span>' +
+        '<span class="eyebrow">Founder decision helper</span>' +
         '<h1>Where should you <em>found</em> your startup?</h1>' +
-        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get a first, evidence-based orientation on your most advantageous founding location – with every reason, trade-off and source on the table.</p>' +
-        '<div class="countries-strip" aria-label="Countries compared">' + chips + '</div>' +
+        '<p class="hero__lead">Compare Germany, Switzerland, Liechtenstein, the UK, the US and Portugal for your personal situation – with every reason and source on the table.</p>' +
         '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my most advantageous location') + icon('arrow') + '</button>' +
         (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
-        '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
-        '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundersNavigator simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
+        '<p class="hero__meta">10 click-only questions · about 3 minutes · skip anything you don’t know yet</p>' +
+        '<p class="hero__fine">A first, evidence-based orientation – not legal or tax advice.</p>' +
       '</div>' +
-      '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol></aside>' +
+      '<aside class="hero__card preview" aria-label="Example of the live ranking"><div class="rail__head"><h2>Live ranking</h2><span class="preview__tag">Example view</span></div>' +
+        '<ol class="rank-list">' + rows + '</ol>' +
+        '<p class="rail__why"><strong>Why it moved:</strong> each answer re-scores all six countries – and tells you why.</p>' +
+      '</aside>' +
       '</div>' +
       '<div class="features">' +
-        '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source and date.</p></div>' +
-        '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your citizenship, home, investors and exit plans change the weights – grounded in research on founder location choices.</p></div>' +
-        '<div class="feature"><span class="feature__icon">' + icon('scale') + '</span><h3>Transparent and deterministic</h3><p>No AI and no black box: the same answers always give the same result, and a robustness check tells you how close the call is.</p></div>' +
-      '</div>' +
-      '<div class="examples"><div><h2>Try an example</h2><p>See a full result in one click – then edit the answers to make it yours.</p></div><div class="examples__list">' +
-        D.EXAMPLES.map(function (ex) { return '<button type="button" class="example" data-action="example" data-id="' + ex.id + '"><strong>' + esc(ex.title) + '</strong><span>' + esc(ex.sub) + '</span>' + icon('arrow') + '</button>'; }).join('') +
-      '</div></div></section>';
+        '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source.</p></div>' +
+        '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your passport, home, investors and plans change the result.</p></div>' +
+        '<div class="feature"><span class="feature__icon">' + icon('scale') + '</span><h3>Transparent</h3><p>No AI, no black box: the same answers always give the same result.</p></div>' +
+      '</div></section>';
   }
+
 
   function viewWizard() {
     var step = STEPS[state.step];
@@ -467,10 +468,6 @@
       case 'home': e.preventDefault(); go('landing'); break;
       case 'start': go('wizard', { step: firstOpenStep() }); break;
       case 'method': go('method'); break;
-      case 'example':
-        var ex = D.EXAMPLES.filter(function (x) { return x.id === t.getAttribute('data-id'); })[0];
-        if (ex) { state.answers = JSON.parse(JSON.stringify(ex.answers)); state.skipped = {}; state.example = ex.title; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null; go('results'); }
-        break;
       case 'results': go('results'); break;
       case 'restart':
         if (!Object.keys(state.answers).length || window.confirm('Start over? Your answers in this browser will be cleared.')) {

@@ -431,3 +431,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .examples__list { grid-template-columns: minmax(0, 1fr); }
   .effects li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
 }
+
+/* Landing round 4: tidy hero + example live-ranking preview */
+.hero__lead { max-width: 520px; }
+.hero__fine { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.preview { gap: 16px; padding: 26px; }
+.preview .rank-item__top { font-size: 15px; }
+.preview__tag { font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--pink-ink); background: var(--pink-soft); padding: 4px 8px; border-radius: 6px; }
+.bar .grow { width: var(--w); animation: grow .9s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes grow { from { width: 0; } to { width: var(--w); } }
+.features { margin-top: clamp(48px, 7vw, 88px); }
+.feature { background: transparent; border: 0; padding: 0; }
+.feature p { font-size: 14.5px; }
+@media (max-width: 600px) {
+  .topnav { flex-wrap: nowrap; gap: 0; }
+  .linkbtn { padding: 8px; font-size: 13px; white-space: nowrap; }
+  .brand__text strong { font-size: 15px; }
+}

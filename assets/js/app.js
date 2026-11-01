@@ -169,11 +169,12 @@
       '<div class="hero"><div>' +
         '<span class="eyebrow">Founder decision helper · 6 countries · 10 criteria</span>' +
         '<h1>Where should you <em>found</em> your startup?</h1>' +
-        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get the most advantageous of six founding locations – with every reason, trade-off and source on the table.</p>' +
+        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get a first, evidence-based orientation on your most advantageous founding location – with every reason, trade-off and source on the table.</p>' +
         '<div class="countries-strip" aria-label="Countries compared">' + chips + '</div>' +
-        '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my location') + icon('arrow') + '</button>' +
+        '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my most advantageous location') + icon('arrow') + '</button>' +
         (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
         '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
+        '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundNorth simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
       '</div>' +
       '<aside class="hero__card" aria-label="What we compare"><h2>What we compare for you</h2><ol class="crit-list">' + crits + '</ol><small>No ranking without your profile: what is best depends on who you are and what you need.</small></aside>' +
       '</div>' +
@@ -375,6 +376,7 @@
       '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' – add more for a sharper result' : '') + '</span>' +
       '<div class="results__actions"><button type="button" class="btn btn--ghost" data-action="goto" data-step="0">' + icon('edit') + 'Edit answers</button><button type="button" class="btn btn--ghost" data-action="share">' + icon('link') + 'Copy share link</button><button type="button" class="btn btn--dark" data-action="print">' + icon('print') + 'Save as PDF</button></div></div>' +
       '<div class="grid-2">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
+      '<p class="result-note"><strong>How to use this result:</strong> it is an evidence-based orientation built on simplified, standardised cases – a starting point for your shortlist, not legal or tax advice. Confirm the details for your situation with an adviser before you act.</p>' +
       '<p style="font-size:13px;color:var(--muted)">Deterministic result: no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
       '</section>';
   }
@@ -413,7 +415,7 @@
         '<li>This tool supports a decision; it is not legal or tax advice.</li></ul></div>' +
       '<div class="card"><h2>Peer-reviewed foundations</h2><ul class="srclist">' + lit + '</ul></div>' +
       '<div class="card"><h2>All data sources (' + Object.keys(D.SOURCES).length + ')</h2><p>Research cut-off ' + esc(D.DATA_AS_OF) + '. Primary legal and official sources are preferred; secondary sources are used where primary data was not accessible and are labelled as such.</p>' + srcs + '</div>' +
-      '<div><button type="button" class="btn btn--primary" data-action="' + (Object.keys(state.answers).length ? 'results' : 'start') + '">' + (Object.keys(state.answers).length ? 'Back to my result' : 'Find my location') + icon('arrow') + '</button></div>' +
+      '<div><button type="button" class="btn btn--primary" data-action="' + (Object.keys(state.answers).length ? 'results' : 'start') + '">' + (Object.keys(state.answers).length ? 'Back to my result' : 'Find my most advantageous location') + icon('arrow') + '</button></div>' +
       '</section>';
   }
 

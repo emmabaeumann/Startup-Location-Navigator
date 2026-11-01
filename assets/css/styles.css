@@ -392,3 +392,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .prio__row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .seg { display: flex; width: 100%; }
 .seg button { flex: 1; padding: 0 8px; }
+
+.hero__note { margin-top: 18px; display: flex; gap: 10px; align-items: flex-start; max-width: 560px; font-size: 14px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.hero__note svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; color: var(--blue); }
+.hero__note strong { color: var(--ink); }
+.result-note { font-size: 14px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-left: 0; border-radius: 14px; padding: 14px 16px; }
+.result-note strong { color: var(--ink); }

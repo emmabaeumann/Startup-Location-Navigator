@@ -17,7 +17,7 @@
 
   var QUESTIONS = [
     { id: 'citizenship', block: 'you', type: 'multi', title: 'Which citizenship(s) do you hold?',
-      help: 'Founding a company is possible with any passport – but your passport decides where you can live and work while building it. Select all that apply.',
+      help: 'Your passport decides where you can live and work.',
       options: [
         { v: 'eu', l: 'EU / EEA', s: 'Any EU country, Iceland, Norway' },
         { v: 'ch', l: 'Switzerland' }, { v: 'li', l: 'Liechtenstein' },
@@ -26,21 +26,21 @@
         { v: 'other', l: 'Other', s: 'Any other passport' }
       ] },
     { id: 'residence', block: 'you', type: 'single', title: 'Where do you live right now?',
-      help: 'Founders tend to do better where they have local roots, and where you manage the company usually decides where it pays tax.',
+      help: 'Local roots help – and often decide where you pay tax.',
       options: [
         { v: 'DE', l: 'Germany' }, { v: 'CH', l: 'Switzerland' }, { v: 'LI', l: 'Liechtenstein' },
         { v: 'UK', l: 'United Kingdom' }, { v: 'US', l: 'United States' }, { v: 'PT', l: 'Portugal' },
         { v: 'euother', l: 'Another EU / EEA country' }, { v: 'elsewhere', l: 'Somewhere else' }
       ] },
     { id: 'relocation', block: 'you', type: 'single', title: 'Are you open to relocating for your startup?',
-      help: 'Countries you would not move to are shown greyed out, not hidden.',
+      help: 'Excluded countries stay visible, greyed out.',
       options: [
         { v: 'stay', l: 'No, I’ll stay where I live', s: 'Keep my current home' },
         { v: 'europe', l: 'Yes, within Europe', s: 'DE, CH, LI, UK, PT' },
         { v: 'anywhere', l: 'Yes, anywhere', s: 'Including the United States' }
       ] },
     { id: 'sector', block: 'startup', type: 'single', title: 'What are you building?',
-      help: 'Some ecosystems are measurably stronger in certain sectors. Your result page explains exactly how your sector was treated.',
+      help: 'Some hubs are measurably stronger in certain sectors.',
       options: [
         { v: 'software', l: 'Software & SaaS' }, { v: 'ai', l: 'AI & deep tech' },
         { v: 'fintech', l: 'Fintech & crypto' }, { v: 'life', l: 'Health & life sciences' },
@@ -48,14 +48,14 @@
         { v: 'consumer', l: 'Consumer & marketplaces' }, { v: 'other', l: 'Something else' }
       ] },
     { id: 'market', block: 'startup', type: 'single', title: 'Who will your first customers be?',
-      help: 'Being inside your customers’ market simplifies contracts, VAT and regulation.',
+      help: 'Selling inside your own market is simpler.',
       options: [
         { v: 'home', l: 'In my home country' }, { v: 'dach', l: 'Germany, Austria, Switzerland' },
         { v: 'eu', l: 'Across the EU' }, { v: 'uk', l: 'United Kingdom' },
         { v: 'us', l: 'United States' }, { v: 'global', l: 'Global from day one' }
       ] },
     { id: 'funding', block: 'capital', type: 'multi', title: 'How do you plan to fund the first two years?',
-      help: 'Select all that apply.',
+      help: '',
       options: [
         { v: 'bootstrap', l: 'Own money, friends & family', s: 'Bootstrapping' },
         { v: 'grants', l: 'Grants & public funding', s: 'Non-dilutive' },
@@ -64,13 +64,13 @@
         { v: 'vc', l: 'Venture capital', s: 'Institutional rounds' }
       ] },
     { id: 'capital', block: 'capital', type: 'single', title: 'How much capital is already secured?',
-      help: 'Some legal forms require share capital to be paid in before the company is registered.',
+      help: 'Some legal forms need capital paid in before registration.',
       options: [
         { v: 'none', l: 'Nothing yet' }, { v: 'lt10', l: 'Less than €10k' }, { v: '10to25', l: '€10k – €25k' },
         { v: '25to100', l: '€25k – €100k' }, { v: '100to1m', l: '€100k – €1M' }, { v: 'gt1m', l: 'More than €1M' }
       ] },
     { id: 'investors', block: 'capital', type: 'multi', title: 'Where are your current investors based?',
-      help: 'Investors often prefer a company in a jurisdiction they know.',
+      help: 'Investors prefer jurisdictions they know.',
       options: [
         { v: 'none', l: 'No investors yet', exclusive: true },
         { v: 'DE', l: 'Germany' }, { v: 'CHLI', l: 'Switzerland / Liechtenstein' },
@@ -78,7 +78,7 @@
         { v: 'elsewhere', l: 'Elsewhere', s: 'Outside these countries' }
       ] },
     { id: 'exit', block: 'exit', type: 'single', title: 'What is your long-term plan for the company?',
-      help: 'Decides whether profit tax or exit tax matters more to you.',
+      help: 'Decides whether profit tax or exit tax matters more.',
       options: [
         { v: 'hold', l: 'Build and keep it', s: 'Profits & dividends' },
         { v: 'sale', l: 'Sell the company', s: 'Acquisition / trade sale' },
@@ -86,7 +86,7 @@
         { v: 'undecided', l: 'Not decided yet', s: 'Keep options open' }
       ] },
     { id: 'esop', block: 'exit', type: 'single', title: 'Do you want to offer employees equity?',
-      help: 'Stock options are a key hiring tool, but they are taxed very differently across countries.',
+      help: 'Option taxes differ widely between countries.',
       options: [
         { v: 'all', l: 'Yes, broadly', s: 'Most employees' },
         { v: 'key', l: 'Yes, for key hires' },

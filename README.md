@@ -27,7 +27,7 @@ Settings → Pages → *Deploy from a branch* → choose the branch and `/ (root
 | `assets/js/data.js` | Evidence base: scores, facts, sources, roadmaps (update here) |
 | `assets/js/engine.js` | Questions and the deterministic scoring model |
 | `assets/js/app.js` | UI, navigation, persistence, share links |
-| `assets/css/styles.css` | Design tokens (TUM blue, dark blue, Smart Start pink) and layout |
+| `assets/css/styles.css` | Material Design 3 tokens (tonal blue scheme, light + dark), components and layout |
 | `tests/engine.test.js` | Unit tests (`node --test tests/engine.test.js`) |
 
 ## Method (short)

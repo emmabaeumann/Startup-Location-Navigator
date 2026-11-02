@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FoundersNavigator – Where to found your startup</title>
   <meta name="description" content="Where should you found your startup? A transparent, evidence-based decision helper comparing Germany, Switzerland, Liechtenstein, the UK, the US and Portugal.">
-  <meta name="theme-color" content="#072140">
+  <meta name="theme-color" content="#F8F9FF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/styles.css?v=202611011359">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0..1,0&icon_names=account_balance,analytics,arrow_back,arrow_downward,arrow_forward,arrow_upward,badge,balance,block,bolt,check,check_box,check_box_outline_blank,checklist,close,compare_arrows,domain,done_all,edit,event,expand_more,explore,fact_check,filter_alt,gavel,grid_view,groups,home_pin,hub,info,leaderboard,library_books,link,location_city,location_off,lock,menu_book,open_in_new,percent,person,person_pin,picture_as_pdf,public,radio_button_checked,radio_button_unchecked,remove,repeat,restart_alt,rocket_launch,route,savings,school,science,sell,shield,shopping_cart,signal_cellular_alt,star,star_outline,storefront,straighten,task_alt,thumb_up,timer,trending_down,trending_up,tune,verified,warning,workspace_premium&display=block" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css?v=202611022345">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="topbar">
     <div class="topbar__inner">
       <a class="brand" href="#" data-action="home" aria-label="FoundersNavigator – home">
-        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 5.5 19.2 16 16 26.5 12.8 16Z" fill="currentColor" opacity=".9"/><circle cx="16" cy="16" r="2.6" fill="#FD0262"/></svg>
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 5.5 19.2 16 16 26.5 12.8 16Z" fill="currentColor" opacity=".9"/><circle cx="16" cy="16" r="2.6" style="fill:var(--surface)"/></svg>
         <span class="brand__text"><strong>FoundersNavigator</strong><span>Where to found your startup</span></span>
       </a>
       <nav class="topnav" aria-label="Main">
-        <button class="linkbtn" type="button" data-action="method">Method &amp; sources</button>
-        <button class="linkbtn" type="button" data-action="restart">Start over</button>
+        <button class="btn btn--text" type="button" data-action="method"><span class="msr" aria-hidden="true">menu_book</span><span class="topnav__label">Method</span></button>
+        <button class="btn btn--text" type="button" data-action="restart"><span class="msr" aria-hidden="true">restart_alt</span><span class="topnav__label">Start over</span></button>
       </nav>
     </div>
   </header>
@@ -34,8 +36,10 @@
 
   <footer class="footer">
     <div class="footer__inner">
-      <p><strong>Not legal or tax advice.</strong> A transparent decision aid, built for the TUM seminar “Smart Start”. Data as of <span id="asof"></span> – rules change, so confirm with an adviser before you act.</p>
-      <p>Runs fully in your browser. Your answers are stored only on this device.</p>
+      <p><span class="msr" aria-hidden="true">gavel</span><strong>Not legal or tax advice</strong></p>
+      <p><span class="msr" aria-hidden="true">event</span>Data as of <span id="asof"></span></p>
+      <p><span class="msr" aria-hidden="true">lock</span>Runs only in your browser</p>
+      <p><span class="msr" aria-hidden="true">school</span>TUM seminar “Smart Start”</p>
     </div>
   </footer>
 
@@ -45,8 +49,8 @@
 
   <div id="sr-status" class="sr-only" role="status" aria-live="polite"></div>
 
-  <script src="assets/js/data.js?v=202611011359"></script>
-  <script src="assets/js/engine.js?v=202611011359"></script>
-  <script src="assets/js/app.js?v=202611011359"></script>
+  <script src="assets/js/data.js?v=202611022345"></script>
+  <script src="assets/js/engine.js?v=202611022345"></script>
+  <script src="assets/js/app.js?v=202611022345"></script>
 </body>
 </html>

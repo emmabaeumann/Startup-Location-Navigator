@@ -223,6 +223,7 @@
   var lastRenderKey = null;
   function render() {
     document.getElementById('asof').textContent = new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    ['landing', 'wizard', 'results', 'method'].forEach(function (v) { document.body.classList.toggle('is-' + v, state.view === v); });
     var motion = snapshotMotion();
     if (state.view === 'wizard') app.innerHTML = viewWizard();
     else if (state.view === 'results') app.innerHTML = viewResults();
@@ -232,7 +233,57 @@
     if (key === lastRenderKey) Array.prototype.forEach.call(app.querySelectorAll('.anim'), function (el) { el.classList.remove('anim'); });
     lastRenderKey = key;
     playMotion(motion);
+    if (typeof updateParallax === 'function') updateParallax();
+    if (typeof onScroll === 'function') onScroll();
     document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundersNavigator';
+  }
+
+  /* ---------- landing background: M3 expressive shapes + a route through six pins ---------- */
+  function shapePath(lobes, amp, rot) {
+    // polar "rounded polygon" like the M3 shape library (cookie, clover, burst); viewBox 0 0 200 200
+    var d = '', N = 180;
+    for (var i = 0; i <= N; i++) {
+      var t = i / N * Math.PI * 2;
+      var r = 96 * (1 + amp * Math.cos(lobes * (t + (rot || 0)))) / (1 + amp);
+      d += (i ? 'L' : 'M') + (100 + r * Math.cos(t)).toFixed(1) + ' ' + (100 + r * Math.sin(t)).toFixed(1);
+    }
+    return d + 'Z';
+  }
+  function landingBg() {
+    var pins = [[60, 540], [300, 430], [540, 390], [760, 300], [960, 240], [1160, 90]];
+    var dots = pins.map(function (p, i) {
+      var last = i === pins.length - 1;
+      return '<g class="bg-pin' + (last ? ' bg-pin--lead' : '') + '" style="--i:' + i + '">' + (last ? '<circle class="bg-pin__ring" cx="' + p[0] + '" cy="' + p[1] + '" r="14"/>' : '') +
+        '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (last ? 9 : 6) + '"/></g>';
+    }).join('');
+    function shape(cls, path) { return '<svg class="bg-shape ' + cls + '" viewBox="0 0 200 200"><path d="' + path + '"/></svg>'; }
+    return '<div class="landing-bg" aria-hidden="true">' +
+      '<div class="bg-grid"></div>' +
+      shape('bg-cookie', shapePath(12, .07)) +
+      shape('bg-clover', shapePath(4, .32, Math.PI / 4)) +
+      shape('bg-burst', shapePath(8, .14)) +
+      '<svg class="bg-shape bg-pill" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
+      '<svg class="bg-shape bg-arch" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
+      '<svg class="bg-route" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice"><path class="bg-route__line" d="M60 540C180 540 200 440 300 430S460 400 540 390S680 310 760 300S900 250 960 240S1100 150 1160 90"/>' + dots + '</svg>' +
+      '</div>';
+  }
+
+  function pageBg(variant) {
+    function shape(cls, path) { return '<svg class="bg-shape ' + cls + '" viewBox="0 0 200 200"><path d="' + path + '"/></svg>'; }
+    var parts = {
+      wizard: shape('pg-clover', shapePath(4, .32, Math.PI / 4)) + shape('pg-cookie pg-cookie--soft', shapePath(12, .07)) +
+        '<svg class="bg-shape pg-pill" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>',
+      results: shape('pg-cookie', shapePath(12, .07)) + shape('pg-burst', shapePath(8, .14)) +
+        '<svg class="bg-shape pg-arch" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
+        shape('pg-clover pg-clover--low', shapePath(4, .32, Math.PI / 4)) +
+        '<svg class="bg-shape pg-pill pg-pill--low" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
+        shape('pg-cookie pg-cookie--low', shapePath(12, .07)),
+      method: '<svg class="bg-shape pg-arch pg-arch--method" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
+        shape('pg-burst pg-burst--method', shapePath(8, .14)) + shape('pg-clover pg-clover--method', shapePath(4, .32, Math.PI / 4)) +
+        '<svg class="bg-shape pg-pill pg-pill--method" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
+        shape('pg-cookie pg-cookie--method', shapePath(12, .07))
+    }[variant] || '';
+    return '<div class="page-bg page-bg--' + variant + '" aria-hidden="true"><div class="bg-grid"></div>' + parts + '</div>';
   }
 
   function viewLanding() {
@@ -249,7 +300,7 @@
     var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic', 'No AI. Same answers, same result.']].map(function (f) {
       return '<li class="feature"><span class="feature__icon">' + icon(f[0]) + '</span><h3>' + f[1] + '</h3><p>' + f[2] + '</p></li>';
     }).join('');
-    return '<section class="landing anim">' +
+    return '<section class="landing anim">' + landingBg() +
       '<div class="hero"><div class="hero__main">' +
         '<span class="chip chip--assist">' + icon('explore') + 'Founder decision helper</span>' +
         '<h1>Where should you <em>found</em> your startup?</h1>' +
@@ -284,7 +335,7 @@
     var leader = res.top;
     var mobile = '<div class="rail-mobile" role="note">' + icon('leaderboard') + '<span>' + (leader ? avatar(leader.id, true) + '<b>' + esc(leader.country.name) + '</b> ' + leader.score : '–') + '</span><span class="rail-mobile__list">' +
       res.rows.slice(1, 4).filter(function (r) { return !r.excluded; }).map(function (r) { return r.id + ' ' + r.score; }).join(' · ') + '</span></div>';
-    return '<section class="wizard">' +
+    return '<section class="wizard has-bg">' + pageBg('wizard') +
       '<nav class="steps" aria-label="Progress">' + blocksHtml +
       '<p class="steps__note">' + icon('lock') + '<span>Stays on this device.</span></p></nav>' +
       '<div>' + mobile + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + '" data-step="' + state.step + '">' +
@@ -387,7 +438,11 @@
     var scoreInfoOpen = !!state.openInfo.score;
     var rob = res.robustness && res.robustness.total ? '<li class="fact-tile">' + icon('shield') + '<b>' + res.robustness.same + '/' + res.robustness.total + '</b><span>scenarios stay #1</span></li>' : '';
 
-    var winner = '<section class="card winner" aria-labelledby="winner-title">' +
+    var winnerDecor = '<div class="winner__decor" aria-hidden="true">' +
+      '<svg class="winner__cookie" viewBox="0 0 200 200"><path d="' + shapePath(12, .07) + '"/></svg>' +
+      '<svg class="winner__route" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMin meet"><path d="M150 92C210 92 230 58 280 52S330 36 350 30"/>' +
+        '<circle class="winner__ring" cx="350" cy="30" r="12"/><circle class="winner__pin" cx="350" cy="30" r="8"/></svg></div>';
+    var winner = '<section class="card winner" aria-labelledby="winner-title">' + winnerDecor +
       '<span class="overline">' + icon('workspace_premium') + 'Best fit for you</span>' +
       '<div class="winner__row"><h1 id="winner-title" class="winner__name" tabindex="-1">' + esc(top.country.name) + '</h1>' +
         '<div class="scorebig"><b data-ckey="win-' + top.id + '" data-count0>' + top.score + '</b><span>/100</span>' +
@@ -466,7 +521,7 @@
 
     var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><div class="card__head"><h2 id="wi-title">' + icon('tune') + 'What if priorities change?</h2><span class="rail__meta">updates live</span></div><div class="prio whatif">' + prioRows(false) + '</div></section>';
 
-    return '<section class="results anim">' +
+    return '<section class="results has-bg anim">' + pageBg('results') +
       (state.example ? '<div class="banner">' + icon('science') + '<span>Example profile: <b>' + esc(state.example) + '</b></span><button type="button" class="btn btn--text" data-action="goto" data-step="0">Make it yours</button></div>' : '') +
       '<div class="results__bar"><span class="chip chip--small">' + icon('task_alt') + res.answered + ' of ' + res.totalQuestions + ' answered</span>' +
       '<div class="results__actions"><button type="button" class="btn btn--outlined" data-action="goto" data-step="0">' + icon('edit') + 'Edit</button><button type="button" class="btn btn--outlined" data-action="share">' + icon('link') + 'Share</button><button type="button" class="btn btn--tonal" data-action="print">' + icon('picture_as_pdf') + 'Save PDF</button></div></div>' +
@@ -497,7 +552,7 @@
     function step(n, ic, title, line, body) {
       return '<section class="card mstep"><div class="mstep__head"><span class="mstep__num">' + n + '</span><div><h2>' + icon(ic) + title + '</h2><p>' + line + '</p></div></div>' + (body ? details('Details', body) : '') + '</section>';
     }
-    return '<section class="method anim">' +
+    return '<section class="method has-bg anim">' + pageBg('method') +
       '<div class="method__head"><span class="overline">' + icon('menu_book') + 'Method &amp; sources</span><h1 tabindex="-1">How it’s calculated</h1>' +
         '<ul class="chips"><li class="chip">' + icon('block') + 'No AI</li><li class="chip">' + icon('repeat') + 'Same answers, same result</li><li class="chip">' + icon('link') + Object.keys(D.SOURCES).length + ' sources</li></ul></div>' +
       '<section class="card card--primary formula-card"><span class="label">Fit score</span><div class="formula">Fit = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
@@ -610,10 +665,24 @@
   }
   dialog.addEventListener('click', function (e) { if (e.target === dialog) closeDialog(); });
   dialog.addEventListener('cancel', function (e) { e.preventDefault(); closeDialog(); });
-  /* top app bar changes tone once content scrolls under it */
+  /* glass top bar while content scrolls underneath (with hysteresis against flicker) */
   var topbar = document.querySelector('.topbar');
-  function onScroll() { if (topbar) topbar.classList.toggle('topbar--scrolled', window.scrollY > 4); }
-  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  function updateBars() {
+    if (!topbar) return;
+    var y = window.scrollY;
+    var top = topbar.classList.contains('topbar--scrolled');
+    if (!top && y > 12) topbar.classList.add('topbar--scrolled');
+    else if (top && y < 2) topbar.classList.remove('topbar--scrolled');
+  }
+  /* subtle parallax for the landing background layers */
+  function updateParallax() {
+    if (reduceMotion) return;
+    var bg = app.querySelector('.landing-bg, .page-bg');
+    if (bg) bg.style.setProperty('--scroll', window.scrollY.toFixed(1) + 'px');
+  }
+  function onScroll() { updateBars(); updateParallax(); }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
 
   function liveSummary() {
     var r = E.evaluate(state.answers);

@@ -71,7 +71,7 @@ body.is-about, body.is-country {
 .details summary .msr { transition: transform var(--dur-short4) var(--emph); }
 .details[open] summary .msr { transform: rotate(180deg); }
 .details__body { padding: 0 16px 16px; font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface-variant); display: flex; flex-direction: column; gap: 8px; }
-.details__body ul:not(.srclist, .notelist, .slist, .bullets, .anc-list) { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.details__body ul:not(.srclist, .notelist, .slist, .bullets, .anc-list, .nb) { list-style: disc; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .details__body b { color: var(--on-surface); font-weight: 500; }
 .details__body .srclink { vertical-align: middle; }
 .srclist { display: flex; flex-direction: column; gap: 8px; }
@@ -231,7 +231,7 @@ body.is-about, body.is-country {
 .taxitem__score b { font: var(--type-title-s); letter-spacing: var(--ls-title-s); }
 .taxitem__value { font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface); overflow-wrap: anywhere; }
 .taxitem__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
-.taxitem .details { background: var(--surface-container-low); margin: 0 -8px -8px; }
+.taxitem .details { background: var(--surface-container-low); margin: auto -8px -8px; } /* auto top margin pins "Details" to the card bottom, so it lines up across a row */
 .taxitem .details summary { min-height: 40px; padding: 8px 12px; }
 .cost-note { display: flex; gap: 8px; font: var(--type-body-s); letter-spacing: var(--ls-body-s); }
 .cost-note .msr { font-size: 18px; color: var(--primary); }

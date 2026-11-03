@@ -54,6 +54,58 @@
     if (w.bonus) out += '<b class="wplus">+</b>';
     return out + '</span>';
   }
+  /* Long evidence note → sentences. Splits on ". " before a capital, but not after abbreviations
+   * (e.g., z. B., i. d. F., Art., Nov.) or German ordinals ("2. Nov.", "ab 1. Mai"). Works on EN and DE text. */
+  var ABBR = /(?:^|[\s(])(?:e\.g|i\.e|vs|ca|bzw|inkl|zzgl|ggf|bspw|sog|gem|Nr|Abs|Art|art|para|sec|Dr|St|No|Rev|Proc|approx|incl|Mio|Mrd|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Sept|Okt|Oct|Nov|Dez|Dec)\.$/;
+  var ORD_NEXT = /^(?:Jan|Feb|März|Mär|Apr|Mai|Jun|Jul|Aug|Sep|Okt|Nov|Dez|Mal\b)/;
+  function sentences(s) {
+    var out = [], buf = '', parts = String(s || '').trim().split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ0-9€£$„"(≈§])/);
+    parts.forEach(function (p, i) {
+      buf = buf ? buf + ' ' + p : p;
+      var ordinal = /(?:^|[\s(])\d{1,2}\.$/.test(buf) && ORD_NEXT.test(parts[i + 1] || '');
+      var open = (buf.match(/\(/g) || []).length > (buf.match(/\)/g) || []).length;
+      if (open || ABBR.test(buf) || /(?:^|[\s(])[A-Za-zÄÖÜäöü]\.$/.test(buf) || ordinal) return;
+      out.push(buf); buf = '';
+    });
+    if (buf) out.push(buf);
+    return out;
+  }
+  /* sentence → HTML; a short leading label ("Tax:", "Employer shares 2026:") is set in bold so the list scans */
+  function sentenceHtml(s) {
+    var m = /^([^:.;()]{2,40}):\s+(\S[\s\S]*)$/.exec(s);
+    return m && m[1].split(/\s+/).length <= 5 ? '<b>' + esc(m[1]) + ':</b> ' + esc(m[2]) : esc(s);
+  }
+  /* note text (already translated) → readable blocks: one sentence stays a paragraph, more become a bullet list */
+  function noteBlocks(text, cls) {
+    var ss = sentences(text);
+    if (!ss.length) return '';
+    if (ss.length === 1) return '<p class="nb' + (cls ? ' ' + cls : '') + '">' + sentenceHtml(ss[0]) + '</p>';
+    return '<ul class="nb nb--list' + (cls ? ' ' + cls : '') + '">' + ss.map(function (s) { return '<li>' + sentenceHtml(s) + '</li>'; }).join('') + '</ul>';
+  }
+  /* Anchor text → { caption, levels: [{ n, text }], numeric, note } or null (caller shows the raw text).
+   *   'Effective tax on €100,000 of profit: 5 ≤ 13% · 4 ≤ 18% · …'  → caption + numeric levels
+   *   '5 = online, no notary … · 3 = … · 1 = …'                     → qualitative levels (gaps allowed)
+   * A trailing sentence after the last level ('… Agreement). Adjusted by your target market.') becomes `note`.
+   * Works on the German translations too (same structure). */
+  function parseAnchors(s) {
+    var m = /(^|:\s+)([1-5])(?=\s)/.exec(s || '');
+    if (!m) return null;
+    var start = m.index + m[1].length, caption = s.slice(0, start).replace(/:\s*$/, '').trim();
+    var levels = [], ok = true, prev = 6;
+    s.slice(start).split(/\s+·\s+/).forEach(function (seg) {
+      var p = /^([1-5])(\s*=\s*|\s+)(\S[\s\S]*)$/.exec(seg.trim());
+      if (!p || +p[1] >= prev) { ok = false; return; }
+      prev = +p[1];
+      levels.push({ n: prev, text: p[3].trim(), eq: p[2].indexOf('=') >= 0 });
+    });
+    if (!ok || levels.length < 2) return null;
+    var numeric = levels.every(function (l) { return !l.eq; }), note = '';
+    if (!numeric) {
+      var last = levels[levels.length - 1], q = /^([\s\S]*?\S{2}\.)\s+([A-ZÄÖÜ][^.]*\.)$/.exec(last.text);
+      if (q) { last.text = q[1].replace(/\.$/, ''); note = q[2]; }
+    }
+    return { caption: caption, levels: levels, numeric: numeric, note: note };
+  }
   function details(summary, body, open) { return '<details class="details"' + (open ? ' open' : '') + '><summary>' + icon('expand_more') + esc(summary) + '</summary><div class="details__body">' + body + '</div></details>'; }
   function de() { return !!(UI.i18n && UI.i18n.lang && UI.i18n.lang() === 'de'); }
   /* € amounts follow the UI language: "€32,150" (EN) / "32.150 €" (DE) */
@@ -108,6 +160,7 @@
   var UI = root.SSN_UI = {
     esc: esc, t: t, country: country, crit: crit, src: src, srcLink: srcLink, icon: icon, CRIT_ICONS: CRIT_ICONS,
     critIcon: critIcon, avatar: avatar, dots: dots, wdots: wdots, details: details, eur: eur, eurRange: eurRange, effectText: effectText, listText: listText,
+    sentences: sentences, noteBlocks: noteBlocks, parseAnchors: parseAnchors,
     shapePath: shapePath, shapeSvg: shapeSvg, pageBg: pageBg,
     views: {}, actions: {}, app: null, i18n: null
   };

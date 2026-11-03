@@ -69,30 +69,7 @@
     return { cells: cells, est: est, nodata: nod };
   }
 
-  /* Anchor text → { caption, levels: [{ n, text }], numeric, note } or null (caller shows the raw text).
-   *   'Effective tax on €100,000 of profit: 5 ≤ 13% · 4 ≤ 18% · …'  → caption + numeric levels
-   *   '5 = online, no notary … · 3 = … · 1 = …'                     → qualitative levels (gaps allowed)
-   * A trailing sentence after the last level ('… Agreement). Adjusted by your target market.') becomes `note`.
-   * Works on the German translations too (same structure). */
-  function parseAnchors(s) {
-    var m = /(^|:\s+)([1-5])(?=\s)/.exec(s || '');
-    if (!m) return null;
-    var start = m.index + m[1].length, caption = s.slice(0, start).replace(/:\s*$/, '').trim();
-    var levels = [], ok = true, prev = 6;
-    s.slice(start).split(/\s+·\s+/).forEach(function (seg) {
-      var p = /^([1-5])(\s*=\s*|\s+)(\S[\s\S]*)$/.exec(seg.trim());
-      if (!p || +p[1] >= prev) { ok = false; return; }
-      prev = +p[1];
-      levels.push({ n: prev, text: p[3].trim(), eq: p[2].indexOf('=') >= 0 });
-    });
-    if (!ok || levels.length < 2) return null;
-    var numeric = levels.every(function (l) { return !l.eq; }), note = '';
-    if (!numeric) {
-      var last = levels[levels.length - 1], q = /^([\s\S]*?\S{2}\.)\s+([A-ZÄÖÜ][^.]*\.)$/.exec(last.text);
-      if (q) { last.text = q[1].replace(/\.$/, ''); note = q[2]; }
-    }
-    return { caption: caption, levels: levels, numeric: numeric, note: note };
-  }
+  var parseAnchors = UI.parseAnchors; /* shared with the evidence dialog (results.js) */
   /* score badge 1–5 (tonal steps); the number is announced as "Score n:" */
   function ancLvl(n, decorative) {
     return '<span class="anc__lvl anc__lvl--' + n + '" aria-hidden="true">' + n + '</span>' + (decorative ? '' : '<span class="sr-only">' + T('Score {n}:', { n: n }) + ' </span>');
@@ -503,7 +480,7 @@
         (scored ? '<span class="taxitem__score" title="' + T('Score') + '">' + dots(f.score) + '<b>' + f.score + '</b></span>' : '<span class="ptag">' + T('not scored') + '</span>') + '</div>' +
         '<p class="taxitem__value">' + esc(t(f.value)) + '</p>' +
         '<div class="taxitem__foot">' + srcLinks(f.sources, 2) + (f.confidence ? '<span class="ptag">' + T('{c} confidence', { c: t(f.confidence) }) + '</span>' : '') + '</div>' +
-        (f.note ? details(t('Details'), '<p>' + esc(t(f.note)) + '</p>') : '') + '</li>';
+        (f.note ? details(t('Details'), UI.noteBlocks(t(f.note))) : '') + '</li>';
     }).join('');
     var tax = card('cp-tax', 'percent', T('Tax at a glance'), T('scored and informational'), '<ul class="taxgrid">' + taxItems + '</ul>');
 

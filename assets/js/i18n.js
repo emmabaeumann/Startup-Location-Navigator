@@ -882,6 +882,8 @@
     'Dividends': 'Dividenden',
     'Bookkeeping & compliance': 'Buchhaltung & Compliance',
     'Score': 'Wertung',
+    'Why this score': 'Warum diese Wertung',
+    'How it is scored': 'So wird bewertet',
     'not scored': 'nicht bewertet',
     '{c} confidence': 'Sicherheit: {c}',
     'Tax at a glance': 'Steuern auf einen Blick',

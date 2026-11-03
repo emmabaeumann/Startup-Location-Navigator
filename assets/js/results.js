@@ -420,6 +420,20 @@
   }
 
   /* ---------- detail dialog ---------- */
+  /* anchor scale as a 5 → 1 ladder with this country's evidence score marked; raw sentence if it does not parse */
+  function scaleHtml(cr, score, k) {
+    var text = t(cr.anchors), a = UI.parseAnchors(text), hit = Math.round(score);
+    var head = '<h3 class="dialog__h">' + icon('straighten') + esc(t('How it is scored')) + '</h3>';
+    if (!a) return '<section class="dialog__sec">' + head + '<p>' + esc(text) + '</p></section>';
+    var rows = a.levels.map(function (l) {
+      var on = l.n === hit;
+      return '<li class="ladder__row' + (on ? ' is-hit' : '') + '"><span class="anc__lvl anc__lvl--' + l.n + '" aria-hidden="true">' + l.n + '</span>' +
+        '<span class="sr-only">' + esc(t('Score {n}:', { n: l.n })) + ' </span><span class="ladder__text">' + esc(l.text) + '</span>' +
+        (on ? '<span class="ptag ptag--hit">' + esc(tn(k)) + '</span>' : '') + '</li>';
+    }).join('');
+    return '<section class="dialog__sec">' + head + (a.caption ? '<p class="ladder__cap">' + esc(a.caption) + '</p>' : '') +
+      '<ol class="ladder' + (a.numeric ? ' ladder--num' : '') + '">' + rows + '</ol>' + (a.note ? '<p class="ladder__cap">' + esc(a.note) + '</p>' : '') + '</section>';
+  }
   function openCell(k, c) {
     var res = A().evaluate();
     var row = rowOf(res, k);
@@ -433,8 +447,9 @@
     document.getElementById('detail-body').innerHTML =
       '<div class="dialog__head">' + avatar(k, true) + '<div><span class="overline">' + esc(tn(k)) + '</span><h2 id="detail-title">' + esc(t(cr.name)) + '</h2></div><button type="button" class="iconbtn" data-action="close" aria-label="' + esc(t('Close')) + '">' + icon('close') + '</button></div>' +
       '<div class="dialog__score">' + dots(s.value) + '<b>' + s.value + '<small>/5</small></b><span class="chip chip--small">' + icon('signal_cellular_alt') + esc(t('{l} confidence', { l: t(cell.confidence) })) + '</span></div>' +
-      '<p class="fact">' + esc(t(cell.value)) + '</p><p>' + esc(t(cell.note)) + '</p>' + adj +
-      '<p class="dialog__scale">' + icon('straighten') + '<span>' + esc(t(cr.anchors)) + '</span></p>' +
+      '<p class="fact">' + esc(t(cell.value)) + '</p>' +
+      (cell.note ? '<section class="dialog__sec"><h3 class="dialog__h">' + icon('lightbulb') + esc(t('Why this score')) + '</h3>' + UI.noteBlocks(t(cell.note)) + '</section>' : '') + adj +
+      scaleHtml(cr, cell.score, k) +
       '<div class="dialog__srcs">' + srcs + '</div>';
     if (A().dialog.showModal) A().dialog.showModal(); else A().dialog.setAttribute('open', '');
     var btn = A().dialog.querySelector('[data-action="close"]'); if (btn) btn.focus();

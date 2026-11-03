@@ -16,6 +16,25 @@
 .dialog__adj, .dialog__scale { display: flex; gap: 12px; align-items: flex-start; }
 .dialog__adj .msr, .dialog__scale .msr { color: var(--primary); font-size: 18px; margin-top: 1px; }
 .dialog__srcs { display: flex; flex-direction: column; gap: 8px; }
+/* evidence dialog: labelled sections instead of one paragraph */
+.dialog__sec { display: flex; flex-direction: column; gap: 8px; }
+.dialog__h { display: flex; align-items: center; gap: 8px; font: var(--type-title-s); letter-spacing: var(--ls-title-s); color: var(--on-surface); }
+.dialog__h .msr { color: var(--primary); font-size: 20px; }
+/* note blocks (UI.noteBlocks): one sentence per line, short label in bold */
+.nb { font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface-variant); }
+.nb--list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.nb--list li { position: relative; padding-left: 16px; }
+.nb--list li::before { content: ''; position: absolute; left: 2px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); opacity: .7; }
+.nb b { color: var(--on-surface); font-weight: 500; }
+/* anchor ladder 5 → 1 with the country's level marked */
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ladder__row { display: flex; align-items: flex-start; gap: 12px; padding: 6px 8px; border-radius: var(--shape-md); font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface-variant); }
+.ladder__row .anc__lvl { margin-top: -1px; }
+.ladder__text { flex: 1; min-width: 0; overflow-wrap: break-word; }
+.ladder__row.is-hit { background: var(--secondary-container); color: var(--on-secondary-container); }
+.ladder__row.is-hit .ladder__text { font-weight: 500; }
+.ptag--hit { flex-shrink: 0; align-self: center; }
+.dialog .ladder__cap { font: var(--type-body-s); letter-spacing: var(--ls-body-s); color: var(--on-surface-variant); }
 
 /* ---------- Footer ---------- */
 .footer { position: relative; z-index: 1; background: transparent; isolation: isolate; }

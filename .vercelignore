@@ -1,0 +1,9 @@
+node_modules/
+demo/
+submission/
+dist/
+tests/
+.agents/
+.claude/
+skills-lock.json
+.DS_Store

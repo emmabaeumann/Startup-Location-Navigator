@@ -6,3 +6,5 @@ demo/
 .agents/
 .claude/
 skills-lock.json
+.vercel
+.env*

@@ -286,7 +286,8 @@
       }).join('') + '</tbody></table>';
     var openAll = !!state.openInfo['legal-all'];
     var srcs = (f.sources || []).slice(0, 4).map(function (s) { return srcLink(s); }).join('');
-    return '<section class="card r-legal" aria-labelledby="lf-title"><div class="card__head"><h2 id="lf-title">' + icon('gavel') + esc(t('Legal forms & founding vs Germany')) + '</h2>' +
+    var lfTitle = baseId === 'DE' ? t('Legal forms & founding vs Germany') : t('Legal forms & founding vs {c}', { c: tn(baseId) });
+    return '<section class="card r-legal" aria-labelledby="lf-title"><div class="card__head"><h2 id="lf-title">' + icon('gavel') + esc(lfTitle) + '</h2>' +
       (f.confidence === 'low' ? '<span class="chip chip--small chip--warning">' + icon('warning') + esc(t('Low certainty')) + '</span>' : '<span class="rail__meta">' + esc(t('typical form per country')) + '</span>') + '</div>' +
       chipSet('radio', t('Country for legal form'), orderIds, sel, 'legal') +
       '<p class="r-lede r-lede--strong">' + esc(summary) + '</p>' + table +
@@ -405,7 +406,7 @@
     if (!top) return '<section class="results"><div class="card empty-state">' + icon('location_off') + '<h1>' + esc(t('No location left')) + '</h1><p>' + esc(t('Your filters exclude every country.')) + '</p><button class="btn btn--filled" data-action="goto" data-step="2">' + esc(t('Change relocation answer')) + '</button></div></section>';
     var orderIds = res.rows.map(function (r) { return r.id; });
     return '<section class="results has-bg anim">' + pageBg('results') + printHead() +
-      (state.example ? '<div class="banner">' + icon('science') + '<span>' + esc(t('Example profile:')) + ' <b>' + esc(state.example) + '</b></span><button type="button" class="btn btn--text" data-action="goto" data-step="0">' + esc(t('Make it yours')) + '</button></div>' : '') +
+      (state.example ? '<div class="banner">' + icon('science') + '<span>' + esc(t('Example profile:')) + ' <b>' + esc(t(state.example)) + '</b></span><button type="button" class="btn btn--text" data-action="goto" data-step="0">' + esc(t('Make it yours')) + '</button></div>' : '') +
       top3(res) +
       '<div class="results__bar"><span class="chip chip--small">' + icon('task_alt') + esc(t('{n} of {m} answered', { n: res.answered, m: res.totalQuestions })) + '</span>' +
       '<div class="results__actions">' + actionButtons('') + '</div></div>' +

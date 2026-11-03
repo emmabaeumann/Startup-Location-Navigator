@@ -516,7 +516,7 @@
         if (f.length) say('Raises the weight of {list} by one level.', { list: f }); else say('No effect.');
       } else if (q.id === 'capital') {
         if (v === 'none' || v === 'lt10') say('−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000), where the minimum capital must be fully paid in. In Germany a UG can start from €1.');
-        else if (v === '10to25') say('Enough for every minimum except possibly Switzerland’s CHF 20,000 (fully paid in) – no score change.');
+        else if (v === '10to25') say('Covers the paid-in minimum in Liechtenstein (CHF 10,000) and a German UG; a German GmbH (€12,500) and Switzerland (CHF 20,000) may need more – no score change.');
         else say('Covers the paid-in minimum in all six countries – no penalty applies.');
       } else if (q.id === 'investors') {
         var map = { DE: ['DE'], CHLI: ['CH', 'LI'], UK: ['UK'], US: ['US'], EU: ['PT', 'DE'] };

@@ -23,7 +23,7 @@
 .fact-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(144px, 1fr)); gap: 8px; }
 .fact-tile { background: color-mix(in srgb, var(--surface-container-lowest) 72%, transparent); border-radius: var(--shape-lg); padding: 12px 16px; display: flex; flex-direction: column; gap: 4px; color: var(--on-surface); }
 .fact-tile .msr { color: var(--primary); font-size: 24px; margin-bottom: 4px; }
-.fact-tile b { font: var(--type-title-m); letter-spacing: var(--ls-title-m); overflow-wrap: anywhere; hyphens: auto; }
+.fact-tile b { font: var(--type-title-m); letter-spacing: var(--ls-title-m); overflow-wrap: anywhere; }
 .fact-tile > span:not(.msr) { font: var(--type-body-s); letter-spacing: var(--ls-body-s); color: var(--on-surface-variant); }
 .fact-tiles--plain .fact-tile { background: var(--surface-container-lowest); }
 .contrib__bar { display: flex; height: 16px; border-radius: var(--shape-full); overflow: hidden; gap: 2px; background: var(--surface-container-lowest); }
@@ -161,7 +161,7 @@
 .r-conf--low .msr { color: var(--error); }
 
 .r-rank { gap: 16px; }
-.r-rank .ranking { flex: none; justify-content: flex-start; }
+.r-rank .ranking { flex: 1; justify-content: space-evenly; } /* rows spread over the card's height (it stretches to the winner card) */
 .r-rank .ranking li { padding: 8px; }
 .ranking li.is-lead { background: var(--surface-container-lowest); }
 .r-tie { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: var(--shape-xs); background: var(--warning-container); color: var(--on-warning-container); font: var(--type-label-s); letter-spacing: var(--ls-label-s); text-transform: uppercase; }

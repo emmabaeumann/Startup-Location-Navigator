@@ -370,8 +370,9 @@
 
   function viewLanding() {
     var started = Object.keys(state.answers).length > 0;
+    // visitors with answers see their real ranking; everyone else a fixed demo order
     var demo = [82, 74, 67, 59, 51, 40];
-    var rows = D.COUNTRIES.map(function (c, i) {
+    var rows = started ? rankItems(E.evaluate(state.answers, true), 'demo-', false) : D.COUNTRIES.map(function (c, i) {
       return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top">' + avatar(c.id, i === 0) + '<span class="rank-item__name">' + esc(t(c.name)) + '</span><span class="rank-item__score" data-ckey="demo-' + c.id + '" data-count0>' + demo[i] + '</span></div>' +
         '<div class="bar"><span data-wkey="demo-' + c.id + '" style="width:' + demo[i] + '%"></span></div></li>';
     }).join('');
@@ -397,7 +398,7 @@
         (started ? '<button class="btn btn--outlined btn--lg" type="button" data-action="results">' + esc(t('See my result')) + '</button>' : '<button class="btn btn--outlined btn--lg" type="button" data-action="method">' + esc(t('How it works')) + '</button>') + '</div>' +
         '<ul class="chips" aria-label="' + esc(t('Countries compared – open a country profile')) + '">' + chips + '</ul>' +
       '</div>' +
-      '<aside class="card card--elevated preview" aria-label="' + esc(t('Example of the live ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small">' + esc(t('Example')) + '</span></div>' +
+      '<aside class="card card--elevated preview" aria-label="' + esc(started ? t('Your live ranking') : t('Example of the live ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small' + (started ? ' chip--tonal' : '') + '">' + esc(started ? t('Your result') : t('Example')) + '</span></div>' +
         '<ol class="rank-list">' + rows + '</ol>' +
         '<p class="preview__foot">' + icon('bolt') + esc(t('Re-scores with every click.')) + '</p>' +
       '</aside></div>' +
@@ -431,12 +432,14 @@
     var block = E.BLOCKS.filter(function (b) { return b.id === step.block; })[0];
     var blockIdx = E.BLOCKS.indexOf(block) + 1;
     var body = step.kind === 'prio' ? viewPriorities(res) : viewQuestion(step.q);
+    // the priorities step is not one of the {Q.length} questions: label it as the final step instead
+    var countLbl = step.kind === 'prio' ? t('Final step: your priorities') : t('Question {n} of {m}', { n: state.step + 1, m: Q.length });
     return '<section class="wizard has-bg">' + pageBg('wizard') +
       '<nav class="steps" aria-label="' + esc(t('Questionnaire sections')) + '">' + blocksHtml +
       '<p class="steps__note">' + icon('lock') + '<span>' + esc(t('Stays on this device.')) + '</span></p></nav>' +
       '<div class="wizard__main">' + viewRailMobile(res) + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + (step.kind === 'prio' ? ' qcard--prio' : '') + '" data-step="' + state.step + '">' +
-        '<div class="progress" role="progressbar" aria-label="' + esc(t('Questionnaire progress')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-valuetext="' + esc(t('Question {n} of {m}', { n: state.step + 1, m: STEPS.length })) + '">' + segs + '</div>' +
-        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ' · ' + t(block.name)) + '</span><span class="overline__count">' + esc(t('Question {n} of {m}', { n: state.step + 1, m: STEPS.length })) + '</span></p>' + body.head + '</div>' +
+        '<div class="progress" role="progressbar" aria-label="' + esc(t('Questionnaire progress')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-valuetext="' + esc(countLbl) + '">' + segs + '</div>' +
+        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ' · ' + t(block.name)) + '</span><span class="overline__count">' + esc(countLbl) + '</span></p>' + body.head + '</div>' +
         body.main +
         '<div class="qfoot">' +
           '<button type="button" class="btn btn--text" data-action="prev">' + icon('arrow_back') + esc(t('Back')) + '</button>' +

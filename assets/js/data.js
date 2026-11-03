@@ -61,8 +61,8 @@
       anchors: 'Base: 4 = full access to a large single market (EU/EEA single market or the US) · 3 = national market with only partial or treaty-based access to a large market (e.g. Swiss bilaterals, UK–EU Trade and Cooperation Agreement). Adjusted by your target market.' },
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Your right to live there, your local roots',
-      info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.',
-      anchors: '5 = you already live there · 4 = your passport country or free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)' }
+      info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s) and where you live.',
+      anchors: '5 = you already live there · 4 = your passport country or free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get' }
   ];
 
   /* S = score table. Each cell: score, value (one-line fact), note, sources, confidence. */

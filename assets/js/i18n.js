@@ -114,6 +114,7 @@
     'How it works': 'So funktioniert’s',
     'Countries compared – open a country profile': 'Verglichene Länder – Länderprofil öffnen',
     'Example of the live ranking': 'Beispiel für das Live-Ranking',
+    'Your live ranking': 'Dein Live-Ranking',
     'Live ranking': 'Live-Ranking',
     'Example': 'Beispiel',
     'Re-scores with every click.': 'Wird bei jedem Klick neu berechnet.',
@@ -146,6 +147,7 @@
     'Questionnaire sections': 'Abschnitte des Fragebogens',
     'Questionnaire progress': 'Fortschritt im Fragebogen',
     'Question {n} of {m}': 'Frage {n} von {m}',
+    'Final step: your priorities': 'Letzter Schritt: deine Prioritäten',
     'Step {n} of {m}': 'Schritt {n} von {m}',
     'See result': 'Ergebnis',
     'Select all that apply': 'Mehrfachauswahl möglich',
@@ -318,7 +320,7 @@
     'Easy residence & local roots': 'Einfacher Aufenthalt & lokale Wurzeln',
     'Residence': 'Aufenthalt',
     'Your right to live there, your local roots': 'Dein Aufenthaltsrecht, deine Wurzeln vor Ort',
-    'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.': 'Darfst du dort leben und arbeiten, und hast du dort schon Wurzeln? Gründer:innen sind mit lokalem Netzwerk erfolgreicher (Dahl & Sorenson 2012). Berechnet aus deiner Staatsangehörigkeit, deinem Wohnort und dem Sitz deiner Investoren.',
+    'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s) and where you live.': 'Darfst du dort leben und arbeiten, und hast du dort schon Wurzeln? Gründer:innen sind mit lokalem Netzwerk erfolgreicher (Dahl & Sorenson 2012). Berechnet aus deiner Staatsangehörigkeit und deinem Wohnort.',
 
     /* engine: weight reasons, answer effects, exclusions */
     'You plan to raise venture capital': 'Du willst Wagniskapital aufnehmen',
@@ -346,7 +348,7 @@
     'No effect, because your home is outside the six countries.': 'Kein Effekt, da dein Wohnort außerhalb der sechs Länder liegt.',
     'No effect.': 'Kein Effekt.',
     '−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000), where the minimum capital must be fully paid in. In Germany a UG can start from €1.': '−1 bei der Gründung für die Schweiz (20.000 CHF) und Liechtenstein (10.000 CHF), wo das Mindestkapital voll eingezahlt sein muss. In Deutschland geht eine UG ab 1 €.',
-    'Enough for every minimum except possibly Switzerland’s CHF 20,000 (fully paid in) – no score change.': 'Reicht für jedes Mindestkapital, außer evtl. 20.000 CHF in der Schweiz (voll eingezahlt) – keine Änderung der Bewertung.',
+    'Covers the paid-in minimum in Liechtenstein (CHF 10,000) and a German UG; a German GmbH (€12,500) and Switzerland (CHF 20,000) may need more – no score change.': 'Deckt das einzuzahlende Minimum in Liechtenstein (10.000 CHF) und bei einer deutschen UG; für eine deutsche GmbH (12.500 €) und die Schweiz (20.000 CHF) kann mehr nötig sein – keine Änderung der Bewertung.',
     'Covers the paid-in minimum in all six countries – no penalty applies.': 'Deckt das einzuzahlende Mindestkapital in allen sechs Ländern – kein Abzug.',
     'No score effect (outside the six countries) – see the note under “Watch out”.': 'Kein Effekt auf die Bewertung (außerhalb der sechs Länder) – siehe Hinweis unter „Achtung“.',
     'No existing investors – no effect on scores.': 'Keine Investoren – kein Effekt auf die Bewertungen.',
@@ -489,6 +491,7 @@
     'Min. capital (paid in)': 'Mindestkapital (eingezahlt)',
     'Setup days': 'Gründungstage',
     'Legal forms & founding vs Germany': 'Rechtsformen & Gründung im Vergleich zu Deutschland',
+    'Legal forms & founding vs {c}': 'Rechtsformen & Gründung im Vergleich zu {c}',
     'Low certainty': 'Unsicher',
     'typical form per country': 'typische Form je Land',
     'Country for legal form': 'Land für Rechtsform',
@@ -1053,7 +1056,7 @@
     /* CRITERIA.market */
     "Base: 4 = full access to a large single market (EU/EEA single market or the US) · 3 = national market with only partial or treaty-based access to a large market (e.g. Swiss bilaterals, UK–EU Trade and Cooperation Agreement). Adjusted by your target market.": "Basis: 4 = voller Zugang zu einem großen Binnenmarkt (EU-/EWR-Binnenmarkt oder die USA) · 3 = nationaler Markt mit nur teilweisem oder vertragsbasiertem Zugang zu einem großen Markt (z. B. Bilaterale Abkommen Schweiz–EU, Handels- und Kooperationsabkommen UK–EU). Angepasst an deinen Zielmarkt.",
     /* CRITERIA.residence */
-    "5 = you already live there · 4 = your passport country or free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get · +1 if your existing investors are based there (local network)": "5 = du lebst bereits dort · 4 = Land deines Passes oder Freizügigkeit für deinen Pass · 3 = noch unklar · 2 = Visum oder Aufenthaltstitel nötig · 1 = Aufenthalt kontingentiert oder sehr schwer zu bekommen · +1, wenn deine bestehenden Investoren dort sitzen (lokales Netzwerk)",
+    "5 = you already live there · 4 = your passport country or free movement for your passport · 3 = not yet known · 2 = visa or permit needed · 1 = residence quota-limited or very hard to get": "5 = du lebst bereits dort · 4 = Land deines Passes oder Freizügigkeit für deinen Pass · 3 = noch unklar · 2 = Visum oder Aufenthaltstitel nötig · 1 = Aufenthalt kontingentiert oder sehr schwer zu bekommen",
     /* COUNTRIES.DE */
     "GmbH or UG (haftungsbeschränkt)": "GmbH oder UG (haftungsbeschränkt)",
     /* COUNTRIES.CH */

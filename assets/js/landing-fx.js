@@ -149,12 +149,33 @@
   }
 
   /* ---------- demo video ---------- */
+  // one take per theme (recorded in light and in dark mode); the page shows the one matching the active theme
+  function darkTheme() {
+    var th = document.documentElement.getAttribute('data-theme');
+    if (th) return th === 'dark';
+    return !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function demoFile(kind) { var m = darkTheme() ? 'dark' : 'light'; return kind === 'poster' ? 'assets/media/demo-poster-' + m + '.jpg' : 'assets/media/demo-' + m + '.mp4'; }
+  // theme switched while the page is open: swap the file, keep the position and the play state
+  function syncDemoTheme() {
+    var v = document.querySelector('.demo__video'); if (!v) return;
+    var want = demoFile('video'), s = v.querySelector('source');
+    if (!s || s.getAttribute('src') === want) return;
+    var at = v.currentTime, wasPlaying = !v.paused, started = v.readyState > 0;
+    v.setAttribute('poster', demoFile('poster'));
+    s.setAttribute('src', want);
+    if (!started) return; // nothing loaded yet: the new file loads when it is first played
+    v.load();
+    v.addEventListener('loadedmetadata', function once() { v.removeEventListener('loadedmetadata', once); try { v.currentTime = at; } catch (e) {} if (wasPlaying) play(v); });
+  }
+  if (root.MutationObserver) new MutationObserver(syncDemoTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (root.matchMedia) { var mq = root.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', syncDemoTheme); }
   function demoHtml() {
     return '<section class="demo" aria-labelledby="demo-title">' +
       '<div class="demo__head"><h2 id="demo-title">' + esc(t('See it in action')) + '</h2><p>' + esc(t('From the first question to a sourced result in under a minute.')) + '</p></div>' +
       '<div class="demo__frame">' +
-        '<video class="demo__video" muted playsinline loop preload="none" poster="assets/media/demo-poster.jpg" aria-label="' + esc(t('Demo video: answering the questions and reading the result')) + '">' +
-          '<source src="assets/media/demo.mp4" type="video/mp4"></video>' +
+        '<video class="demo__video" muted playsinline loop preload="none" poster="' + demoFile('poster') + '" aria-label="' + esc(t('Demo video: answering the questions and reading the result')) + '">' +
+          '<source src="' + demoFile('video') + '" type="video/mp4"></video>' +
         '<button type="button" class="demo__toggle" data-action="demo-toggle">' + icon('play_arrow') + '<span class="sr-only">' + esc(t('Play video')) + '</span></button>' +
       '</div></section>';
   }

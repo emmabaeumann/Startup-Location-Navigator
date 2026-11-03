@@ -1,42 +1,40 @@
-/* FoundersNavigator – UI layer (vanilla JS, no build step) · Material 3 */
+/* FoundersNavigator – UI layer (vanilla JS, no build step) · Material 3
+ * State, navigation, wizard, landing, global chrome (top bar, theme, language, snackbar), events, boot.
+ * Every user-visible string goes through t() (i18n.js, keyed by the English text). */
 (function () {
   'use strict';
-  var D = window.SSN_DATA, E = window.SSN_ENGINE;
+  var D = window.SSN_DATA, E = window.SSN_ENGINE, S = window.SSN_STATE, UI = window.SSN_UI;
+  var EXAMPLES = window.SSN_EXAMPLES || [];
+  var esc = UI.esc, icon = UI.icon, avatar = UI.avatar, critIcon = UI.critIcon, country = UI.country, crit = UI.crit,
+    shapePath = UI.shapePath, pageBg = UI.pageBg;
+  function t(s, vars) { return UI.i18n && UI.i18n.t ? UI.i18n.t(s, vars) : (s == null ? '' : String(s)); }
+  function lang() { return UI.i18n && UI.i18n.lang ? UI.i18n.lang() : 'en'; }
   var Q = E.QUESTIONS;
   var STORE_KEY = 'foundersnavigator-v1';
+  var THEME_KEY = 'foundersnavigator-theme';
   var STEPS = Q.map(function (q) { return { kind: 'q', q: q, block: q.block }; }).concat([{ kind: 'prio', block: 'priorities' }]);
   var app = document.getElementById('app');
   var srStatus = document.getElementById('sr-status');
   var dialog = document.getElementById('detail');
+  var html = document.documentElement;
 
-  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null, openInfo: {} };
+  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null, openInfo: {}, example: null, railOpen: false, countryId: null };
 
-  /* ---------- utils ---------- */
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
-  function country(id) { return D.COUNTRIES.filter(function (c) { return c.id === id; })[0]; }
-  function crit(id) { return D.CRITERIA.filter(function (c) { return c.id === id; })[0]; }
-  function src(id) { return D.SOURCES[id]; }
-  function srcLink(id, label) {
-    var s = src(id); if (!s) return '';
-    return '<a class="srclink" href="' + esc(s.u) + '" target="_blank" rel="noopener noreferrer">' + icon('open_in_new') + esc(label || s.p) + '<span class="sr-only"> (opens in a new tab)</span></a>';
-  }
-  /* Material Symbols Rounded (ligature font) */
-  function icon(name, cls) { return '<span class="msr' + (cls ? ' ' + cls : '') + '" aria-hidden="true">' + name + '</span>'; }
-  var CRIT_ICONS = { setup: 'rocket_launch', corpTax: 'percent', exitTax: 'sell', vc: 'trending_up', grants: 'savings', talent: 'hub', esop: 'groups', cost: 'shopping_cart', market: 'storefront', residence: 'home_pin' };
-  function critIcon(id) { return icon(CRIT_ICONS[id] || 'radio_button_checked'); }
-  function avatar(code, lead) { return '<span class="avatar' + (lead ? ' avatar--lead' : '') + '">' + esc(code) + '</span>'; }
-  function dots(v) {
-    var out = '<span class="dots" aria-hidden="true">';
-    for (var i = 1; i <= 5; i++) out += '<i class="' + (v >= i ? 'on' : (v >= i - 0.5 ? 'half' : '')) + '"></i>';
-    return out + '</span>';
-  }
-  function wdots(w) {
-    var lvl = w.value === 0 ? 0 : Math.min(w.level, 3);
-    var out = '<span class="wdots" aria-hidden="true">';
-    for (var i = 1; i <= 3; i++) out += '<i class="' + (lvl >= i ? 'on' : '') + '"></i>';
-    if (w.bonus) out += '<b class="wplus">+</b>';
-    return out + '</span>';
-  }
+  /* "Why we ask" – one line per question (question id → English text, translated at render time) */
+  var WHY = {
+    citizenship: 'Residence rights decide where you may live and run the company yourself.',
+    residence: 'Founders do measurably better where they already have roots and a network.',
+    relocation: 'Countries you would not move to are excluded from the ranking.',
+    sector: 'Some hubs get +1 on talent & ecosystem for your sector, where evidence supports it.',
+    market: 'Being close to your first customers raises market access for those countries.',
+    funding: 'Each funding route raises the weight of the matching criterion by one level.',
+    capital: 'Switzerland and Liechtenstein require minimum capital paid in before registration.',
+    investors: 'Existing investors raise VC access in the countries where they are based.',
+    exit: 'Selling shifts weight to exit tax; keeping the company shifts it to profit tax.',
+    esop: 'Tax on employee stock options differs widely and matters for hiring.',
+    hires: 'Planned hires bring employer payroll costs into the ranking and the first-year cost.'
+  };
+
   /* ---------- motion (Material 3) ---------- */
   var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var lastPt = null;
@@ -54,11 +52,11 @@
     if (autoOut) setTimeout(out, 220);
     return out;
   }
-  var RIPPLE_SEL = '.btn, .option, .chip--filter, .seg button, .step, .answer, .cellbtn, .iconbtn';
+  var RIPPLE_SEL = '.btn, .option, .chip--filter, .seg button, .step, .answer, .cellbtn, .iconbtn, .example, .rail-mobile__toggle';
   document.addEventListener('pointerdown', function (e) {
     lastPt = { x: e.clientX, y: e.clientY };
-    var t = e.target.closest(RIPPLE_SEL); if (!t) return;
-    var out = ripple(t, lastPt); if (!out) return;
+    var el = e.target.closest(RIPPLE_SEL); if (!el) return;
+    var out = ripple(el, lastPt); if (!out) return;
     var done = function () { out(); window.removeEventListener('pointerup', done); window.removeEventListener('pointercancel', done); };
     window.addEventListener('pointerup', done); window.addEventListener('pointercancel', done);
   });
@@ -119,55 +117,75 @@
     if (l && m.lead && l.getAttribute('data-flip') !== m.lead) l.classList.add('is-new-lead');
   }
 
-  function announce(msg) { srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
+  function announce(msg) { if (!msg) return; srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
+
+  /* ---------- snackbar (M3: inverse surface, bottom, one at a time, 4–10 s) ---------- */
+  var snack = null, snackTimer = null, snackLeft = 0, snackStart = 0;
+  function snackbarEl() {
+    if (snack) return snack;
+    snack = document.createElement('div');
+    snack.className = 'snackbar';
+    snack.hidden = true;
+    document.body.appendChild(snack);
+    var pause = function () { if (!snackTimer) return; clearTimeout(snackTimer); snackTimer = null; snackLeft -= Date.now() - snackStart; };
+    var resume = function () { if (snackTimer || snack.hidden || !snack.classList.contains('is-open')) return; snackStart = Date.now(); snackTimer = setTimeout(hideSnackbar, Math.max(1500, snackLeft)); };
+    snack.addEventListener('mouseenter', pause); snack.addEventListener('focusin', pause);
+    snack.addEventListener('mouseleave', resume); snack.addEventListener('focusout', function (e) { if (!snack.contains(e.relatedTarget)) resume(); });
+    snack.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideSnackbar(); });
+    return snack;
+  }
+  function hideSnackbar() {
+    if (!snack || snack.hidden) return;
+    clearTimeout(snackTimer); snackTimer = null;
+    var hadFocus = snack.contains(document.activeElement);
+    snack.classList.remove('is-open');
+    var el = snack;
+    setTimeout(function () { if (!el.classList.contains('is-open')) el.hidden = true; }, reduceMotion ? 0 : 160);
+    if (hadFocus) { var h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
+  }
+  function snackbar(msg, opts) {
+    opts = opts || {};
+    var el = snackbarEl();
+    clearTimeout(snackTimer); snackTimer = null;
+    el.innerHTML = '<p class="snackbar__text">' + esc(msg) + '</p>' +
+      (opts.actionLabel ? '<button type="button" class="btn btn--text snackbar__action">' + esc(opts.actionLabel) + '</button>' : '') +
+      '<button type="button" class="iconbtn snackbar__close" aria-label="' + esc(t('Dismiss')) + '">' + icon('close') + '</button>';
+    var act = el.querySelector('.snackbar__action');
+    if (act) act.addEventListener('click', function () { hideSnackbar(); if (typeof opts.onAction === 'function') opts.onAction(); });
+    el.querySelector('.snackbar__close').addEventListener('click', hideSnackbar);
+    el.hidden = false;
+    el.getBoundingClientRect();
+    el.classList.add('is-open');
+    var ms = typeof opts.timeout === 'number' ? opts.timeout : (opts.actionLabel ? 8000 : 4000);
+    snackLeft = Math.max(4000, Math.min(10000, ms)); snackStart = Date.now();
+    snackTimer = setTimeout(hideSnackbar, snackLeft);
+    announce(msg + (opts.actionLabel ? ' – ' + t('{action} is available in the message at the bottom of the page.', { action: opts.actionLabel }) : ''));
+  }
 
   /* ---------- persistence ---------- */
-  function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ view: state.view, step: state.step, answers: state.answers, skipped: state.skipped })); } catch (e) { /* storage unavailable */ }
-  }
+  // State persistence lives in state.js (pure, tested); these wrappers bind it to this page.
+  function storage() { try { return window.localStorage; } catch (e) { return null; } }
+  function save() { S.save(storage(), STORE_KEY, state); }
   function load() {
-    try {
-      var raw = localStorage.getItem(STORE_KEY);
-      if (raw) { var s = JSON.parse(raw); state.answers = sanitize(s.answers || {}); state.skipped = s.skipped || {}; state.step = s.step || 0; state.view = s.view || 'landing'; }
-    } catch (e) { /* ignore */ }
-    if (state.view === 'method') state.view = 'landing';
+    var s = S.load(storage(), STORE_KEY, { questions: Q, criteria: D.CRITERIA, maxStep: STEPS.length - 1, countries: D.COUNTRIES.map(function (c) { return c.id; }) });
+    state.answers = s.answers; state.skipped = s.skipped; state.step = s.step; state.view = s.view; state.countryId = s.countryId;
   }
-  function encodeShare() {
-    var json = JSON.stringify({ v: 1, a: state.answers });
-    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
+  function encodeShare() { return S.encodeShare(state.answers); }
   function readShare() {
-    var m = location.hash.match(/^#r=([A-Za-z0-9_-]+)/);
-    if (!m) return false;
-    try {
-      var b = m[1].replace(/-/g, '+').replace(/_/g, '/');
-      while (b.length % 4) b += '=';
-      var obj = JSON.parse(decodeURIComponent(escape(atob(b))));
-      if (obj && obj.a && typeof obj.a === 'object') { state.answers = sanitize(obj.a); state.view = 'results'; return true; }
-    } catch (e) { /* invalid link */ }
-    return false;
+    var a = S.readShare(location.hash, Q, D.CRITERIA);
+    if (!a) return false;
+    state.answers = a; state.view = 'results'; return true;
   }
-  function sanitize(a) {
-    var out = {};
-    Q.forEach(function (q) {
-      var v = a[q.id], vals = q.options.map(function (o) { return o.v; });
-      if (q.type === 'multi' && Array.isArray(v)) { var f = v.filter(function (x) { return vals.indexOf(x) !== -1; }); if (f.length) out[q.id] = f; }
-      else if (q.type === 'single' && vals.indexOf(v) !== -1) out[q.id] = v;
-    });
-    if (a.priorities && typeof a.priorities === 'object') {
-      out.priorities = {};
-      D.CRITERIA.forEach(function (c) { var l = a.priorities[c.id]; if (l === 0 || l === 1 || l === 2 || l === 3) out.priorities[c.id] = l; });
-    }
-    return out;
-  }
+  function clone(x) { return JSON.parse(JSON.stringify(x || {})); }
 
   /* ---------- navigation ---------- */
+  function focusH1() { var h = app.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } return h; }
   function go(view, opts) {
     state.view = view;
     if (opts && typeof opts.step === 'number') state.step = opts.step;
     save(); render();
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
-    var h = app.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+    focusH1();
   }
   function nextStep() {
     state.dir = 'fwd';
@@ -178,7 +196,7 @@
   function focusHeading() { var h = app.querySelector('.qhead h1'); if (h) h.focus({ preventScroll: true }); var c = app.querySelector('.qcard'); if (c && c.getBoundingClientRect().top < 60) window.scrollTo({ top: 0 }); }
 
   /* ---------- answers ---------- */
-  function snapshotOrder() { var r = E.evaluate(state.answers); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
+  function snapshotOrder() { var r = E.evaluate(state.answers, true); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
   function change(mutator, label, qid) {
     state.example = null;
     var before = snapshotOrder();
@@ -216,39 +234,121 @@
     var v = state.answers[q.id];
     if (v == null || (Array.isArray(v) && !v.length)) return null;
     var vals = Array.isArray(v) ? v : [v];
-    return vals.map(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return o ? o.l : x; }).join(', ');
+    return vals.map(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return o ? t(o.l) : x; }).join(', ');
+  }
+  function loadExample(id) {
+    var x = EXAMPLES.filter(function (e) { return e.id === id; })[0]; if (!x) return;
+    var prev = { answers: clone(state.answers), skipped: clone(state.skipped), step: state.step, example: state.example };
+    var had = Object.keys(state.answers).length > 0;
+    state.answers = S.sanitize(clone(x.answers), Q, D.CRITERIA);
+    state.skipped = {}; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
+    state.step = STEPS.length - 1;
+    state.example = x.label;
+    go('results');
+    snackbar(t('Example loaded: {name}', { name: t(x.label) }), had ? {
+      actionLabel: t('Undo'),
+      onAction: function () { state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example; go('results', { step: prev.step }); announce(t('Your own answers are back.')); }
+    } : null);
+  }
+  function restart() {
+    var had = Object.keys(state.answers).length > 0 || Object.keys(state.skipped).length > 0;
+    var prev = { answers: clone(state.answers), skipped: clone(state.skipped), step: state.step, view: state.view, example: state.example };
+    state.answers = {}; state.skipped = {}; state.example = null; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null; state.step = 0;
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    go('landing');
+    if (had) snackbar(t('Answers cleared'), {
+      actionLabel: t('Undo'), timeout: 8000,
+      onAction: function () {
+        state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example;
+        go(prev.view === 'landing' ? 'landing' : prev.view, { step: prev.step });
+        announce(t('Answers restored.'));
+      }
+    });
   }
 
   /* ---------- views ---------- */
   var lastRenderKey = null;
+  var VIEW_TITLES = { wizard: 'Questions', results: 'Your result', method: 'Method & sources', about: 'About', country: 'Country profile' };
   function render() {
-    document.getElementById('asof').textContent = new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    ['landing', 'wizard', 'results', 'method'].forEach(function (v) { document.body.classList.toggle('is-' + v, state.view === v); });
+    renderChrome();
+    ['landing', 'wizard', 'results', 'method', 'about', 'country'].forEach(function (v) { document.body.classList.toggle('is-' + v, state.view === v); });
     var motion = snapshotMotion();
     if (state.view === 'wizard') app.innerHTML = viewWizard();
-    else if (state.view === 'results') app.innerHTML = viewResults();
-    else if (state.view === 'method') app.innerHTML = viewMethod();
-    else app.innerHTML = viewLanding();
+    else if (state.view !== 'landing' && UI.views[state.view]) app.innerHTML = UI.views[state.view]();
+    else { if (state.view !== 'landing') state.view = 'landing'; app.innerHTML = viewLanding(); }
     var key = state.view + ':' + (state.view === 'wizard' ? state.step : '');
     if (key === lastRenderKey) Array.prototype.forEach.call(app.querySelectorAll('.anim'), function (el) { el.classList.remove('anim'); });
     lastRenderKey = key;
     playMotion(motion);
-    if (typeof updateParallax === 'function') updateParallax();
-    if (typeof onScroll === 'function') onScroll();
-    document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundersNavigator';
+    updateParallax();
+    onScroll();
+    observeDecor();
+    var cTitle = state.view === 'country' && state.countryId && country(state.countryId) ? t(country(state.countryId).name) : null;
+    document.title = (cTitle || (VIEW_TITLES[state.view] ? t(VIEW_TITLES[state.view]) : '')).replace(/(.+)/, '$1 – ') + 'FoundersNavigator';
   }
 
-  /* ---------- landing background: M3 expressive shapes + a route through six pins ---------- */
-  function shapePath(lobes, amp, rot) {
-    // polar "rounded polygon" like the M3 shape library (cookie, clover, burst); viewBox 0 0 200 200
-    var d = '', N = 180;
-    for (var i = 0; i <= N; i++) {
-      var t = i / N * Math.PI * 2;
-      var r = 96 * (1 + amp * Math.cos(lobes * (t + (rot || 0)))) / (1 + amp);
-      d += (i ? 'L' : 'M') + (100 + r * Math.cos(t)).toFixed(1) + ' ' + (100 + r * Math.sin(t)).toFixed(1);
+  /* top bar, footer and other static chrome: data-i18n="English" → textContent, data-i18n-label → aria-label */
+  function renderChrome() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-label]'), function (el) { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-label'))); });
+    var asof = document.getElementById('asof');
+    if (asof) asof.textContent = new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString(lang() === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    html.lang = lang();
+    var lb = document.getElementById('lang-toggle');
+    if (lb) {
+      var de = lang() === 'de';
+      lb.setAttribute('aria-label', de ? 'Switch to English' : 'Auf Deutsch umschalten');
+      lb.setAttribute('lang', de ? 'en' : 'de');
+      lb.querySelector('.topnav__label').textContent = de ? 'English' : 'Deutsch';
+      lb.querySelector('.lang-code').textContent = de ? 'EN' : 'DE';
     }
-    return d + 'Z';
+    renderThemeButton();
+    Array.prototype.forEach.call(document.querySelectorAll('.topnav [data-action]'), function (b) {
+      var a = b.getAttribute('data-action');
+      if (a === 'method' || a === 'about') { if (state.view === a) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
+    });
   }
+
+  /* ---------- theme: system → light → dark (persisted; meta theme-color follows the surface) ---------- */
+  var THEMES = ['system', 'light', 'dark'];
+  var THEME_META = {
+    system: { icon: 'brightness_auto', label: 'Theme: system' },
+    light: { icon: 'light_mode', label: 'Theme: light' },
+    dark: { icon: 'dark_mode', label: 'Theme: dark' }
+  };
+  function readTheme() { try { var v = localStorage.getItem(THEME_KEY); return THEMES.indexOf(v) !== -1 ? v : 'system'; } catch (e) { return 'system'; } }
+  var theme = readTheme();
+  function applyTheme() {
+    if (theme === 'system') delete html.dataset.theme; else html.dataset.theme = theme;
+    var surface = getComputedStyle(html).getPropertyValue('--surface').trim();
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) {
+      if (!m.hasAttribute('data-default')) m.setAttribute('data-default', m.getAttribute('content'));
+      m.setAttribute('content', theme === 'system' ? m.getAttribute('data-default') : (surface || m.getAttribute('data-default')));
+    });
+    renderThemeButton();
+  }
+  function renderThemeButton() {
+    var b = document.getElementById('theme-toggle'); if (!b) return;
+    var next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    var lbl = t(THEME_META[theme].label) + ' – ' + t('switch to {mode}', { mode: t(next) });
+    b.setAttribute('aria-label', lbl); b.title = lbl;
+    b.querySelector('.msr').textContent = THEME_META[theme].icon;
+  }
+  function cycleTheme() {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* private mode */ }
+    applyTheme();
+    announce(t(THEME_META[theme].label));
+  }
+  function toggleLang() {
+    if (!UI.i18n || !UI.i18n.setLang) return;
+    UI.i18n.setLang(lang() === 'de' ? 'en' : 'de');
+    var y = window.scrollY;
+    render(); window.scrollTo(0, y);
+    var lb = document.getElementById('lang-toggle'); if (lb) lb.focus({ preventScroll: true });
+    announce(lang() === 'de' ? 'Sprache: Deutsch' : 'Language: English');
+  }
+
   function landingBg() {
     var pins = [[60, 540], [300, 430], [540, 390], [760, 300], [960, 240], [1160, 90]];
     var dots = pins.map(function (p, i) {
@@ -268,85 +368,81 @@
       '</div>';
   }
 
-  function pageBg(variant) {
-    function shape(cls, path) { return '<svg class="bg-shape ' + cls + '" viewBox="0 0 200 200"><path d="' + path + '"/></svg>'; }
-    var parts = {
-      wizard: shape('pg-clover', shapePath(4, .32, Math.PI / 4)) + shape('pg-cookie pg-cookie--soft', shapePath(12, .07)) +
-        '<svg class="bg-shape pg-pill" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>',
-      results: shape('pg-cookie', shapePath(12, .07)) + shape('pg-burst', shapePath(8, .14)) +
-        '<svg class="bg-shape pg-arch" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
-        shape('pg-clover pg-clover--low', shapePath(4, .32, Math.PI / 4)) +
-        '<svg class="bg-shape pg-pill pg-pill--low" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
-        shape('pg-cookie pg-cookie--low', shapePath(12, .07)),
-      method: '<svg class="bg-shape pg-arch pg-arch--method" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
-        shape('pg-burst pg-burst--method', shapePath(8, .14)) + shape('pg-clover pg-clover--method', shapePath(4, .32, Math.PI / 4)) +
-        '<svg class="bg-shape pg-pill pg-pill--method" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
-        shape('pg-cookie pg-cookie--method', shapePath(12, .07))
-    }[variant] || '';
-    return '<div class="page-bg page-bg--' + variant + '" aria-hidden="true"><div class="bg-grid"></div>' + parts + '</div>';
-  }
-
   function viewLanding() {
     var started = Object.keys(state.answers).length > 0;
     var demo = [82, 74, 67, 59, 51, 40];
     var rows = D.COUNTRIES.map(function (c, i) {
-      return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top">' + avatar(c.id, i === 0) + '<span class="rank-item__name">' + esc(c.name) + '</span><span class="rank-item__score" data-ckey="demo-' + c.id + '" data-count0>' + demo[i] + '</span></div>' +
+      return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top">' + avatar(c.id, i === 0) + '<span class="rank-item__name">' + esc(t(c.name)) + '</span><span class="rank-item__score" data-ckey="demo-' + c.id + '" data-count0>' + demo[i] + '</span></div>' +
         '<div class="bar"><span data-wkey="demo-' + c.id + '" style="width:' + demo[i] + '%"></span></div></li>';
     }).join('');
-    var chips = D.COUNTRIES.map(function (c) { return '<li class="chip">' + avatar(c.id) + esc(c.name) + '</li>'; }).join('');
-    var stats = [['public', '6', 'countries'], ['tune', '10', 'criteria'], ['timer', '3', 'minutes'], ['lock', '0', 'data sent']].map(function (s) {
-      return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + s[2] + '</span></li>';
+    var chips = D.COUNTRIES.map(function (c) {
+      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" aria-label="' + esc(t('{country} – country profile', { country: t(c.name) })) + '">' + avatar(c.id) + esc(t(c.name)) + '</button></li>';
     }).join('');
-    var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic', 'No AI. Same answers, same result.']].map(function (f) {
-      return '<li class="feature"><span class="feature__icon">' + icon(f[0]) + '</span><h3>' + f[1] + '</h3><p>' + f[2] + '</p></li>';
+    var stats = [['public', D.COUNTRIES.length, 'countries'], ['tune', D.CRITERIA.length, 'criteria'], ['checklist', Q.length, 'questions'], ['lock', 0, 'data sent']].map(function (s) {
+      return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + esc(t(s[2])) + '</span></li>';
     }).join('');
+    var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic · reproducible', 'Same answers, same result. Every score traceable to a source.']].map(function (f) {
+      return '<li class="feature"><span class="feature__icon">' + icon(f[0]) + '</span><h3>' + esc(t(f[1])) + '</h3><p>' + esc(t(f[2])) + '</p></li>';
+    }).join('');
+    var examples = EXAMPLES.length ? '<section class="examples" aria-labelledby="ex-title"><div class="examples__head"><h2 id="ex-title">' + esc(t('Try an example founder')) + '</h2><p>' + esc(t('One click fills in every answer – change anything afterwards.')) + '</p></div><ul class="examples__list">' +
+      EXAMPLES.map(function (x) {
+        return '<li><button type="button" class="example" data-action="example" data-k="' + esc(x.id) + '"><span class="example__icon">' + icon(x.icon) + '</span><span class="example__text"><span class="example__l">' + esc(t(x.label)) + '</span>' + (x.desc ? '<span class="example__s">' + esc(t(x.desc)) + '</span>' : '') + '</span>' + icon('arrow_forward', 'example__go') + '</button></li>';
+      }).join('') + '</ul></section>' : '';
     return '<section class="landing anim">' + landingBg() +
       '<div class="hero"><div class="hero__main">' +
-        '<span class="chip chip--assist">' + icon('explore') + 'Founder decision helper</span>' +
-        '<h1>Where should you <em>found</em> your startup?</h1>' +
-        '<p class="hero__lead">Ten quick questions. One ranked, sourced answer.</p>' +
-        '<div class="hero__cta"><button class="btn btn--filled btn--lg" type="button" data-action="start">' + (started ? 'Continue' : 'Find my location') + icon('arrow_forward') + '</button>' +
-        (started ? '<button class="btn btn--outlined btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--outlined btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
-        '<ul class="chips" aria-label="Countries compared">' + chips + '</ul>' +
+        '<span class="chip chip--assist">' + icon('explore') + esc(t('Founder decision helper')) + '</span>' +
+        '<h1>' + t('Where should you <em>found</em> your startup?') + '</h1>' +
+        '<p class="hero__lead">' + esc(t('{n} quick questions. One ranked, sourced answer.', { n: Q.length })) + '</p>' +
+        '<div class="hero__cta"><button class="btn btn--filled btn--lg" type="button" data-action="start">' + esc(started ? t('Continue') : t('Find my location')) + icon('arrow_forward') + '</button>' +
+        (started ? '<button class="btn btn--outlined btn--lg" type="button" data-action="results">' + esc(t('See my result')) + '</button>' : '<button class="btn btn--outlined btn--lg" type="button" data-action="method">' + esc(t('How it works')) + '</button>') + '</div>' +
+        '<ul class="chips" aria-label="' + esc(t('Countries compared – open a country profile')) + '">' + chips + '</ul>' +
       '</div>' +
-      '<aside class="card card--elevated preview" aria-label="Example of the live ranking"><div class="card__head"><h2>' + icon('leaderboard') + 'Live ranking</h2><span class="chip chip--small">Example</span></div>' +
+      '<aside class="card card--elevated preview" aria-label="' + esc(t('Example of the live ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small">' + esc(t('Example')) + '</span></div>' +
         '<ol class="rank-list">' + rows + '</ol>' +
-        '<p class="preview__foot">' + icon('bolt') + 'Re-scores with every click.</p>' +
+        '<p class="preview__foot">' + icon('bolt') + esc(t('Re-scores with every click.')) + '</p>' +
       '</aside></div>' +
-      '<ul class="stats" aria-label="At a glance">' + stats + '</ul>' +
+      examples +
+      '<h2 class="sr-only">' + esc(t('At a glance')) + '</h2>' +
+      '<ul class="stats">' + stats + '</ul>' +
       '<ul class="features">' + feats + '</ul>' +
-      '<p class="disclaimer">' + icon('info') + 'Orientation, not legal or tax advice.</p>' +
+      '<p class="disclaimer">' + icon('info') + esc(t('Orientation, not legal or tax advice.')) + '</p>' +
       '</section>';
   }
 
+  function stepDone(s) { return s.kind === 'prio' ? !!state.answers.priorities : (isAnswered(s.q) || !!state.skipped[s.q.id]); }
   function viewWizard() {
     var step = STEPS[state.step];
     var res = E.evaluate(state.answers);
+    var blockSteps = E.BLOCKS.map(function (b) { return STEPS.map(function (s, j) { return s.block === b.id ? j : -1; }).filter(function (j) { return j !== -1; }); });
     var blocksHtml = E.BLOCKS.map(function (b, i) {
-      var idxs = STEPS.map(function (s, j) { return s.block === b.id ? j : -1; }).filter(function (j) { return j !== -1; });
+      var idxs = blockSteps[i];
       var current = idxs.indexOf(state.step) !== -1;
-      var done = !current && idxs.every(function (j) { var s = STEPS[j]; return s.kind === 'prio' ? !!state.answers.priorities : (isAnswered(s.q) || state.skipped[s.q.id]); });
-      return '<button type="button" class="step' + (current ? ' step--current' : '') + (done ? ' step--done' : '') + '" data-action="goto" data-step="' + idxs[0] + '"' + (current ? ' aria-current="step"' : '') + '><span class="step__dot">' + (done ? icon('check') : (i + 1)) + '</span>' + esc(b.name) + '</button>';
+      var done = !current && idxs.every(function (j) { return stepDone(STEPS[j]); });
+      var lbl = t(b.name) + (done ? ' (' + t('done') + ')' : '');
+      return '<button type="button" class="step' + (current ? ' step--current' : '') + (done ? ' step--done' : '') + '" data-action="goto" data-step="' + idxs[0] + '"' + (current ? ' aria-current="step"' : '') + ' aria-label="' + esc(lbl) + '"><span class="step__dot" aria-hidden="true">' + (done ? icon('check') : (i + 1)) + '</span><span>' + esc(t(b.name)) + '</span></button>';
     }).join('');
-    var pct = Math.round((state.step) / STEPS.length * 100);
+    // one progress indicator, segmented like the step rail; the current step counts as reached → 100 % on the last step
+    var pct = Math.round((state.step + 1) / STEPS.length * 100);
+    var segs = blockSteps.map(function (idxs, i) {
+      var reached = idxs.filter(function (j) { return j <= state.step; }).length;
+      var w = Math.round(reached / idxs.length * 100);
+      return '<span class="progress__seg" style="flex-grow:' + idxs.length + '"><span data-wkey="prog-' + i + '" style="width:' + w + '%"></span></span>';
+    }).join('');
     var block = E.BLOCKS.filter(function (b) { return b.id === step.block; })[0];
     var blockIdx = E.BLOCKS.indexOf(block) + 1;
-    var body = step.kind === 'prio' ? viewPriorities() : viewQuestion(step.q);
-    var leader = res.top;
-    var mobile = '<div class="rail-mobile" role="note">' + icon('leaderboard') + '<span>' + (leader ? avatar(leader.id, true) + '<b>' + esc(leader.country.name) + '</b> ' + leader.score : '–') + '</span><span class="rail-mobile__list">' +
-      res.rows.slice(1, 4).filter(function (r) { return !r.excluded; }).map(function (r) { return r.id + ' ' + r.score; }).join(' · ') + '</span></div>';
+    var body = step.kind === 'prio' ? viewPriorities(res) : viewQuestion(step.q);
     return '<section class="wizard has-bg">' + pageBg('wizard') +
-      '<nav class="steps" aria-label="Progress">' + blocksHtml +
-      '<p class="steps__note">' + icon('lock') + '<span>Stays on this device.</span></p></nav>' +
-      '<div>' + mobile + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + '" data-step="' + state.step + '">' +
-        '<div class="progress" role="progressbar" aria-label="Questionnaire progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><span data-wkey="progress" style="width:' + Math.max(pct, 3) + '%"></span></div>' +
-        '<div class="qhead"><span class="overline">Step ' + blockIdx + ' of ' + E.BLOCKS.length + ' · ' + esc(block.name) + '</span>' + body.head + '</div>' +
+      '<nav class="steps" aria-label="' + esc(t('Questionnaire sections')) + '">' + blocksHtml +
+      '<p class="steps__note">' + icon('lock') + '<span>' + esc(t('Stays on this device.')) + '</span></p></nav>' +
+      '<div class="wizard__main">' + viewRailMobile(res) + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + (step.kind === 'prio' ? ' qcard--prio' : '') + '" data-step="' + state.step + '">' +
+        '<div class="progress" role="progressbar" aria-label="' + esc(t('Questionnaire progress')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-valuetext="' + esc(t('Question {n} of {m}', { n: state.step + 1, m: STEPS.length })) + '">' + segs + '</div>' +
+        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ' · ' + t(block.name)) + '</span><span class="overline__count">' + esc(t('Question {n} of {m}', { n: state.step + 1, m: STEPS.length })) + '</span></p>' + body.head + '</div>' +
         body.main +
         '<div class="qfoot">' +
-          '<button type="button" class="btn btn--text" data-action="prev">' + icon('arrow_back') + 'Back</button>' +
+          '<button type="button" class="btn btn--text" data-action="prev">' + icon('arrow_back') + esc(t('Back')) + '</button>' +
           '<span class="qfoot__spacer"></span>' +
-          (step.kind === 'q' ? '<button type="button" class="btn btn--text" data-action="skip">Skip</button>' : '') +
-          '<button type="button" class="btn btn--filled" data-action="next">' + (state.step === STEPS.length - 1 ? 'See result' : 'Continue') + icon('arrow_forward') + '</button>' +
+          (step.kind === 'q' ? '<button type="button" class="btn btn--text" data-action="skip">' + esc(t('Skip')) + '</button>' : '') +
+          '<button type="button" class="btn btn--filled" data-action="next">' + esc(state.step === STEPS.length - 1 ? t('See result') : t('Continue')) + icon('arrow_forward') + '</button>' +
         '</div>' +
       '</div></div>' +
       viewRail(res) +
@@ -356,306 +452,201 @@
   function viewQuestion(q) {
     var multi = q.type === 'multi';
     var v = state.answers[q.id];
-    var opts = q.options.map(function (o) {
+    var anyOn = !multi && q.options.some(function (o) { return v === o.v; });
+    var opts = q.options.map(function (o, i) {
       var on = multi ? (Array.isArray(v) && v.indexOf(o.v) !== -1) : v === o.v;
       var mark = multi ? (on ? 'check_box' : 'check_box_outline_blank') : (on ? 'radio_button_checked' : 'radio_button_unchecked');
-      return '<button type="button" class="option" aria-pressed="' + on + '" data-action="' + (multi ? 'toggle' : 'pick') + '" data-v="' + esc(o.v) + '">' +
-        icon(mark, 'option__check') + '<span class="option__text"><span class="option__l">' + esc(o.l) + '</span>' + (o.s ? '<span class="option__s">' + esc(o.s) + '</span>' : '') + '</span></button>';
+      var tab = multi ? '0' : ((on || (!anyOn && i === 0)) ? '0' : '-1');
+      return '<button type="button" class="option" role="' + (multi ? 'checkbox' : 'radio') + '" aria-checked="' + on + '" tabindex="' + tab + '" data-action="' + (multi ? 'toggle' : 'pick') + '" data-v="' + esc(o.v) + '">' +
+        icon(mark, 'option__check') + '<span class="option__text"><span class="option__l">' + esc(t(o.l)) + '</span>' + (o.s ? '<span class="option__s">' + esc(t(o.s)) + '</span>' : '') + '</span></button>';
     }).join('');
+    var why = WHY[q.id];
     return {
-      head: '<h1 tabindex="-1">' + esc(q.title) + '</h1>' +
-        ((q.help || multi) ? '<p class="qhead__help">' + (q.help ? esc(q.help) : '') + (multi ? '<span class="chip chip--small chip--tonal">' + icon('done_all') + 'Select all that apply</span>' : '') + '</p>' : '') +
-        (state.skipped[q.id] ? '<p class="skipped-note">' + icon('block') + 'Skipped – no effect on the result.</p>' : ''),
-      main: '<div class="options" role="group" aria-label="' + esc(q.title) + (multi ? ' (select all that apply)' : '') + '">' + opts + '</div>'
+      head: '<h1 id="q-title" tabindex="-1">' + esc(t(q.title)) + '</h1>' +
+        ((q.help || multi) ? '<p class="qhead__help" id="q-help">' + (q.help ? '<span>' + esc(t(q.help)) + '</span>' : '') + (multi ? '<span class="chip chip--small chip--tonal">' + icon('done_all') + esc(t('Select all that apply')) + '</span>' : '') + '</p>' : '') +
+        (why ? '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(t(why)) + '</span></p>' : '') +
+        (state.skipped[q.id] ? '<p class="skipped-note">' + icon('block') + esc(t('Skipped – no effect on the result.')) + '</p>' : ''),
+      main: '<div class="options" role="' + (multi ? 'group' : 'radiogroup') + '" aria-labelledby="q-title"' + (q.help ? ' aria-describedby="q-help"' : '') + '>' + opts + '</div>'
     };
   }
 
   var LEVEL_SHORT = ['Not', 'Somewhat', 'Important', 'Crucial'];
+  var LEVEL_TINY = ['Not', 'Some', 'Imp.', 'Crucial'];
   function prioRows(withHint) {
     var pr = state.answers.priorities || {};
+    var W = withHint ? E.computeWeights(state.answers) : null;
     return D.CRITERIA.map(function (c) {
       var lvl = typeof pr[c.id] === 'number' ? pr[c.id] : E.defaultLevel(c.id, state.answers);
+      var key = (withHint ? 'q-' : 'r-') + c.id;
       var btns = E.LEVELS.map(function (L) {
         var on = lvl === L.v;
-        return '<button type="button" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-pressed="' + on + '" aria-label="' + esc(L.l) + '">' + (on ? icon('check') : '') + LEVEL_SHORT[L.v] + '</button>';
+        return '<button type="button" role="radio" aria-checked="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-label="' + esc(t(L.l)) + '" title="' + esc(t(L.l)) + '">' +
+          (on ? icon('check') : '') + '<span class="seg__full">' + esc(t(LEVEL_SHORT[L.v])) + '</span><span class="seg__short" aria-hidden="true">' + esc(t(LEVEL_TINY[L.v])) + '</span></button>';
       }).join('');
-      var key = (withHint ? 'q-' : 'r-') + c.id;
       var open = !!state.openInfo[key];
-      var info = c.info ? '<button type="button" class="iconbtn iconbtn--small" data-action="info" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="info-' + key + '" title="' + esc(c.info) + '">' + icon('info') + '<span class="sr-only">What does ' + esc(c.name) + ' mean?</span></button>' : '';
-      return '<div class="prio__row"><div class="prio__label"><span class="prio__icon">' + critIcon(c.id) + '</span><span class="prio__text"><strong id="pl-' + key + '">' + esc(c.name) + '</strong>' + (withHint ? '<span>' + esc(c.hint) + '</span>' : '') + '</span>' + info + '</div>' +
-        (open ? '<p class="infopanel" id="info-' + key + '">' + esc(c.info) + '</p>' : '') + '<div class="seg" role="group" aria-labelledby="pl-' + key + '">' + btns + '</div></div>';
+      var w = W && W[c.id];
+      var bonus = w && w.bonus > 0 && w.value > 0 ? '<span class="chip chip--small chip--tonal prio__bonus" title="' + esc(w.reasons.map(t).join('; ')) + '">' + icon('add') + esc(t('+1 from your answers')) + '<span class="sr-only">: ' + esc(w.reasons.map(t).join('; ')) + '</span></span>' : '';
+      var info = c.info ? '<button type="button" class="iconbtn iconbtn--small" data-action="info" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="info-' + key + '" title="' + esc(t(c.info)) + '">' + icon('info') + '<span class="sr-only">' + esc(t('What does “{name}” mean?', { name: t(c.name) })) + '</span></button>' : '';
+      return '<div class="prio__row"><div class="prio__label"><span class="prio__icon">' + critIcon(c.id) + '</span><span class="prio__text"><strong id="pl-' + key + '">' + esc(t(c.name)) + '</strong>' + (withHint ? '<span>' + esc(t(c.hint)) + '</span>' : '') + bonus + '</span>' + info + '</div>' +
+        (open ? '<p class="infopanel" id="info-' + key + '">' + esc(t(c.info)) + '</p>' : '') + '<div class="seg" role="radiogroup" aria-labelledby="pl-' + key + '">' + btns + '</div></div>';
     }).join('');
   }
-  function viewPriorities() {
+  function viewPriorities(res) {
+    var bumped = D.CRITERIA.filter(function (c) { var w = res.weights[c.id]; return w && w.bonus > 0 && w.value > 0; }).length;
     return {
-      head: '<h1 tabindex="-1">How much does each goal matter?</h1><p class="qhead__help">Defaults are pre-set – change only what matters.</p>',
-      main: '<div class="prio">' + prioRows(true) + '</div>'
+      head: '<h1 id="q-title" tabindex="-1">' + esc(t('How much does each goal matter?')) + '</h1><p class="qhead__help">' + esc(t('Defaults are pre-set – change only what matters.')) + '</p>' +
+        '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(bumped ? t('Your answers already raised {n} goals by one level (+1). Here you set the base level.', { n: bumped }) : t('Your priorities are the weights of the ranking. Here you set the base level.')) + '</span></p>',
+      main: '<div class="prio prio--grid">' + prioRows(true) + '</div>'
     };
   }
 
-  function viewRail(res) {
+  function rankItems(res, keyPrefix, withMoves) {
     var prev = state.prevOrder;
-    var items = res.rows.map(function (r, i) {
+    return res.rows.map(function (r, i) {
       var mv = '';
-      if (prev && prev[r.id]) {
+      if (withMoves && prev && prev[r.id]) {
         var d = prev[r.id].pos - i;
-        if (d > 0) mv = '<span class="rank-item__move move-up" aria-label="up ' + d + '">' + icon('arrow_upward') + d + '</span>';
-        else if (d < 0) mv = '<span class="rank-item__move move-down" aria-label="down ' + (-d) + '">' + icon('arrow_downward') + (-d) + '</span>';
+        if (d > 0) mv = '<span class="rank-item__move move-up">' + icon('arrow_upward') + d + '<span class="sr-only"> ' + esc(t('up')) + '</span></span>';
+        else if (d < 0) mv = '<span class="rank-item__move move-down">' + icon('arrow_downward') + (-d) + '<span class="sr-only"> ' + esc(t('down')) + '</span></span>';
       }
       if (!mv) mv = '<span class="rank-item__move" aria-hidden="true"></span>';
       var lead = i === 0 && !r.excluded;
-      return '<li class="rank-item' + (lead ? ' rank-item--lead' : '') + (r.excluded ? ' rank-item--excluded' : '') + '" data-flip="rail-' + r.id + '">' +
-        '<div class="rank-item__top">' + avatar(r.id, lead) + '<span class="rank-item__name">' + esc(r.country.name) + (r.excluded ? ' <span class="sr-only">(excluded)</span>' : '') + '</span><span class="rank-item__score" data-ckey="rail-' + r.id + '">' + r.score + '</span>' + mv + '</div>' +
-        '<div class="bar"><span data-wkey="rail-' + r.id + '" style="width:' + r.score + '%"></span></div></li>';
+      return '<li class="rank-item' + (lead ? ' rank-item--lead' : '') + (r.excluded ? ' rank-item--excluded' : '') + '"' + (withMoves ? ' data-flip="' + keyPrefix + r.id + '"' : '') + '>' +
+        '<div class="rank-item__top">' + avatar(r.id, lead) + '<span class="rank-item__name">' + esc(t(r.country.name)) + (r.excluded ? ' <span class="sr-only">(' + esc(t('excluded')) + ')</span>' : '') + '</span><span class="rank-item__score" data-ckey="' + keyPrefix + r.id + '">' + r.score + '</span>' + mv + '</div>' +
+        '<div class="bar"><span data-wkey="' + keyPrefix + r.id + '" style="width:' + r.score + '%"></span></div></li>';
     }).join('');
+  }
+  function viewRail(res) {
     var why = '';
     if (state.lastMove && state.lastMove.none) {
-      var reason = 'this answer does not affect any score for your current profile.';
-      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = 'this passport gives no additional rights compared with your other one(s).';
-      else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = ef.effect.charAt(0).toLowerCase() + ef.effect.slice(1); }
-      why = '<p class="rail__why">' + icon('remove') + '<span><strong>No change:</strong> ' + esc(reason) + '</span></p>';
+      var reason = t('This answer does not affect any score for your current profile.');
+      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = t('This passport gives no additional rights compared with your other one(s).');
+      else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = UI.effectText(ef); }
+      why = '<p class="rail__why">' + icon('remove') + '<span><strong>' + esc(t('No change:')) + '</strong> ' + esc(reason) + '</span></p>';
     } else if (state.lastMove) {
       var c = country(state.lastMove.k), pts = Math.abs(Math.round(state.lastMove.d));
-      why = '<p class="rail__why">' + icon(state.lastMove.d > 0 ? 'trending_up' : 'trending_down') + '<span><strong>' + esc(c.name) + ' ' + (state.lastMove.d > 0 ? '+' : '−') + pts + '</strong> after “' + esc(state.lastMove.label) + '”</span></p>';
+      why = '<p class="rail__why">' + icon(state.lastMove.d > 0 ? 'trending_up' : 'trending_down') + '<span><strong>' + esc(t(c.name)) + ' ' + (state.lastMove.d > 0 ? '+' : '−') + pts + '</strong> ' + esc(t('after “{q}”', { q: t(state.lastMove.label) })) + '</span></p>';
     } else {
-      why = '<p class="rail__why">' + icon('bolt') + '<span>Every click re-scores all six.</span></p>';
+      why = '<p class="rail__why">' + icon('bolt') + '<span>' + esc(t('Every click re-scores all six.')) + '</span></p>';
     }
-    return '<aside class="rail" aria-label="Live ranking"><div class="card__head"><h2>' + icon('leaderboard') + 'Live ranking</h2><span class="rail__meta">fit / 100</span></div><ol class="rank-list">' + items + '</ol>' + why +
-      '<p class="rail__foot">' + res.answered + ' of ' + res.totalQuestions + ' answered</p></aside>';
+    return '<aside class="rail" aria-labelledby="rail-title"><div class="card__head"><h2 id="rail-title">' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="rail__meta">' + esc(t('Match score')) + '</span></div><ol class="rank-list">' + rankItems(res, 'rail-', true) + '</ol>' + why +
+      '<p class="rail__foot">' + esc(t('{n} of {m} answered', { n: res.answered, m: res.totalQuestions })) + '</p></aside>';
   }
-
-  /* ---------- results ---------- */
-  function viewResults() {
-    var res = E.evaluate(state.answers);
-    var top = res.top;
-    if (!top) return '<section class="results"><div class="card empty-state">' + icon('location_off') + '<h1>No location left</h1><p>Your filters exclude every country.</p><button class="btn btn--filled" data-action="goto" data-step="2">Change relocation answer</button></div></section>';
-    var verdictChip = res.verdict === 'robust' ? '<span class="chip chip--success">' + icon('verified') + 'Robust result</span>' :
-      res.verdict === 'close' ? '<span class="chip chip--warning">' + icon('compare_arrows') + 'Close call with ' + esc(res.runnerUp.country.name) + '</span>' : '<span class="chip chip--tonal">' + icon('filter_alt') + 'Only option left</span>';
-    var parts = D.CRITERIA.map(function (c) { return { id: c.id, v: top.contrib[c.id] }; }).filter(function (p) { return p.v > 0.4; }).sort(function (a, b) { return b.v - a.v; });
-    var bar = parts.map(function (p, i) { return '<span class="c' + (i % 10) + '" data-wkey="ct-' + p.id + '" style="width:' + p.v.toFixed(2) + '%" title="' + esc(crit(p.id).short) + ': ' + p.v.toFixed(1) + ' points"></span>'; }).join('');
-    var legend = parts.map(function (p, i) { return '<li><i class="c' + (i % 10) + '"></i>' + esc(crit(p.id).short) + ' <b>' + Math.round(p.v) + '</b></li>'; }).join('');
-    var strongest = res.explain.why.map(function (id) { return '<li class="chip chip--onprimary">' + critIcon(id) + esc(crit(id).short) + '</li>'; }).join('');
-    var scoreInfoOpen = !!state.openInfo.score;
-    var rob = res.robustness && res.robustness.total ? '<li class="fact-tile">' + icon('shield') + '<b>' + res.robustness.same + '/' + res.robustness.total + '</b><span>scenarios stay #1</span></li>' : '';
-
-    var winnerDecor = '<div class="winner__decor" aria-hidden="true">' +
-      '<svg class="winner__cookie" viewBox="0 0 200 200"><path d="' + shapePath(12, .07) + '"/></svg>' +
-      '<svg class="winner__route" viewBox="0 0 400 200" preserveAspectRatio="xMaxYMin meet"><path d="M150 92C210 92 230 58 280 52S330 36 350 30"/>' +
-        '<circle class="winner__ring" cx="350" cy="30" r="12"/><circle class="winner__pin" cx="350" cy="30" r="8"/></svg></div>';
-    var winner = '<section class="card winner" aria-labelledby="winner-title">' + winnerDecor +
-      '<span class="overline">' + icon('workspace_premium') + 'Best fit for you</span>' +
-      '<div class="winner__row"><h1 id="winner-title" class="winner__name" tabindex="-1">' + esc(top.country.name) + '</h1>' +
-        '<div class="scorebig"><b data-ckey="win-' + top.id + '" data-count0>' + top.score + '</b><span>/100</span>' +
-        '<button type="button" class="iconbtn iconbtn--small" data-action="info" data-key="score" aria-expanded="' + scoreInfoOpen + '" aria-controls="info-score" title="What does the fit score mean?">' + icon('info') + '<span class="sr-only">What does the fit score mean?</span></button></div></div>' +
-      (scoreInfoOpen ? '<p class="infopanel" id="info-score">How close this country gets to 5/5 on everything you weight. Gaps of 2–3 points are within data precision.</p>' : '') +
-      '<div class="chips">' + verdictChip + '</div>' +
-      '<ul class="fact-tiles">' +
-        '<li class="fact-tile">' + icon('domain') + '<b>' + esc(top.country.entity) + '</b><span>legal form</span></li>' +
-        '<li class="fact-tile">' + icon('location_city') + '<b>' + esc(top.country.hub) + '</b><span>hubs</span></li>' + rob +
-      '</ul>' +
-      (strongest ? '<div class="winner__block"><span class="label">Strongest for you</span><ul class="chips">' + strongest + '</ul></div>' : '') +
-      '<div class="winner__block"><span class="label">What makes up ' + top.score + ' points</span><div class="contrib__bar" role="img" aria-label="Score contribution by criterion: ' + esc(parts.map(function (p) { return crit(p.id).short + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><ul class="contrib__legend">' + legend + '</ul></div>' +
-      changeHtml(res) +
-      '</section>';
-
-    var ranking = '<section class="card" aria-labelledby="rank-title"><div class="card__head"><h2 id="rank-title">' + icon('leaderboard') + 'Full ranking</h2><span class="rail__meta">fit / 100</span></div><ol class="ranking">' +
-      res.rows.map(function (r, i) {
-        var tag = r.excluded ? r.excluded : (r.residence ? ({ home: 'you live here', citizen: 'your passport', free: 'free movement', visa: 'visa needed', limited: 'residence limited' })[r.residence.level] : '');
-        return '<li class="' + (r.excluded ? 'is-excluded' : '') + '" data-flip="rk-' + r.id + '"><span class="ranking__pos">' + (r.excluded ? '–' : (i + 1)) + '</span>' + avatar(r.id, i === 0 && !r.excluded) +
-          '<span class="ranking__body"><span class="ranking__name">' + esc(r.country.name) + (tag ? '<small>' + esc(tag) + '</small>' : '') + '</span><span class="bar"><span data-wkey="rk-' + r.id + '" style="width:' + r.score + '%"></span></span></span>' +
-          '<span class="ranking__score" data-ckey="rk-' + r.id + '">' + r.score + '</span></li>';
-      }).join('') + '</ol></section>';
-
-    function factOf(c) { var cell = D.SCORES[top.id][c]; return c === 'residence' && top.residence ? top.residence.text : cell.value; }
-    var whyList = res.explain.why.length ? res.explain.why.map(function (c) {
-      var cell = D.SCORES[top.id][c];
-      return '<li><strong>' + critIcon(c) + esc(crit(c).name) + '</strong><span>' + esc(factOf(c)) + '</span>' + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
-    }).join('') : '<li class="empty">Balanced profile – no single standout.</li>';
-    var tradeList = res.explain.tradeoffs.length ? res.explain.tradeoffs.map(function (c) {
-      var cell = D.SCORES[top.id][c];
-      var better = res.rows.filter(function (r) { return !r.excluded && r.id !== top.id; }).sort(function (a, b) { return b.scores[c].value - a.scores[c].value; })[0];
-      var stronger = better && better.scores[c].value > top.scores[c].value;
-      return '<li><strong>' + critIcon(c) + esc(crit(c).name) + '</strong><span>' + esc(factOf(c)) + '</span>' + (stronger ? '<span class="chip chip--small chip--tonal">' + icon('arrow_upward') + esc(better.country.name) + ' stronger</span>' : '') + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
-    }).join('') : '<li class="empty">No major weakness on what you care about.</li>';
-    var watchList = res.warnings.length ? res.warnings.map(function (w) { var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []); return '<li><span>' + esc(w.text) + '</span>' + ss.map(function (x) { return srcLink(x); }).join('') + '</li>'; }).join('') : '<li class="empty">Nothing specific to flag.</li>';
-    var insights = '<div class="insights">' +
-      '<section class="insight insight--why"><h3>' + icon('thumb_up') + 'Why it fits</h3><ul>' + whyList + '</ul></section>' +
-      '<section class="insight insight--trade"><h3>' + icon('balance') + 'Trade-offs</h3><ul>' + tradeList + '</ul></section>' +
-      '<section class="insight insight--watch"><h3>' + icon('warning') + 'Watch out</h3><ul>' + watchList + '</ul></section></div>';
-
-    var orderIds = res.rows.map(function (r) { return r.id; });
-
-    // roadmap
-    var tab = state.roadmapTab && country(state.roadmapTab) ? state.roadmapTab : top.id;
-    var tabs = orderIds.map(function (k) { var on = k === tab; return '<button type="button" role="tab" class="chip chip--filter" aria-selected="' + on + '" data-action="tab" data-k="' + k + '">' + (on ? icon('check') : '') + esc(country(k).name) + '</button>'; }).join('');
-    var steps = D.ROADMAP[tab].map(function (s) { return '<li><div><strong>' + esc(s.t) + '</strong><p>' + esc(s.d) + '</p>' + srcLink(s.src) + '</div></li>'; }).join('');
-    var rs = res.rows.filter(function (r) { return r.id === tab; })[0].residence;
-    var roadmap = '<section class="card" aria-labelledby="rm-title"><div class="card__head"><h2 id="rm-title">' + icon('route') + 'Founding roadmap</h2><span class="rail__meta">' + D.ROADMAP[tab].length + ' steps</span></div>' +
-      '<div class="chips tabs" role="tablist" aria-label="Country roadmap">' + tabs + '</div>' +
-      '<ul class="fact-tiles fact-tiles--plain"><li class="fact-tile">' + icon('domain') + '<b>' + esc(country(tab).entity) + '</b><span>legal form</span></li>' + (rs ? '<li class="fact-tile">' + icon('badge') + '<b>' + esc(rs.text) + '</b><span>residence</span></li>' : '') + '</ul>' +
-      '<ol class="roadmap">' + steps + '</ol></section>';
-
-    var answers = '<section class="card" aria-labelledby="ans-title"><div class="card__head"><h2 id="ans-title">' + icon('checklist') + 'Your answers</h2><span class="rail__meta">tap to change</span></div><div class="answers">' +
-      Q.map(function (q, i) { var l = answerLabel(q); var ef = res.effects[i]; return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '" title="' + esc(ef ? ef.effect : '') + '"><small>' + esc(q.title) + '</small><span>' + esc(l || 'Skipped') + '</span>' + icon('edit', 'answer__edit') + '</button>'; }).join('') +
-      '</div></section>';
-
-    // matrix
-    var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + avatar(k, k === top.id) + '</th>'; }).join('') + '</tr>';
-    var bodyRows = D.CRITERIA.map(function (c) {
-      var w = res.weights[c.id];
-      return '<tr><th scope="row"><span class="mx-crit">' + critIcon(c.id) + esc(c.name) + '</span><small>' + wdots(w) + ' ' + esc(E.LEVELS[w.level].l) + (w.bonus ? ' · +' + w.bonus + ' from answers' : '') + (w.value === 0 && w.level > 0 ? ' · 0 from answers' : '') + '</small></th>' +
-        orderIds.map(function (k) {
-          var s = res.rows.filter(function (r) { return r.id === k; })[0].scores[c.id];
-          var cell = D.SCORES[k][c.id];
-          var tag = cell.nodata ? '<span class="conf-low" aria-hidden="true">no data</span>' : (cell.confidence === 'low' ? '<span class="conf-low" aria-hidden="true">est.</span>' : '');
-          return '<td class="' + (k === top.id ? 'col-win' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(country(k).name + ', ' + c.name + ': ' + s.value + ' of 5. Show evidence') + '">' + dots(s.value) + tag + '</button></td>';
-        }).join('') + '</tr>';
-    }).join('');
-    var matrix = '<section class="card" aria-labelledby="mx-title"><div class="card__head"><h2 id="mx-title">' + icon('grid_view') + 'Compare all six</h2><span class="rail__meta">tap a cell for evidence</span></div>' +
-      '<ul class="legend">' +
-        '<li>' + dots(4) + '<span>Score 1–5 · more is better</span></li>' +
-        '<li><span class="wdots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><span>Your weight 0–3</span></li>' +
-        '<li><span class="conf-low">est.</span><span>Estimate</span></li>' +
-        '<li><span class="conf-low">no data</span><span>Neutral 3</span></li></ul>' +
-      '<div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Scores from 1 to 5 per country and criterion</caption><thead>' + head + '</thead><tbody>' + bodyRows + '</tbody></table></div></section>';
-
-    var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><div class="card__head"><h2 id="wi-title">' + icon('tune') + 'What if priorities change?</h2><span class="rail__meta">updates live</span></div><div class="prio whatif">' + prioRows(false) + '</div></section>';
-
-    return '<section class="results has-bg anim">' + pageBg('results') +
-      (state.example ? '<div class="banner">' + icon('science') + '<span>Example profile: <b>' + esc(state.example) + '</b></span><button type="button" class="btn btn--text" data-action="goto" data-step="0">Make it yours</button></div>' : '') +
-      '<div class="results__bar"><span class="chip chip--small">' + icon('task_alt') + res.answered + ' of ' + res.totalQuestions + ' answered</span>' +
-      '<div class="results__actions"><button type="button" class="btn btn--outlined" data-action="goto" data-step="0">' + icon('edit') + 'Edit</button><button type="button" class="btn btn--outlined" data-action="share">' + icon('link') + 'Share</button><button type="button" class="btn btn--tonal" data-action="print">' + icon('picture_as_pdf') + 'Save PDF</button></div></div>' +
-      '<div class="grid-2">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
-      '<p class="disclaimer">' + icon('info') + 'Orientation, not legal or tax advice · No AI involved · <button type="button" class="btn btn--text btn--inline" data-action="method">How it’s calculated</button></p>' +
-      '</section>';
-  }
-
-  function changeHtml(res) {
-    if (!res.changes) return '';
-    if (!res.changes.length) return '<div class="winner__block"><span class="label">What could flip it</span><p class="changes__none">' + icon('lock') + 'No single priority change.</p></div>';
-    return '<div class="winner__block"><span class="label">What could flip it</span><ul class="changes">' + res.changes.map(function (c) {
-      return '<li>' + critIcon(c.c) + '<span>' + esc(crit(c.c).short) + ' → <b>' + esc(E.LEVELS[c.to].l.toLowerCase()) + '</b></span>' + '<span class="changes__to">' + icon('arrow_forward') + avatar(c.winner) + '<b>' + esc(country(c.winner).name) + '</b></span></li>';
-    }).join('') + '</ul></div>';
-  }
-
-  /* ---------- method page ---------- */
-  function details(summary, body) { return '<details class="details"><summary>' + icon('expand_more') + esc(summary) + '</summary><div class="details__body">' + body + '</div></details>'; }
-  function viewMethod() {
-    var anchors = D.CRITERIA.map(function (c) { return '<tr><th scope="row">' + critIcon(c.id) + esc(c.name) + '</th><td>' + esc(c.anchors) + '</td></tr>'; }).join('');
-    var groups = [['law', 'Statutes & legal texts', 'gavel'], ['official', 'Government & official bodies', 'account_balance'], ['intl', 'International organisations', 'public'], ['academic', 'Academic', 'school'], ['report', 'Industry reports', 'analytics'], ['expert', 'Expert & adviser publications', 'person']];
-    var srcs = groups.map(function (g) {
-      var items = Object.keys(D.SOURCES).filter(function (k) { return D.SOURCES[k].type === g[0]; });
-      if (!items.length) return '';
-      return details(g[1] + ' (' + items.length + ')', '<ul class="srclist">' + items.map(function (k) { var s = D.SOURCES[k]; return '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener noreferrer">' + esc(s.t) + '</a><span>' + esc(s.p) + ' · accessed ' + esc(D.DATA_AS_OF) + '</span></li>'; }).join('') + '</ul>');
-    }).join('');
-    var lit = D.LITERATURE.map(function (l) { return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.c) + '</a><span>' + esc(l.use) + '</span></li>'; }).join('');
-    function step(n, ic, title, line, body) {
-      return '<section class="card mstep"><div class="mstep__head"><span class="mstep__num">' + n + '</span><div><h2>' + icon(ic) + title + '</h2><p>' + line + '</p></div></div>' + (body ? details('Details', body) : '') + '</section>';
-    }
-    return '<section class="method has-bg anim">' + pageBg('method') +
-      '<div class="method__head"><span class="overline">' + icon('menu_book') + 'Method &amp; sources</span><h1 tabindex="-1">How it’s calculated</h1>' +
-        '<ul class="chips"><li class="chip">' + icon('block') + 'No AI</li><li class="chip">' + icon('repeat') + 'Same answers, same result</li><li class="chip">' + icon('link') + Object.keys(D.SOURCES).length + ' sources</li></ul></div>' +
-      '<section class="card card--primary formula-card"><span class="label">Fit score</span><div class="formula">Fit = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
-        '<ul class="fact-tiles"><li class="fact-tile">' + icon('star') + '<b>100</b><span>5/5 on all you weight</span></li><li class="fact-tile">' + icon('star_outline') + '<b>0</b><span>1/5 everywhere</span></li><li class="fact-tile">' + icon('straighten') + '<b>±2–3</b><span>within precision</span></li></ul></section>' +
-      step(1, 'fact_check', 'Evidence scores 1–5', 'Legal and statistical facts mapped to fixed anchor scales.',
-        '<p>Sources: statutes, tax authorities, OECD, Eurostat, WIPO, national registers. Anchors are absolute, not relative to the six countries. Missing data is set to the neutral 3 and labelled “no data”.</p><table class="anchors"><tbody>' + anchors + '</tbody></table>') +
-      step(2, 'tune', 'Weights from your priorities', 'Not important 0 · Somewhat 1 · Important 2 · Crucial 3.',
-        '<ul><li>Default is Somewhat important; “Easy residence &amp; local roots” starts at Important (home advantage, Dahl &amp; Sorenson 2012) unless you would move anywhere.</li>' +
-        '<li>Planning venture capital → +1 on VC access; grants or business angels → +1 on public funding (angel tax reliefs such as UK SEIS/EIS are scored there); accelerator → +1 on talent &amp; ecosystem. Each criterion is raised by at most one level (cap 4).</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost.</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax.</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0.</li><li>An explicit “Not important” always stays 0.</li></ul>') +
-      step(3, 'person_pin', 'Profile adjustments', 'Whole steps only, always within 1–5.',
-        '<ul><li><b>Easy residence &amp; local roots:</b> 5 where you live, 4 with your passport or free movement, 2 if a visa is needed, 1 if quota-limited. The most favourable citizenship counts; without answers it stays 3.</li>' +
-        '<li>Existing investors in a country → +1 on local roots there.</li>' +
-        '<li>US grants: −1 for non-US founders (SBIR/STTR needs &gt; 50% US ownership); +1 for US citizens.</li>' +
-        '<li>Sector: +1 on ecosystem only where a source supports it – fintech (Zurich GFCI top 10; Liechtenstein TVTG), health &amp; life sciences (Lausanne/Basel), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). AI hubs (US, UK) already hold the maximum; software is least location-bound; no comparable evidence for climate &amp; energy.</li>' +
-        '<li>Target market: market-access score from a fixed table per target region.</li>' +
-        '<li>Less than €10k secured: −1 on setup in Switzerland and Liechtenstein (minimum capital must be paid in).</li></ul>') +
-      step(4, 'filter_alt', 'Filters', 'Relocation answers grey out countries – never hide them.',
-        '<ul><li>Europe only → no US; staying put → only your home country.</li></ul>') +
-      step(5, 'shield', 'Robustness &amp; limits', 'Every weight shifted ±1 level; “robust” = ≥ 85% same winner and a 4-point lead.',
-        '<ul><li>These thresholds are a convention, not an empirical result.</li><li>Scores are country-level; city costs (London, Zurich, Bay Area) can differ markedly.</li><li>Liechtenstein is missing from most international indices; several scores are estimates.</li><li>Exit tax compares the standard case (shares held privately); holding structures are shown as tips, not scored.</li><li>Some legal details still need verification against primary texts (e.g. Swiss GmbH public deed, Liechtenstein permit quotas, Art. 180a PGR) and are marked in the evidence cells.</li><li>A decision aid, not legal or tax advice.</li></ul>') +
-      '<section class="card"><div class="card__head"><h2>' + icon('school') + 'Peer-reviewed foundations</h2><span class="rail__meta">' + D.LITERATURE.length + ' papers</span></div>' + details('Show literature', '<ul class="srclist">' + lit + '</ul>') + '</section>' +
-      '<section class="card"><div class="card__head"><h2>' + icon('library_books') + 'All data sources</h2><span class="rail__meta">cut-off ' + esc(D.DATA_AS_OF) + '</span></div>' + srcs + '</section>' +
-      '<div><button type="button" class="btn btn--filled btn--lg" data-action="' + (Object.keys(state.answers).length ? 'results' : 'start') + '">' + (Object.keys(state.answers).length ? 'Back to my result' : 'Find my location') + icon('arrow_forward') + '</button></div>' +
-      '</section>';
-  }
-
-  /* ---------- detail dialog ---------- */
-  function openCell(k, c) {
-    var res = E.evaluate(state.answers);
-    var row = res.rows.filter(function (r) { return r.id === k; })[0];
-    var s = row.scores[c], cell = D.SCORES[k][c], cr = crit(c);
-    if (c === 'residence' && row.residence) cell = { value: row.residence.text, note: cell.note, sources: cell.sources, confidence: cell.confidence };
-    var adj = s.adj.length ? '<p class="dialog__adj">' + icon('person') + '<span>' + esc(s.adj.join('; ')) + ' <b>(' + s.base + ' → ' + s.value + ')</b></span></p>' : '';
-    var srcs = cell.sources.length ? cell.sources.map(function (id) { return srcLink(id, src(id).t + ' – ' + src(id).p); }).join('') : '<span class="muted">No primary source found – estimate.</span>';
-    document.getElementById('detail-body').innerHTML =
-      '<div class="dialog__head">' + avatar(k, true) + '<div><span class="overline">' + esc(country(k).name) + '</span><h2 id="detail-title">' + esc(cr.name) + '</h2></div><button type="button" class="iconbtn" data-action="close" aria-label="Close">' + icon('close') + '</button></div>' +
-      '<div class="dialog__score">' + dots(s.value) + '<b>' + s.value + '<small>/5</small></b><span class="chip chip--small">' + icon('signal_cellular_alt') + esc(cell.confidence) + ' confidence</span></div>' +
-      '<p class="fact">' + esc(cell.value) + '</p><p>' + esc(cell.note) + '</p>' + adj +
-      '<p class="dialog__scale">' + icon('straighten') + '<span>' + esc(cr.anchors) + '</span></p>' +
-      '<div class="dialog__srcs">' + srcs + '</div>';
-    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
-    var btn = dialog.querySelector('[data-action="close"]'); if (btn) btn.focus();
+  /* compact live ranking for narrow screens: collapsed pill, tap to expand */
+  function viewRailMobile(res) {
+    var leader = res.top, open = !!state.railOpen;
+    var rest = res.rows.filter(function (r) { return !r.excluded && (!leader || r.id !== leader.id); }).slice(0, 3)
+      .map(function (r) { return '<span>' + esc(r.id) + ' ' + r.score + '</span>'; }).join('');
+    return '<div class="rail-mobile' + (open ? ' is-open' : '') + '">' +
+      '<button type="button" class="rail-mobile__toggle" data-action="railToggle" aria-expanded="' + open + '" aria-controls="rail-mobile-panel">' +
+        icon('leaderboard', 'rail-mobile__icon') +
+        '<span class="rail-mobile__lead">' + (leader ? avatar(leader.id, true) + '<span><span class="sr-only">' + esc(t('Leading:')) + ' </span><b>' + esc(t(leader.country.name)) + '</b> <span class="rail-mobile__score">' + leader.score + '</span></span>' : '–') + '</span>' +
+        '<span class="rail-mobile__list" aria-hidden="true">' + rest + '</span>' +
+        '<span class="sr-only">' + esc(open ? t('Hide full ranking') : t('Show full ranking')) + '</span>' +
+        icon('expand_more', 'rail-mobile__chev') +
+      '</button>' +
+      (open ? '<div class="rail-mobile__panel" id="rail-mobile-panel"><p class="rail__meta">' + esc(t('Match score')) + '</p><ol class="rank-list">' + rankItems(res, 'mrail-', false) + '</ol></div>' : '<div id="rail-mobile-panel" hidden></div>') +
+      '</div>';
   }
 
   /* ---------- events ---------- */
   var advanceTimer = null;
+  function isPointerClick(e) { return !!e && e.detail > 0; } // keyboard-activated clicks have detail 0
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-action]');
-    if (!t) return;
-    var a = t.getAttribute('data-action');
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.getAttribute('data-action');
     var step = STEPS[state.step];
     switch (a) {
       case 'home': e.preventDefault(); go('landing'); break;
       case 'start': go('wizard', { step: firstOpenStep() }); break;
       case 'method': go('method'); break;
       case 'results': go('results'); break;
-      case 'restart':
-        if (!Object.keys(state.answers).length || window.confirm('Start over? Your answers in this browser will be cleared.')) {
-          state.answers = {}; state.skipped = {}; state.example = null; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
-          if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-          go('landing');
-        }
+      case 'restart': clearTimeout(advanceTimer); restart(); break;
+      case 'example': loadExample(el.getAttribute('data-k')); break;
+      case 'theme': cycleTheme(); break;
+      case 'lang': toggleLang(); break;
+      case 'railToggle':
+        state.railOpen = !state.railOpen;
+        var ys = window.scrollY; render(); window.scrollTo(0, ys);
+        var tg = app.querySelector('.rail-mobile__toggle'); if (tg) tg.focus({ preventScroll: true });
         break;
-      case 'goto': state.dir = (parseInt(t.getAttribute('data-step'), 10) || 0) < state.step && state.view === 'wizard' ? 'back' : 'fwd'; go('wizard', { step: parseInt(t.getAttribute('data-step'), 10) || 0 }); break;
+      case 'goto': state.dir = (parseInt(el.getAttribute('data-step'), 10) || 0) < state.step && state.view === 'wizard' ? 'back' : 'fwd'; go('wizard', { step: parseInt(el.getAttribute('data-step'), 10) || 0 }); break;
       case 'next': clearTimeout(advanceTimer); nextStep(); break;
       case 'prev': clearTimeout(advanceTimer); prevStep(); break;
-      case 'skip': skip(step.q); announce('Skipped.'); nextStep(); break;
+      case 'skip': clearTimeout(advanceTimer); skip(step.q); announce(t('Skipped.')); nextStep(); break;
       case 'pick':
-        setSingle(step.q, t.getAttribute('data-v')); render(); flash('[data-action="pick"][data-v="' + t.getAttribute('data-v') + '"]');
-        announce(answerLabel(step.q) + ' selected. ' + liveSummary());
+        if (!step || step.kind !== 'q') break;
+        var v = el.getAttribute('data-v');
+        var psel = '[data-action="pick"][data-v="' + v + '"]';
+        setSingle(step.q, v); render(); flash(psel);
+        var pb = app.querySelector(psel); if (pb) pb.focus({ preventScroll: true });
+        announce(t('{answer} selected.', { answer: answerLabel(step.q) }) + ' ' + liveSummary());
         clearTimeout(advanceTimer);
-        advanceTimer = setTimeout(nextStep, 380);
+        // auto-advance only for pointer clicks; keyboard users (Enter/Space/arrows → detail 0) stay and press Continue
+        if (isPointerClick(e)) advanceTimer = setTimeout(nextStep, 380);
         break;
       case 'toggle':
-        toggleMulti(step.q, t.getAttribute('data-v')); render(); flash('[data-action="toggle"][data-v="' + t.getAttribute('data-v') + '"]');
-        var sel = app.querySelector('[data-action="toggle"][data-v="' + t.getAttribute('data-v') + '"]'); if (sel) sel.focus();
+        if (!step || step.kind !== 'q') break;
+        toggleMulti(step.q, el.getAttribute('data-v')); render(); flash('[data-action="toggle"][data-v="' + el.getAttribute('data-v') + '"]');
+        var sel = app.querySelector('[data-action="toggle"][data-v="' + el.getAttribute('data-v') + '"]'); if (sel) sel.focus({ preventScroll: true });
         announce(liveSummary());
         break;
       case 'prio':
         var y = window.scrollY;
-        setPriority(t.getAttribute('data-c'), parseInt(t.getAttribute('data-level'), 10)); render();
+        setPriority(el.getAttribute('data-c'), parseInt(el.getAttribute('data-level'), 10)); render();
         window.scrollTo(0, y);
-        var bsel = '[data-action="prio"][data-c="' + t.getAttribute('data-c') + '"][data-level="' + t.getAttribute('data-level') + '"]';
+        var bsel = '[data-action="prio"][data-c="' + el.getAttribute('data-c') + '"][data-level="' + el.getAttribute('data-level') + '"]';
         flash(bsel); var b = app.querySelector(bsel); if (b) b.focus({ preventScroll: true });
         announce(liveSummary());
         break;
-      case 'tab': state.roadmapTab = t.getAttribute('data-k'); var yy = window.scrollY; render(); window.scrollTo(0, yy); var tb = app.querySelector('[data-action="tab"][data-k="' + state.roadmapTab + '"]'); if (tb) tb.focus({ preventScroll: true }); flash('[data-action="tab"][data-k="' + state.roadmapTab + '"]'); var rm = app.querySelector('.roadmap'); if (rm) rm.classList.add('is-changed'); break;
       case 'info':
-        var ik = t.getAttribute('data-key'); state.openInfo[ik] = !state.openInfo[ik];
+        var ik = el.getAttribute('data-key'); state.openInfo[ik] = !state.openInfo[ik];
         var y2 = window.scrollY; render(); window.scrollTo(0, y2);
         var ib = app.querySelector('[data-action="info"][data-key="' + ik + '"]'); if (ib) ib.focus({ preventScroll: true });
         var ip = document.getElementById('info-' + ik); if (ip) ip.classList.add('is-changed');
         break;
-      case 'cell': openCell(t.getAttribute('data-k'), t.getAttribute('data-c')); break;
       case 'close': closeDialog(); break;
-      case 'share':
-        var url = location.origin + location.pathname + '#r=' + encodeShare();
-        var done = function () { t.innerHTML = icon('check') + 'Copied'; announce('Share link copied.'); setTimeout(function () { t.innerHTML = icon('link') + 'Share'; }, 2200); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link:', url); });
-        else window.prompt('Copy this link:', url);
-        break;
-      case 'print': window.print(); break;
+      default:
+        if (UI.actions[a]) UI.actions[a](el, e);
+        else if (UI.views[a]) { e.preventDefault(); go(a); }
     }
+  });
+  /* radio groups (options, segmented priorities): roving tabindex + arrow keys select (WAI-ARIA radio pattern) */
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var r = e.target.closest && e.target.closest('[role="radio"]'); if (!r) return;
+    var g = r.closest('[role="radiogroup"]'); if (!g) return;
+    var step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    var items = Array.prototype.slice.call(g.querySelectorAll('[role="radio"]'));
+    var i = items.indexOf(r), n;
+    if (step) n = (i + step + items.length) % items.length;
+    else if (e.key === 'Home') n = 0;
+    else if (e.key === 'End') n = items.length - 1;
+    else return;
+    e.preventDefault();
+    clearTimeout(advanceTimer);
+    items[n].click(); // detail 0 → selects without auto-advance; the handler restores focus on the new radio
+  });
+  /* skip link: move focus to the view's heading (or main) */
+  var skipLink = document.querySelector('.skip-link');
+  if (skipLink) skipLink.addEventListener('click', function (e) { e.preventDefault(); if (!focusH1()) document.getElementById('main').focus(); });
+
+  /* dialog: native showModal() traps focus; on close, focus returns to the control that opened it */
+  var lastOutside = null;
+  document.addEventListener('focusin', function (e) {
+    if (dialog.contains(e.target) || (snack && snack.contains(e.target))) return;
+    var el = e.target;
+    lastOutside = { el: el, action: el.getAttribute && el.getAttribute('data-action'), k: el.getAttribute && el.getAttribute('data-k'), c: el.getAttribute && el.getAttribute('data-c') };
+  });
+  dialog.addEventListener('close', function () {
+    var o = lastOutside; if (!o) return;
+    var target = o.el && document.contains(o.el) ? o.el : null;
+    if (!target && o.action) {
+      var s = '[data-action="' + o.action + '"]' + (o.k ? '[data-k="' + o.k + '"]' : '') + (o.c ? '[data-c="' + o.c + '"]' : '');
+      target = document.querySelector(s);
+    }
+    if (target) target.focus({ preventScroll: true });
   });
   function closeDialog() {
     if (!dialog.open) return;
@@ -665,6 +656,7 @@
   }
   dialog.addEventListener('click', function (e) { if (e.target === dialog) closeDialog(); });
   dialog.addEventListener('cancel', function (e) { e.preventDefault(); closeDialog(); });
+
   /* glass top bar while content scrolls underneath (with hysteresis against flicker) */
   var topbar = document.querySelector('.topbar');
   function updateBars() {
@@ -684,9 +676,32 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
 
+  /* pause ambient decor when it is off-screen or the tab is hidden (global.css: .is-paused hook) */
+  var decorIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { en.target.classList.toggle('is-paused', !en.isIntersecting); });
+  }) : null;
+  function observeDecor() {
+    if (!decorIO) return;
+    decorIO.disconnect();
+    qa('.landing-bg, .page-bg, .winner__decor').forEach(function (el) { decorIO.observe(el); });
+  }
+  document.addEventListener('visibilitychange', function () { document.body.classList.toggle('is-paused', document.hidden); });
+
+  /* icon font: hide ligature names until the font is ready (styles.css: html:not(.fonts-ready) .msr) */
+  (function () {
+    var done = function () { html.classList.add('fonts-ready'); };
+    if (!document.fonts || !document.fonts.load) { done(); return; }
+    setTimeout(done, 3000); // never keep icons hidden if the font fails to load
+    document.fonts.load('24px "Material Symbols Rounded"', 'home').then(function () { return document.fonts.ready; }).then(done, done);
+  })();
+
   function liveSummary() {
-    var r = E.evaluate(state.answers);
-    return r.top ? 'Leading: ' + r.top.country.name + ' with ' + r.top.score + '.' : '';
+    var r = E.evaluate(state.answers, true);
+    if (!r.top) return '';
+    var prevLead = null, prev = state.prevOrder;
+    if (prev) Object.keys(prev).forEach(function (k) { if (!prev[k].excluded && (prevLead === null || prev[k].pos < prev[prevLead].pos)) prevLead = k; });
+    var name = t(r.top.country.name);
+    return prevLead && prevLead !== r.top.id ? t('{c} now leads with {s}.', { c: name, s: r.top.score }) : t('{c} leads with {s}.', { c: name, s: r.top.score });
   }
   function firstOpenStep() {
     for (var i = 0; i < STEPS.length; i++) {
@@ -697,7 +712,16 @@
     return 0;
   }
 
+  /* ---------- shared context for view modules (see ui.js) ---------- */
+  UI.app = {
+    state: state, root: app, dialog: dialog, Q: Q, STEPS: STEPS, EXAMPLES: EXAMPLES,
+    evaluate: function () { return E.evaluate(state.answers); },
+    render: render, go: go, save: save, announce: announce, flash: flash, snackbar: snackbar, encodeShare: encodeShare,
+    prioRows: prioRows, answerLabel: answerLabel, closeDialog: closeDialog, isAnswered: isAnswered, t: t
+  };
+
   /* ---------- boot ---------- */
+  applyTheme();
   load();
   readShare();
   render();

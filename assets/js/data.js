@@ -3,12 +3,14 @@
  * ------------------------------------------------
  * Every country score (1–5) is derived from the documented facts in `value`/`note`
  * and the cited `sources`. Scores follow the anchor scales in CRITERIA[].anchors.
- * Research cut-off: 31 October 2026. Update this file to refresh the tool.
+ * Research cut-off: 3 November 2026 (evidence review: E-2 list, Eurostat 2024 price
+ * levels, 2025 VC totals, complete 1–5 anchors for grants/ecosystem/ESOP). Update this
+ * file to refresh the tool.
  */
 (function (root) {
   'use strict';
 
-  var DATA_AS_OF = '2026-10-31';
+  var DATA_AS_OF = '2026-11-03';
 
   var COUNTRIES = [
     { id: 'DE', name: 'Germany', hub: 'Berlin · Munich', entity: 'GmbH or UG (haftungsbeschränkt)' },
@@ -40,15 +42,15 @@
     { id: 'grants', name: 'Generous public funding & grants', short: 'Grants',
       hint: 'Non-dilutive start-up programmes',
       info: 'Government money you do not have to pay back and that costs no equity, e.g. founder stipends, innovation grants or investor tax reliefs.',
-      anchors: '5 = several national programmes open to new founders · 3 = programmes exist but narrow or restricted · 1 = no dedicated national programme identified' },
+      anchors: '5 = several national non-dilutive programmes open to most new founders, including direct cash to founders (stipend or grant) · 4 = at least one broad national programme, but competitive project grants or indirect support (investor tax relief) only · 3 = programmes exist but narrow (age, region, sector, call deadlines) or restricted for foreign-owned companies · 2 = only general SME support, no start-up-specific programme · 1 = no national programme identified' },
     { id: 'talent', name: 'Strong talent pool & startup ecosystem', short: 'Ecosystem',
       hint: 'Innovation capacity, start-up hubs',
       info: 'How strong the innovation system and start-up hubs are: universities, skilled people, founders and mentors around you. Based on the WIPO Global Innovation Index and Startup Genome rankings.',
-      anchors: 'WIPO GII 2025 rank and Startup Genome hub rankings: 5 = global top-3 hub · 4 = top European hub or GII top-15 · 3 = emerging hub · 1 = no ranked hub' },
+      anchors: 'WIPO GII 2025 rank and Startup Genome hub rankings: 5 = a global top-3 hub · 4 = a top-10 European hub or GII top-15 · 3 = a ranked or emerging hub outside Europe’s top 10, or GII 16–35 · 2 = no ranked hub and GII rank below 35 · 1 = no ranked hub and not ranked in the GII' },
     { id: 'esop', name: 'Founder-friendly employee stock options', short: 'ESOP rules',
       hint: 'Tax treatment of employee equity',
       info: 'How employee stock options are taxed. Friendly rules let employees pay tax only when they sell – making equity a stronger hiring tool.',
-      anchors: '5 = tax-advantaged statutory scheme, taxed only on sale · 3 = deferral regime with conditions · 2 = taxed as income at exercise / no regime' },
+      anchors: '5 = statutory tax-advantaged scheme widely used by start-ups: no income tax at grant or exercise, the gain is taxed only on sale at capital-gains rates · 4 = statutory scheme that taxes only on sale (or at reduced rates), but with material limits (eligibility, holding periods, annual caps, AMT or exit-from-residence triggers) · 3 = deferral regime: the benefit is still taxed as employment income, but later than exercise, under conditions · 2 = no start-up regime: options taxed as employment income at exercise (later growth may be tax-free) · 1 = taxed at grant or vesting before any liquidity (dry tax charge)' },
     { id: 'cost', name: 'Low cost of living', short: 'Low living cost',
       hint: 'Price level for people and salaries',
       info: 'How expensive everyday life is, which also drives salary levels and your burn rate. Measured as the national household price level.',
@@ -56,7 +58,7 @@
     { id: 'market', name: 'Easy access to your target market', short: 'Market access',
       hint: 'Single market, customers, regulation',
       info: 'How easy it is to sell to your first customers from this country: single market, customs, regulation. Depends on the market you selected.',
-      anchors: 'Base: 4 = large single market (EU 27 / US) · 3 = national market with partial or treaty access. Adjusted by your target market.' },
+      anchors: 'Base: 4 = full access to a large single market (EU/EEA single market or the US) · 3 = national market with only partial or treaty-based access to a large market (e.g. Swiss bilaterals, UK–EU Trade and Cooperation Agreement). Adjusted by your target market.' },
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Your right to live there, your local roots',
       info: 'Can you live and work there, and do you already have roots there? Founders do better where they have local networks (Dahl & Sorenson 2012). Calculated from your citizenship(s), where you live and where your existing investors are based.',
@@ -75,164 +77,164 @@
       exitTax: { score: 2, value: '≈ 28.5% held privately (§17 EStG) · tip: ≈ 1.5% via a holding GmbH',
         note: 'A founder holding ≥ 1% is taxed under §17 EStG with the partial-income method: 60% of the gain at the personal rate (top 45% + soli) → ≈ 28.5%. Holding the shares through a holding GmbH reduces this to ≈ 1.5% (95% exemption, §8b KStG) – a common structure.',
         sources: ['estg17', 'kstg8b'], confidence: 'high' },
-      vc: { score: 3, value: '≈ $8.1bn VC invested in 2025',
-        note: 'Dealroom/HSBC put German start-up VC at ≈ $8.1bn in 2025; KfW reports the market roughly matched the prior year.',
-        sources: ['dealroom_uk25', 'kfw_vc'], confidence: 'medium' },
-      grants: { score: 5, value: 'EXIST (up to €3,000/month per founder), High-Tech Gründerfonds, state programmes',
-        note: 'EXIST start-up grant: monthly stipend up to €3,000 (PhD) per founder, up to €10k (solo) / €30k (team) material costs plus €5k coaching. Further federal and Länder programmes exist.',
+      vc: { score: 3, value: '€7.2–8.4bn (≈ $8.1–9.5bn) VC invested in 2025',
+        note: 'Two trackers for 2025: EY Startup-Barometer €8.4bn (+19% on 2024); KfW Research on Dealroom data €7.2bn (roughly flat). At the ECB 2025 average of 1.13 USD/EUR this is ≈ $8.1–9.5bn – both inside the $3–15bn band (score 3).',
+        sources: ['ey_sb26', 'kfw_vc', 'ecb_fx'], confidence: 'high' },
+      grants: { score: 5, value: 'EXIST stipend (up to €3,000/month per founder) plus federal and Länder programmes',
+        note: 'Anchor 5: several national non-dilutive programmes including direct cash to founders. EXIST start-up grant: monthly stipend up to €3,000 (PhD) per founder, up to €10k (solo) / €30k (team) material costs plus €5k coaching, for university-linked teams. Further federal and Länder programmes exist. (High-Tech Gründerfonds is seed equity, i.e. dilutive, and is not counted here.)',
         sources: ['exist'], confidence: 'high' },
       talent: { score: 4, value: 'GII 2025 rank 11 · Berlin #3 in Europe (Startup Genome 2026)',
-        note: 'Germany ranks 11th in the WIPO Global Innovation Index 2025. Berlin is Europe’s #3 ecosystem in Startup Genome’s GSER 2026; Munich was #7 in Europe in 2025.',
-        sources: ['gii_de', 'gser26_eu'], confidence: 'high' },
-      esop: { score: 3, value: 'Deferred taxation under §19a EStG (improved 2024)',
-        note: 'Since the Future Financing Act (from 1 Jan 2024) start-up employee equity can be taxed later rather than at grant (§19a EStG); tax-free allowance €2,000. Index Ventures still rates Germany behind the UK and France.',
-        sources: ['estg19a', 'index_rt'], confidence: 'medium' },
-      cost: { score: 4, value: 'Price level 109 (EU27 = 100, 2024)',
-        note: 'Eurostat household price level index 2024: 109% of the EU average.',
-        sources: ['eurostat_pli'], confidence: 'high' },
+        note: 'Anchor 4 (top-10 European hub / GII top-15). Germany ranks 11th in the WIPO Global Innovation Index 2025. Berlin is Europe’s #3 ecosystem in Startup Genome’s GSER 2026; Munich was #7 in Europe in GSER 2025. No German hub is in the global top 3.',
+        sources: ['gii_de', 'gser26_eu', 'gser25_eu'], confidence: 'high' },
+      esop: { score: 3, value: 'Deferred taxation under §19a EStG (still in force 2026)',
+        note: 'Anchor 3 (deferral regime). Under §19a EStG (extended by the Future Financing Act from 1 Jan 2024) the benefit from discounted or free employee equity in qualifying start-ups/SMEs is still wage income, but the tax is usually deferred until sale (other triggers: 15 years, certain employer changes); €2,000 annual allowance (§3 No. 39). Practitioners in 2026 still call the scope too narrow (company age ≤ 20 years, size thresholds). It is not a sale-only capital-gains scheme, hence not 4–5.',
+        sources: ['estg19a', 'orrick_19a', 'index_rt'], confidence: 'medium' },
+      cost: { score: 4, value: 'Price level 108.6 (EU27 = 100, 2024)',
+        note: 'Eurostat price level index for household final consumption expenditure (prc_ppp_ind, E011), 2024: 108.6. Anchor 4 (≤ 115). 2024 is the latest year in the dataset as of 3 Nov 2026.',
+        sources: ['eurostat_hfce'], confidence: 'high' },
       market: { score: 4, value: 'EU single market (27 countries)', note: 'Full access to the EU single market and customs union.',
         sources: ['eu_sm'], confidence: 'high' }
     },
     CH: {
       setup: { score: 2, value: 'Public deed by notary · GmbH CHF 20,000 fully paid in · ≈ CHF 2–4.5k costs',
-        note: 'GmbH minimum capital CHF 20,000, fully paid in at formation (Art. 773 OR); formation by public deed (the federal SME portal states this is no longer always required – verify with the cantonal register) and commercial-register entry. Advisers estimate CHF 2,000–4,500 in notary and register fees. Free model articles on EasyGov.',
-        sources: ['kmu_gmbh', 'postfinance_gmbh'], confidence: 'medium' },
+        note: 'GmbH minimum capital CHF 20,000, fully paid in at formation (Art. 773 OR). Formation must be by public deed before a notary, as for the AG (federal SME portal); only later share transfers no longer need notarisation. Then commercial-register entry. Advisers estimate CHF 2,000–4,500 in notary and register fees. Free model articles on EasyGov.',
+        sources: ['kmu_gmbh', 'postfinance_gmbh'], confidence: 'high' },
       corpTax: { score: 4, value: '≈ 14.4% on €100k profit (Swiss average) · Zug 11.85% · Zurich 19.61%',
         note: 'KPMG Swiss Tax Report 2025: average combined profit tax 14.4%; lowest Zug 11.85%, Zurich 19.61%. The canton you choose matters.',
         sources: ['kpmg_ch'], confidence: 'high' },
       exitTax: { score: 5, value: 'Private capital gains tax-free (Art. 16 para. 3 DBG) · annual wealth tax on shares',
         note: 'Gains on privately held shares are tax-exempt for Swiss residents. Main exceptions: indirect partial liquidation (Art. 20a DBG, e.g. selling ≥ 20% to a corporate buyer who uses company reserves), professional trading. Annual cantonal wealth tax applies to the shares.',
         sources: ['dbg16', 'ch_itl'], confidence: 'high' },
-      vc: { score: 3, value: '≈ $3.6bn VC invested in 2025',
-        note: 'Crunchbase/Dealroom: ≈ $3.6bn in 2025, Europe’s 4th-largest VC market; high per capita.',
-        sources: ['dealroom_uk25'], confidence: 'medium' },
+      vc: { score: 3, value: 'CHF 2.95bn (≈ $3.6bn) VC invested in 2025',
+        note: 'Swiss Venture Capital Report 2026 (SECA/startupticker): CHF 2.95bn across 354 rounds in 2025 (+24%); EY counts CHF 3.3bn. ≈ $3.6bn at ECB 2025 average rates – score 3 ($3–15bn). High per capita.',
+        sources: ['seca_vc26', 'ecb_fx'], confidence: 'high' },
       grants: { score: 4, value: 'Innosuisse start-up innovation projects (up to 70% of costs)',
-        note: 'Innosuisse funds science-based projects of start-ups < 5 years old and < 50 FTE, covering up to 70% of direct project costs; applications on a rolling basis. Cantonal programmes add to this.',
+        note: 'Anchor 4: a broad national programme, but competitive project funding rather than direct founder stipends. Innosuisse funds science-based projects of start-ups < 5 years old and < 50 FTE, covering up to 70% of direct project costs; applications on a rolling basis. Cantonal programmes add to this.',
         sources: ['innosuisse'], confidence: 'high' },
-      talent: { score: 4, value: 'GII 2025 rank 1 (15th year) · Zurich #6 in Europe (2025)',
-        note: 'Switzerland tops the WIPO GII for the 15th consecutive year. Zurich ranked 6th in Europe in GSER 2025; Greater Lausanne is #10 among emerging ecosystems in 2026. Small labour market.',
-        sources: ['gii_res', 'gser26_eu', 'gser26_emerging'], confidence: 'high' },
+      talent: { score: 4, value: 'GII 2025 rank 1 (15th year) · Zurich #6 in Europe (GSER 2025)',
+        note: 'Anchor 4 (GII top-15 / top-10 European hub). Switzerland tops the WIPO GII for the 15th consecutive year. Zurich ranked 6th in Europe in GSER 2025; Greater Lausanne is #10 among emerging ecosystems in 2026. No global top-3 hub; small labour market.',
+        sources: ['gii_res', 'gser25_eu', 'gser26_emerging'], confidence: 'high' },
       esop: { score: 2, value: 'Options usually taxed as income at exercise (ESTV Circular 37)',
-        note: 'Non-tradable options (typical for start-ups) are taxed at exercise on the spread; private-company shares are valued by formula; blocked shares get a 6%/year discount. Some cantons (e.g. Geneva) have friendlier practices.',
+        note: 'Anchor 2 (taxed as employment income at exercise, no start-up regime). Non-tradable options (typical for start-ups) are taxed at exercise on the spread; private-company shares are valued by formula; blocked shares get a 6%/year discount. Later growth is a tax-free private capital gain. Some cantons (e.g. Geneva) have friendlier practices.',
         sources: ['ch_ks37'], confidence: 'medium' },
-      cost: { score: 1, value: 'Price level 184 (EU27 = 100, 2024) – highest in Europe',
-        note: 'Eurostat 2024: Switzerland is the most expensive of 36 European countries at 184% of the EU average.',
-        sources: ['eurostat_pli'], confidence: 'high' },
+      cost: { score: 1, value: 'Price level 174 (EU27 = 100, 2024) – highest in Europe',
+        note: 'Eurostat price level index for household final consumption expenditure (prc_ppp_ind, E011), 2024: 174.4 – the highest of the countries covered. Anchor 1 (> 160). (The broader "actual individual consumption" index is 184.)',
+        sources: ['eurostat_hfce'], confidence: 'high' },
       market: { score: 3, value: 'Bilateral agreements with the EU (no full single market)',
         note: 'Access to the EU market via sectoral bilateral agreements; free movement of persons with the EU/EFTA.',
         sources: ['ch_bilaterals'], confidence: 'medium' }
     },
     LI: {
-      setup: { score: 2, value: 'GmbH CHF 10,000 fully paid in · local qualified board member may be required',
-        note: 'Liechtenstein GmbH: minimum capital CHF 10,000 (or EUR/USD 10,000), fully paid in at formation (Commercial Register factsheet). Art. 180a PGR requires certain companies to have a locally licensed, qualified board member – whether it applies to an operating start-up needs to be verified.',
-        sources: ['li_gmbh', 'li_180a'], confidence: 'medium' },
+      setup: { score: 2, value: 'GmbH CHF 10,000 fully paid in (AG CHF 50,000) · trade licence with a qualified managing director',
+        note: 'Liechtenstein GmbH: minimum capital CHF 10,000 (or EUR/USD 10,000), fully paid in at formation (Commercial Register factsheet); an AG needs CHF 50,000 (Art. 122 PGR). An operating start-up needs a trade licence (Gewerbebewilligung) from the Office of Economic Affairs: it must appoint a managing director (Geschäftsführer) who is an EEA/Swiss national (or has 12 years’ residence), speaks German, is actually active at a local business premises and, for regulated trades, is professionally qualified (Art. 8, 12 GewG). The Art. 180a PGR duty to have a locally licensed qualified board member mainly targets non-trading companies; it does not apply where a trade-law managing director is required.',
+        sources: ['li_gmbh', 'li_gewg', 'li_ag_cap', 'li_180a', 'li_180a_ex'], confidence: 'medium' },
       corpTax: { score: 5, value: '12.5% on €100k profit (flat) · CHF 1,800 minimum tax',
         note: 'Flat 12.5% corporate income tax; annual minimum tax CHF 1,800, credited against the actual tax (small-company exemptions exist).',
         sources: ['li_tax', 'pwc_li'], confidence: 'high' },
       exitTax: { score: 5, value: 'Capital gains on shares not taxable · 4% notional return on wealth taxed yearly',
         note: 'Private capital gains are not part of taxable income; instead a notional return of 4% on net wealth (Sollertrag) is taxed as income each year.',
         sources: ['li_steg', 'gt_li'], confidence: 'medium' },
-      vc: { score: 1, value: 'No meaningful domestic VC market',
-        note: 'Liechtenstein does not appear as a separate VC market in Dealroom, Crunchbase or tech.eu reporting; founders typically raise from Swiss, Austrian or international investors.',
-        sources: [], confidence: 'low' },
+      vc: { score: 1, value: 'No meaningful domestic VC market (no recorded rounds in 2024–2025)',
+        note: 'Score kept at 1 with a citation (not nodata): tech.eu’s funding tracker records only a handful of Liechtenstein rounds ever (€200m in 2022, mostly one €190m deal; €1.8m in 2023) and none in 2024–2025 – far below the $0.5bn threshold. Dealroom’s country totals are paywalled. Founders typically raise from Swiss, Austrian or international investors.',
+        sources: ['techeu_li'], confidence: 'medium' },
       grants: { score: 3, nodata: true, value: 'No data: no national programme comparable to EXIST or Innosuisse identified',
         note: 'Our research found no dedicated national start-up grant programme of comparable scale. Because absence of evidence is not evidence of absence, the score is set to the neutral midpoint (3).',
         sources: [], confidence: 'low' },
       talent: { score: 1, value: 'Not ranked in GII or Startup Genome · ≈ 40k inhabitants',
-        note: 'Very small labour market; many employees commute from Switzerland and Austria. Strength in finance and blockchain (Token and VT Service Provider Act).',
+        note: 'Anchor 1 (no ranked hub, not in the GII 2025). Very small labour market; many employees commute from Switzerland and Austria. Strength in finance and blockchain (Token and VT Service Provider Act).',
         sources: ['gii_res'], confidence: 'medium' },
-      esop: { score: 3, nodata: true, value: 'No data: no dedicated start-up ESOP regime identified',
-        note: 'We found no specific tax-advantaged employee equity scheme and no reliable description of current practice, so the score is set to the neutral midpoint (3).',
-        sources: [], confidence: 'low' },
-      cost: { score: 1, value: 'Swiss-franc price level (no Eurostat index)',
-        note: 'Liechtenstein uses the Swiss franc and forms a customs union with Switzerland; no official comparative price index – we assume a Swiss-like level.',
-        sources: ['eurostat_pli'], confidence: 'low' },
-      market: { score: 3, value: 'EEA single market + customs union with Switzerland',
-        note: 'EEA member: access to the EU single market for goods, services and capital; tiny home market.',
+      esop: { score: 2, value: 'Options taxed as employment income at exercise; later gain tax-free',
+        note: 'Anchor 2 (same pattern as Switzerland). Liechtenstein has no start-up option regime: unlisted, blocked employee options are taxed at exercise on the spread (market value minus strike) as income under the Erwerbssteuer; the shares then count towards the 4% notional wealth return, and the gain on a later sale is a tax-free private capital gain. Based on a Grant Thornton practitioner article (2022), not an official circular.',
+        sources: ['gt_li_mbp', 'li_steg'], confidence: 'medium' },
+      cost: { score: 1, value: 'Assumed Swiss-like price level (no Eurostat index for Liechtenstein)',
+        note: 'Assumption, not a measurement: Eurostat publishes no price level index for Liechtenstein. Liechtenstein uses the Swiss franc and forms a customs union with Switzerland, so we use Switzerland’s 2024 household price level (174.4, EU27 = 100) as a proxy → score 1.',
+        sources: ['eurostat_hfce'], confidence: 'low' },
+      market: { score: 4, value: 'EEA single market + customs union with Switzerland',
+        note: 'Anchor 4 – same basis as Germany and Portugal: as an EEA member Liechtenstein has full single-market access (free movement of goods, services, capital and persons). It is not in the EU customs union but in a customs union with Switzerland, so goods exports to the EU need origin/customs formalities. Tiny home market.',
         sources: ['eu_sm'], confidence: 'high' }
     },
     UK: {
       setup: { score: 5, value: 'Online incorporation, £100 fee (since Feb 2026), no minimum capital',
         note: 'Private limited companies are registered online with Companies House; the digital incorporation fee rose from £50 to £100 on 1 Feb 2026. No minimum share capital, no notary.',
         sources: ['ch_fees'], confidence: 'high' },
-      corpTax: { score: 3, value: '≈ 22.8% on £100k profit (19% / 25% with marginal relief)',
-        note: 'Corporation tax: 19% up to £50,000, 25% above £250,000, marginal relief in between. On £100,000 profit: 25% × £100,000 − 3/200 × (£250,000 − £100,000) = £22,750, i.e. ≈ 22.8%.',
-        sources: ['taxfound_cit', 'oecd_cit'], confidence: 'high' },
+      corpTax: { score: 3, value: '≈ 22.0% on €100k (≈ £83.6k) profit (19% / 25% with marginal relief)',
+        note: 'Corporation tax: 19% up to £50,000, 25% above £250,000, marginal relief in between. €100,000 = £83,580 at the ECB reference rate of 0.8358 GBP/EUR (2 Nov 2026). Tax: 25% × £83,580 − 3/200 × (£250,000 − £83,580) = £20,895 − £2,496 = £18,399, i.e. ≈ 22.0% → score 3 (≤ 26%).',
+        sources: ['uk_ct', 'taxfound_cit', 'ecb_fx'], confidence: 'high' },
       exitTax: { score: 3, value: '18% with Business Asset Disposal Relief (≤ £1m lifetime) · 24% above',
-        note: 'From 6 April 2026 qualifying gains under Business Asset Disposal Relief are taxed at 18% up to a £1m lifetime limit; other gains at 24% for higher-rate taxpayers. BADR generally requires ≥ 5% of the shares and being an employee or director for 2 years.',
-        sources: ['hmrc_badr'], confidence: 'high' },
+        note: 'From 6 April 2026 qualifying gains under Business Asset Disposal Relief are taxed at 18% (14% in 2025/26, 10% before) up to a £1m lifetime limit; other gains at 24% for higher-rate taxpayers. BADR generally requires ≥ 5% of the shares and being an employee or director for 2 years. Both rates fall in the ≤ 24% band (score 3).',
+        sources: ['hmrc_badr', 'uk_cgt_rates'], confidence: 'high' },
       vc: { score: 4, value: '≈ $23.6bn VC invested in 2025 – Europe’s largest',
-        note: 'Dealroom/HSBC: UK start-ups raised $23.6bn in 2025, more than Germany, France and Switzerland combined. Crunchbase reports a lower ≈ $17bn – both fall in the same band.',
+        note: 'Dealroom/HSBC: UK start-ups raised $23.6bn in 2025, more than Germany, France and Switzerland combined. Crunchbase reports a lower ≈ $17bn – both fall in the $15–100bn band (score 4).',
         sources: ['dealroom_uk25'], confidence: 'medium' },
       grants: { score: 4, value: 'SEIS/EIS investor tax reliefs · Innovate UK',
-        note: 'SEIS: companies can raise up to £250,000; investors get 50% income-tax relief on up to £200,000 a year. EIS for later rounds; Innovate UK grants.',
+        note: 'Anchor 4: broad national schemes, but indirect (investor tax relief) or competitive project grants – no founder stipend. SEIS: companies can raise up to £250,000; investors get 50% income-tax relief on up to £200,000 a year. EIS for later rounds; Innovate UK competitive grants.',
         sources: ['seis'], confidence: 'high' },
       talent: { score: 5, value: 'GII 2025 rank 6 · London #3 globally, #1 in Europe (2026)',
-        note: 'UK ranks 6th in the GII 2025. London is #1 in Europe and #3 worldwide in Startup Genome’s GSER 2026.',
-        sources: ['gii_res', 'gser26_eu'], confidence: 'high' },
+        note: 'Anchor 5 (global top-3 hub). UK ranks 6th in the GII 2025. London is #1 in Europe and #3 worldwide in Startup Genome’s GSER 2026.',
+        sources: ['gii_res', 'gser26_eu', 'gser26_global'], confidence: 'high' },
       esop: { score: 5, value: 'EMI options: tax-advantaged, company limit £6m (from Apr 2026)',
-        note: 'Enterprise Management Incentives: up to £250,000 per employee; company limit rose to £6m and the gross-assets test to £120m for grants from 6 April 2026. Index Ventures rates EMI among Europe’s best.',
+        note: 'Anchor 5: statutory scheme with no income tax at grant or exercise (if the strike is at least market value at grant); the gain is taxed only on sale as a capital gain (BADR may apply). Up to £250,000 per employee; for options granted from 6 April 2026 the company limit rose from £3m to £6m, gross assets from £30m to £120m, employees from 250 to 500 and the exercise period from 10 to 15 years. Index Ventures rates EMI among Europe’s best.',
         sources: ['emi_2026', 'index_rt'], confidence: 'high' },
-      cost: { score: 3, value: '≈ 9% above Germany (OECD price levels) · London premium',
-        note: 'Estimate: OECD comparative price levels (2022) put the UK ≈ 9% above Germany (105 vs 96, OECD = 100); scaled to Eurostat’s 2024 German value this is ≈ 119 (EU27 = 100). Mixed years and bases – treat as an approximation. London is markedly more expensive.',
-        sources: ['oecd_pl'], confidence: 'low' },
+      cost: { score: 3, value: 'Price level 124.7 (EU27 = 100, 2024) · London premium',
+        note: 'Eurostat price level index for household final consumption expenditure (prc_ppp_ind, E011), 2024: 124.7 (Eurostat still publishes the UK in this dataset). Anchor 3 (≤ 135). London is markedly more expensive.',
+        sources: ['eurostat_hfce'], confidence: 'high' },
       market: { score: 3, value: 'National market of ≈ 69m; outside the EU single market',
         note: 'Since Brexit, trade with the EU runs under the Trade and Cooperation Agreement without single-market access.',
         sources: ['eu_sm'], confidence: 'high' }
     },
     US: {
       setup: { score: 4, value: 'Online Delaware filing, no minimum capital · EIN/banking slower for non-residents',
-        note: 'A Delaware C-Corp is filed online with no minimum capital; you need a registered agent and an EIN. Delaware updated its fee schedule on 1 Aug 2026. Non-US founders often face slower EIN and banking set-up.',
-        sources: ['de_fees_2026'], confidence: 'medium' },
+        note: 'A Delaware C-Corp is filed online with no minimum capital; you need a registered agent and an EIN. Delaware House Bill 400 (signed 21 May 2026) raised many Division of Corporations filing and service fees from 1 Aug 2026 – check the official fee schedule. Non-US founders often face slower EIN and banking set-up.',
+        sources: ['de_corp_fees', 'de_hb400'], confidence: 'medium' },
       corpTax: { score: 3, value: '≈ 25.6% on €100k profit (21% federal + state average)',
         note: 'Federal corporate tax 21% plus state tax where the company operates; OECD combined average 25.6%.',
         sources: ['taxfound_cit', 'oecd_cit'], confidence: 'high' },
-      exitTax: { score: 4, value: '≈ 23.8% without QSBS · 0% with QSBS after 5 years (up to $15m)',
-        note: 'Long-term capital gains 15–20% plus 3.8% net investment income tax (≈ 23.8% top rate = score 3). Section 1202 QSBS (C-Corp stock issued after 4 Jul 2025): 50% excluded after 3 years, 75% after 4, 100% after 5, capped at $15m per issuer (= score 5). The 4 is a deliberate blend because many VC-backed founders qualify. State income tax (e.g. up to 13.3% in California) is not included; QSBS benefits US taxpayers.',
-        sources: ['qsbs_obbba'], confidence: 'high' },
+      exitTax: { score: 3, value: '≈ 23.8% standard case · QSBS can reduce it to 0% (US taxpayers, after 5 years)',
+        note: 'Scored on the standard case per the anchor: long-term capital gains 20% top rate plus 3.8% net investment income tax = 23.8% → score 3 (≤ 24%). Section 1202 QSBS is shown as a note, not scored: it only helps US taxpayers holding original-issue C-Corp stock (issued after 4 Jul 2025: 50% excluded after 3 years, 75% after 4, 100% after 5, capped at $15m per issuer). Non-US-resident founders are generally taxed on the sale in their home country. State income tax (e.g. up to 13.3% in California) is not included.',
+        sources: ['qsbs_obbba'], confidence: 'medium' },
       vc: { score: 5, value: '≈ $339bn VC invested in 2025',
         note: 'PitchBook-NVCA: US start-ups raised $339.4bn across 16,709 deals in 2025 (NVCA Yearbook: ≈ $320bn).',
         sources: ['pitchbook_25', 'nvca_yb'], confidence: 'high' },
       grants: { score: 3, value: 'SBIR/STTR – requires > 50% US-citizen or green-card ownership',
-        note: 'SBIR/STTR is the largest early-stage grant programme, but the company must be more than 50% owned by US citizens or permanent residents. Limited for foreign founders.',
-        sources: ['sbir'], confidence: 'high' },
+        note: 'Anchor 3 (restricted for foreign-owned companies). SBIR/STTR is the largest early-stage grant programme, but the company must be more than 50% owned by US citizens or permanent residents. The programmes lapsed on 30 Sep 2025 and were reauthorised on 13 Apr 2026 through 2031, with tighter foreign-affiliation screening.',
+        sources: ['sbir', 'sbir_reauth'], confidence: 'high' },
       talent: { score: 5, value: 'GII 2025 rank 3 · Silicon Valley #1 & New York #2 globally',
-        note: 'The US ranks 3rd in the GII 2025; Silicon Valley and New York top Startup Genome’s 2026 global ranking.',
+        note: 'Anchor 5 (global top-3 hub). The US ranks 3rd in the GII 2025; Silicon Valley and New York top Startup Genome’s 2026 global ranking.',
         sources: ['gii_res', 'gser26_global'], confidence: 'high' },
-      esop: { score: 4, value: 'ISOs/NSOs standard; widely understood by employees',
-        note: 'Incentive stock options and 83(b) elections are standard market practice; Index Ventures rates the UK’s EMI as more generous than US arrangements.',
-        sources: ['index_rt'], confidence: 'medium' },
-      cost: { score: 2, value: '≈ 30% above Germany (OECD price levels) · hubs far higher',
-        note: 'Estimate: OECD comparative price levels (2022): US 125 vs Germany 96 (OECD = 100); scaled to Eurostat’s 2024 German value this is ≈ 142 (EU27 = 100). Mixed years and bases – treat as an approximation. Bay Area and New York are much higher.',
-        sources: ['oecd_pl'], confidence: 'low' },
-      market: { score: 4, value: 'Largest single national market', note: 'One large, uniform consumer and enterprise market; regulation varies by state.',
-        sources: [], confidence: 'high' }
+      esop: { score: 4, value: 'ISOs: no regular tax at exercise, capital-gains rates on a qualifying sale – with limits',
+        note: 'Anchor 4: incentive stock options (ISOs) are a statutory scheme – no regular income tax at grant or exercise, and the gain is taxed at long-term capital-gains rates if the shares are held > 2 years from grant and > 1 year from exercise. Material limits keep it below 5: the exercise spread counts for the alternative minimum tax (AMT), only $100,000 of options may first become exercisable per employee per year, and non-qualified options (NSOs, common for contractors and above the limit) are taxed as wages at exercise.',
+        sources: ['irs_tc427', 'index_rt'], confidence: 'medium' },
+      cost: { score: 2, value: 'Price level 138.7 (EU27 = 100, 2024) · hubs far higher',
+        note: 'Eurostat price level index for household final consumption expenditure (prc_ppp_ind, E011), 2024: 138.7 for the US. Anchor 2 (≤ 160). Bay Area and New York are much higher.',
+        sources: ['eurostat_hfce'], confidence: 'high' },
+      market: { score: 4, value: 'Largest single national market (GDP ≈ $29tn)', note: 'Anchor 4: one large consumer and enterprise market under one federal customs and trade regime – the world’s largest economy by GDP (World Bank). Regulation, sales tax and licensing vary by state.',
+        sources: ['wb_gdp'], confidence: 'medium' }
     },
     PT: {
       setup: { score: 5, value: '"Empresa na Hora": €360 all-in, €1 minimum per quota',
         note: 'One-stop formation ("Empresa na Hora") costs €360 including registration and publication. No minimum capital since 2011 – each quota at least €1.',
         sources: ['pt_lda', 'pt_enh'], confidence: 'high' },
       corpTax: { score: 3, value: '≈ 18.5% on €100k profit (15% on first €50k, 19% above, + up to 1.5% municipal)',
-        note: 'IRC 19% for 2026 (scheduled 18% in 2027, 17% in 2028); SMEs pay 15% on the first €50,000. On €100,000: €7,500 + €9,500 = 17%, plus a municipal surcharge of up to 1.5% → ≈ 18.5%. State surcharge only above €1.5m profit.',
-        sources: ['pt_irc26'], confidence: 'high' },
+        note: 'IRC (art. 87 CIRC as amended by Lei 64/2025): 19% for 2026, scheduled 18% in 2027 and 17% from 2028; SMEs and small mid-caps pay 15% on the first €50,000. On €100,000: €7,500 + €9,500 = €17,000 = 17%. Municipalities may add a derrama of up to 1.5% of taxable profit (art. 18 Lei 73/2013; many charge the maximum in Lisbon/Porto) → ≈ 18.5%. That is just above the 18% ceiling of anchor 4, so the score is 3; without derrama (or in a municipality with a reduced rate) it would be 17% and score 4. The state surcharge (derrama estadual) only applies above €1.5m profit.',
+        sources: ['pt_irc87', 'pt_irc26', 'pt_derrama'], confidence: 'high' },
       exitTax: { score: 4, value: '≈ 14%: 28% on 50% of the gain (unlisted micro/small companies)',
         note: 'Gains on shares are taxed at a flat 28% (art. 72 CIRS). For unlisted micro and small Portuguese companies, which covers most start-ups, only 50% of the gain is counted (art. 43 CIRS) → ≈ 14% effective. Larger companies: 28% (score 2). Conditions apply; verify with an adviser.',
         sources: ['pt_cirs43'], confidence: 'medium' },
-      vc: { score: 2, value: '≈ €0.7bn VC raised in 2024',
-        note: 'tech.eu counted €681m across 48 rounds in 2024 and €190m in H1 2025. No full-year 2025 figure was available, and the source and currency differ from the other countries – the band is wide enough that this does not change the score.',
-        sources: ['techeu_pt'], confidence: 'medium' },
-      grants: { score: 3, value: 'Startup Visa, Startup Portugal programmes, EU recovery funds',
-        note: 'National programmes via Startup Portugal and IAPMEI plus EU-funded schemes; 2023 Startup Law (Lei 21/2023) added tax incentives.',
-        sources: ['pt_startuplaw', 'pt_sv'], confidence: 'medium' },
+      vc: { score: 2, value: '≈ €0.5bn (≈ $0.53bn) equity funding in 2025',
+        note: 'tech.eu counted €473m in equity rounds for Portuguese start-ups in 2025 (€681m in 2024). At the ECB 2025 average of 1.13 USD/EUR this is ≈ $0.53bn – inside the $0.5–3bn band (score 2), though close to its lower edge; tracker coverage differs from the sources used for the other countries.',
+        sources: ['techeu_pt25', 'techeu_pt', 'ecb_fx'], confidence: 'medium' },
+      grants: { score: 3, value: 'Startup Voucher (COMPETE 2030), IAPMEI start-up vouchers (PRR), EU programmes',
+        note: 'Anchor 3: real non-dilutive programmes exist but are narrow. Startup Voucher (IAPMEI, COMPETE 2030; Nov 2025 edition, €5m): €900/month for up to 9 months plus mentoring, only for founders up to 29 who are not working or studying, in the Norte, Centro and Alentejo regions. "Vouchers para Startups" (PRR, €65m 2nd call) for green and digital products, and "Vales" for incubators/accelerators – PRR funding ends in 2026. EU programmes (e.g. EIC Accelerator) are open in all EU/EEA countries. (The Startup Visa is a residence route, not a grant.)',
+        sources: ['pt_voucher', 'pt_vouchers_prr'], confidence: 'medium' },
       talent: { score: 3, value: 'GII 2025 rank 31 · Porto among emerging ecosystems (2026)',
-        note: 'Portugal ranks 31st of 139 in the GII 2025; Porto appears in Startup Genome’s 2026 emerging-ecosystem ranking (#51–60).',
+        note: 'Anchor 3 (emerging hub / GII 16–35). Portugal ranks 31st of 139 in the GII 2025; Porto appears in Startup Genome’s 2026 emerging-ecosystem ranking (#51–60).',
         sources: ['gii_pt', 'gser26_eu'], confidence: 'high' },
-      esop: { score: 4, value: 'Start-up regime: taxed only on sale, 50% of the gain exempt',
-        note: 'Lei 21/2023 (art. 43-C EBF) defers taxation of qualifying SME stock options until the shares are sold and exempts half of the gain; conditions apply.',
+      esop: { score: 4, value: 'Start-up regime: taxed only on sale, 50% of the gain counted',
+        note: 'Anchor 4. Art. 43-C EBF (Lei 21/2023): for options granted by qualifying start-ups, SMEs/small mid-caps or innovation-active companies, the gain is taxed only when the shares are sold – or earlier if the employee leaves Portuguese tax residence or gifts them – and only 50% of it is counted. Limits keep it below 5: eligibility conditions, a 1-year minimum holding period and the exit-from-residence trigger (a possible dry tax charge).',
         sources: ['pt_startuplaw'], confidence: 'medium' },
-      cost: { score: 5, value: 'Below the EU average in most categories (2024)',
-        note: 'INE/Eurostat 2024: Portuguese prices were below the EU27 average in most consumption categories (exceptions: food and communications). We did not obtain the exact index value, so the score is an estimate. Housing costs in Lisbon have risen sharply.',
-        sources: ['ine_pin'], confidence: 'low' },
+      cost: { score: 5, value: 'Price level 87.0 (EU27 = 100, 2024)',
+        note: 'Eurostat price level index for household final consumption expenditure (prc_ppp_ind, E011), 2024: 87.0 – 13% below the EU average. Anchor 5 (≤ 95). Housing costs in Lisbon have risen sharply.',
+        sources: ['eurostat_hfce', 'ine_pin'], confidence: 'high' },
       market: { score: 4, value: 'EU single market (27 countries)', note: 'Full access to the EU single market and customs union.',
         sources: ['eu_sm'], confidence: 'high' }
     }
@@ -247,7 +249,7 @@
       CH: { level: 'free', text: 'Free movement under the EU–Swiss agreement; register with the canton' },
       LI: { level: 'limited', text: 'EEA nationals: residence permits are quota-limited (partly by lottery); commuting from CH/AT is the common route' },
       UK: { level: 'visa', text: 'Visa needed since Brexit – e.g. Innovator Founder (endorsement, no fixed investment minimum)' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor for many EU nationalities, otherwise O-1 or others' }
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor for most EU nationalities (incl. German, and Portuguese since 15 Mar 2024; not Cyprus, Hungary or Malta, Greece E-1 only), otherwise O-1 or others' }
     },
     ch: {
       CH: { level: 'citizen', text: 'Your passport country – full rights' },
@@ -255,7 +257,7 @@
       PT: { level: 'free', text: 'Free movement under the EU–Swiss agreement' },
       LI: { level: 'limited', text: 'Residence permits are quota-limited; commuting is common' },
       UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
-      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Swiss nationals' }
+      US: { level: 'visa', text: 'Visa needed – E-2 treaty investor is open to Swiss nationals (treaty of 1855)' }
     },
     li: {
       LI: { level: 'citizen', text: 'Your passport country – full rights' },
@@ -263,7 +265,7 @@
       PT: { level: 'free', text: 'EEA free movement' },
       CH: { level: 'free', text: 'Free movement under the EFTA Convention' },
       UK: { level: 'visa', text: 'Visa needed – e.g. Innovator Founder' },
-      US: { level: 'visa', text: 'Visa needed – Liechtenstein is not an E-2 treaty country; O-1 or others' }
+      US: { level: 'visa', text: 'Visa needed – Liechtenstein is not on the E-1/E-2 treaty list; O-1 or others' }
     },
     uk: {
       UK: { level: 'citizen', text: 'Your passport country – full rights' },
@@ -292,7 +294,7 @@
   };
   // EU citizens are "home" in Germany/Portugal only if they live there – handled in engine.
 
-  var RESIDENCE_SOURCES = ['state_e2', 'uk_if', 'li_quota', 'pt_sv'];
+  var RESIDENCE_SOURCES = ['state_e2', 'e2_table', 'uk_if', 'li_quota', 'pt_sv'];
 
   /* Residence & home base is calculated from the profile; this base cell is used until citizenship/residence is known. */
   COUNTRIES.forEach(function (c) {
@@ -341,20 +343,20 @@
     LI: [
       { t: 'Clarify where you will live', d: 'Residence permits are quota-limited; many founders live in Switzerland or Austria and commute.', src: 'li_quota' },
       { t: 'Pay in CHF 10,000', d: 'The GmbH minimum capital must be fully paid in at formation.', src: 'li_gmbh' },
-      { t: 'Check the Art. 180a PGR requirement', d: 'Some companies need a locally licensed, qualified board member.', src: 'li_180a' },
+      { t: 'Appoint a qualified managing director', d: 'The trade licence requires a Geschäftsführer who is an EEA/Swiss national, speaks German and actually works at the local premises; regulated trades also need a professional qualification. (Art. 180a PGR board-member rules mainly concern non-trading companies.)', src: 'li_gewg' },
       { t: 'Register with the Office of Justice', d: 'File the formation documents with the Liechtenstein commercial register.', src: 'li_gmbh' },
-      { t: 'Obtain a trade licence and tax registration', d: 'Minimum tax CHF 1,800 a year, credited against the 12.5% profit tax.', src: 'li_tax' }
+      { t: 'Obtain the trade licence and register for tax', d: 'Gewerbebewilligung from the Office of Economic Affairs; minimum tax CHF 1,800 a year, credited against the 12.5% profit tax.', src: 'li_tax' }
     ],
     UK: [
       { t: 'Check your visa first', d: 'Non-UK founders typically use the Innovator Founder route (endorsing body, £1,000 endorsement fee).', src: 'uk_if' },
       { t: 'Incorporate online', d: 'Private limited company via Companies House – £100 digital fee, usually registered within 24 hours.', src: 'uk_ltd' },
       { t: 'Get SEIS advance assurance', d: 'Lets angels claim 50% income-tax relief; you can raise up to £250,000 under SEIS.', src: 'seis' },
-      { t: 'Set up an EMI option plan', d: 'Tax-advantaged employee options; company limit £6m from April 2026.', src: 'emi_2026' },
+      { t: 'Set up an EMI option plan', d: 'Tax-advantaged employee options; from April 2026 company limit £6m, gross assets £120m, up to 500 employees.', src: 'emi_2026' },
       { t: 'Register for Corporation Tax', d: 'Tell HMRC once you start trading.', src: 'uk_ct' }
     ],
     US: [
-      { t: 'Sort out your visa', d: 'E-2 (treaty investor) is open to German, Swiss, UK and Portuguese nationals; otherwise O-1 or others.', src: 'state_e2' },
-      { t: 'Form a Delaware C-Corp', d: 'The standard for VC funding and required for QSBS; appoint a registered agent.', src: 'de_fees_2026' },
+      { t: 'Sort out your visa', d: 'E-2 (treaty investor) is open to German, Swiss and UK nationals and – since 15 March 2024 – Portuguese nationals (3-year domicile rule if citizenship was acquired by investment); not to Liechtenstein nationals. Otherwise O-1 or others.', src: 'state_e2' },
+      { t: 'Form a Delaware C-Corp', d: 'The standard for VC funding and required for QSBS; appoint a registered agent. Fees changed on 1 Aug 2026 (HB 400).', src: 'de_corp_fees' },
       { t: 'Get an EIN and bank account', d: 'Founders without an SSN apply to the IRS with form SS-4.', src: 'irs_ein' },
       { t: 'File 83(b) elections for founder stock', d: 'Within 30 days of the share issue – late filing cannot be fixed.', src: 'irs_83b' },
       { t: 'Plan for QSBS', d: 'Hold C-Corp stock 3–5 years to exclude 50–100% of gains (up to $15m).', src: 'qsbs_obbba' }
@@ -368,7 +370,7 @@
     ]
   };
 
-  /* Sources (accessed 31 Oct 2026). type: law | official | intl | report | academic | expert */
+  /* Sources (accessed 31 Oct – 3 Nov 2026). type: law | official | intl | report | academic | expert */
   var SOURCES = {
     gmbhg: { t: 'GmbH-Gesetz (§§2, 5, 5a, 7 GmbHG)', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/gmbhg/', type: 'law' },
     dirug: { t: 'DiRUG – online formation of GmbH/UG since 1 Aug 2022 (BR-Drs. 171/22)', p: 'Deutscher Bundestag', u: 'https://dserver.bundestag.de/brd/2022/0171-22.pdf', type: 'law' },
@@ -421,13 +423,12 @@
     uk_ct: { t: 'Corporation Tax', p: 'GOV.UK', u: 'https://www.gov.uk/corporation-tax', type: 'official' },
     irs_ein: { t: 'Apply for an Employer Identification Number (EIN)', p: 'IRS', u: 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online', type: 'official' },
     irs_83b: { t: 'About Form 15620, Section 83(b) Election', p: 'IRS', u: 'https://www.irs.gov/forms-pubs/about-form-15620', type: 'official' },
-    ch_fees: { t: 'Companies House fee changes from 1 February 2026', p: 'GOV.UK', u: 'https://www.gov.uk/government/news/update-regarding-companies-house-fee-changes', type: 'official' },
+    ch_fees: { t: 'Companies House fees are changing from 1 February 2026', p: 'GOV.UK', u: 'https://www.gov.uk/government/news/companies-house-fees-are-changing-from-1-february-2026', type: 'official' },
     hmrc_badr: { t: 'CG63955 – Business Asset Disposal Relief: broad outline', p: 'HMRC', u: 'https://www.gov.uk/hmrc-internal-manuals/capital-gains-manual/cg63955', type: 'official' },
     dealroom_uk25: { t: 'UK VC investment rebounds in 2025 (Dealroom/HSBC Innovation Banking)', p: 'FF News / Dealroom', u: 'https://ffnews.com/newsarticle/uk-vc-investment-rebounds-in-2025-marking-first-annual-growth-in-four-years', type: 'report' },
     seis: { t: 'Increasing the limits of the Seed Enterprise Investment Scheme', p: 'HM Treasury / HMRC', u: 'https://www.gov.uk/government/publications/venture-capital-schemes-expansion-of-the-seed-enterprise-investment-scheme-seis/increasing-the-limits-of-the-seed-enterprise-investment-scheme', type: 'official' },
     emi_2026: { t: 'Expanding the eligibility limits of the EMI scheme', p: 'HM Treasury', u: 'https://www.gov.uk/government/publications/enterprise-management-incentive-scheme-increasing-the-limits/expanding-the-eligibility-limits-of-the-enterprise-management-incentive-scheme', type: 'official' },
     uk_if: { t: 'Innovator Founder visa', p: 'GOV.UK', u: 'https://www.gov.uk/innovator-founder-visa', type: 'official' },
-    de_fees_2026: { t: 'Delaware business filing fee changes from 1 Aug 2026', p: 'InCorp (secondary; official schedule at corp.delaware.gov)', u: 'https://www.incorp.com/resources/knowledge-base/delaware-business-filing-fee-increase', type: 'expert' },
     qsbs_obbba: { t: 'Section 1202 QSBS changes under the One Big Beautiful Bill Act', p: 'Gibson Dunn', u: 'https://www.gibsondunn.com/focus-on-qsbs-provisions-in-the-one-big-beautiful-bill-act/', type: 'expert' },
     pitchbook_25: { t: 'Q4 2025 PitchBook-NVCA Venture Monitor', p: 'PitchBook / NVCA', u: 'https://nvca.org/wp-content/uploads/2026/01/q4-2025-pitchbook-nvca-venture-monitor.pdf', type: 'report' },
     nvca_yb: { t: 'NVCA 2026 Yearbook', p: 'NVCA', u: 'https://nvca.org/wp-content/uploads/2026/04/NVCA-2026-Yearbook-4.9.26.pdf', type: 'report' },
@@ -439,7 +440,28 @@
     pt_cirs43: { t: 'Circular 7/2014 – art. 43 CIRS, micro and small companies', p: 'Autoridade Tributária', u: 'https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/legislacao/instrucoes_administrativas/Documents/Circular_7_2014.pdf', type: 'official' },
     pt_startuplaw: { t: 'Art. 43-C EBF – stock options regime (Lei 21/2023)', p: 'Autoridade Tributária', u: 'https://info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/bf_rep/ra/Pages/ebf43c_ra202312.aspx', type: 'law' },
     pt_sv: { t: 'Startup Visa', p: 'Startup Portugal', u: 'https://startupportugal.com/?p=81', type: 'official' },
-    techeu_pt: { t: 'Portugal start-up funding 2024 / H1 2025', p: 'tech.eu', u: 'https://funding.tech.eu/geographies/portugal/2024', type: 'report' }
+    techeu_pt: { t: 'Portugal start-up funding 2024 / H1 2025', p: 'tech.eu', u: 'https://funding.tech.eu/geographies/portugal/2024', type: 'report' },
+    eurostat_hfce: { t: 'Price level indices, household final consumption expenditure (prc_ppp_ind, E011, EU27_2020 = 100), 2024', p: 'Eurostat', u: 'https://ec.europa.eu/eurostat/databrowser/view/prc_ppp_ind/default/table', type: 'official' },
+    ecb_fx: { t: 'Euro foreign exchange reference rates (EXR: USD, GBP, CHF; 2025 averages and 2 Nov 2026)', p: 'European Central Bank', u: 'https://data.ecb.europa.eu/data/datasets/EXR', type: 'official' },
+    ey_sb26: { t: 'EY Startup-Barometer Deutschland, January 2026 (2025: €8.4bn)', p: 'EY', u: 'https://www.ey.com/de_de/newsroom/2026/01/ey-startup-barometer-2026', type: 'report' },
+    seca_vc26: { t: 'Swiss Venture Capital Report 2026 (2025: CHF 2.95bn)', p: 'SECA / startupticker.ch', u: 'https://www.seca.ch/media/dfom01dp/vcreport_2026_web.pdf', type: 'report' },
+    techeu_pt25: { t: 'Portugal start-up funding 2025 (€473m equity)', p: 'tech.eu', u: 'https://funding.tech.eu/geographies/portugal/2025', type: 'report' },
+    techeu_li: { t: 'Liechtenstein start-up funding by year (no rounds recorded 2024–2025)', p: 'tech.eu', u: 'https://funding.tech.eu/geographies/liechtenstein', type: 'report' },
+    gser25_eu: { t: 'Europe slips, AI surges: GSER 2025 (European top 10 incl. Zurich #6, Munich #7)', p: 'Silicon Canals (on Startup Genome GSER 2025)', u: 'https://siliconcanals.com/europe-slips-ai-surges-gser-2025/', type: 'report' },
+    orrick_19a: { t: 'Mitarbeiterbeteiligungen nach § 19a EStG (Sept 2026)', p: 'Orrick (Schultes-Schnitzlein / Engelings)', u: 'https://www.orrick.com/de-DE/Insights/2026/09/Equity-Grants-to-Employees-and-Section-19a-EStG-A-Strong-Legal-Framework-That-Deserves-a-Wider-Reach', type: 'expert' },
+    gt_li_mbp: { t: 'Steuerliche Fallstricke bei Mitarbeiterbeteiligungen in Liechtenstein (Vaterland, 11 Feb 2022)', p: 'Grant Thornton AG (Reichert / Rupp)', u: 'https://www.grantthornton.ch/globalassets/1.-member-firms/switzerland/insights/pdf/2022/fallstricke-mbp-li-wr.pdf', type: 'expert' },
+    li_gewg: { t: 'Gewerbegesetz (GewG, LGBl. 2006 Nr. 184), Art. 8 and 12', p: 'gesetze.li', u: 'https://www.gesetze.li/konso/pdf/2006184000', type: 'law' },
+    li_ag_cap: { t: 'Path to incorporate a joint stock company in Liechtenstein (AG CHF 50,000, Art. 122 PGR)', p: 'Chambers and Partners', u: 'https://chambers.com/articles/path-to-incorporate-a-joint-stock-company-in-liechtenstein-process-breakdown', type: 'expert' },
+    li_180a_ex: { t: 'The administrative bodies under Art. 180a PGR (scope and exemptions)', p: 'Chambers and Partners', u: 'https://chambers.com/articles/understanding-the-role-of-the-administrative-bodies-under-art-180a-pgr-in-liechtensteins-corporate', type: 'expert' },
+    irs_tc427: { t: 'Topic no. 427, Stock options', p: 'IRS', u: 'https://www.irs.gov/taxtopics/tc427', type: 'official' },
+    sbir_reauth: { t: 'SBIR/STTR programs revived with some notable changes (reauthorised 13 Apr 2026)', p: 'JD Supra', u: 'https://www.jdsupra.com/legalnews/sbir-sttr-programs-revived-with-some-5880107', type: 'expert' },
+    wb_gdp: { t: 'GDP (current US$), indicator NY.GDP.MKTP.CD', p: 'World Bank', u: 'https://data.worldbank.org/indicator/NY.GDP.MKTP.CD', type: 'official' },
+    uk_cgt_rates: { t: 'Capital Gains Tax rates and allowances', p: 'GOV.UK', u: 'https://www.gov.uk/guidance/capital-gains-tax-rates-and-allowances', type: 'official' },
+    pt_irc87: { t: 'Art. 87.º CIRC – taxas (as amended by Lei 64/2025)', p: 'Informador Fiscal (consolidated text)', u: 'https://informador.pt/legislacao/lexit/codigos/direito-fiscal/codigo-do-irc/capitulo-iv-taxas/artigo-87-o-taxas/', type: 'law' },
+    pt_derrama: { t: 'Derrama municipal (art. 18 Lei 73/2013, max. 1.5%)', p: 'Diário da República – Lexionário', u: 'https://diariodarepublica.pt/dr/lexionario/termo/derrama-municipal', type: 'official' },
+    pt_voucher: { t: 'Governo lança nova edição do Startup Voucher (Nov 2025)', p: 'AICEP Portugal Global', u: 'https://portugalglobal.pt/noticias/2025/novembro/governo-lanca-nova-edicao-do-startup-voucher/', type: 'official' },
+    pt_vouchers_prr: { t: '2.º Aviso dos Vouchers e Vales para start-ups (PRR, €75m)', p: 'Government of Portugal', u: 'https://portugal.gov.pt/gc23/comunicacao/comunicados/2-aviso-dos-vouchers-e-vales-para-start-ups-abre-com-75m', type: 'official' },
+    e2_table: { t: 'E-2 treaty country table (reproduces State Dept list incl. Portugal from 15 Mar 2024)', p: 'Mayo Law (secondary)', u: 'https://mayo.law/articles/e2-visa-countries/', type: 'expert' }
   };
 
   /* Peer-reviewed literature behind the method (shown on the methodology page). */
@@ -454,7 +476,23 @@
     { c: 'OECD & JRC (2008). Handbook on Constructing Composite Indicators: Methodology and User Guide. OECD Publishing.', u: 'https://doi.org/10.1787/9789264043466-en', use: 'Normalisation on anchored scales, transparent weighting and sensitivity analysis.' }
   ];
 
+  /* Merge the extended evidence base (assets/js/facts.js). A criterion with `after: '<id>'`
+     is inserted after that criterion; otherwise it is appended before 'residence'. */
+  var F = (typeof module !== 'undefined' && module.exports) ? require('./facts.js') : root.SSN_FACTS;
+  F = F || {};
+  (F.EXTRA_CRITERIA || []).forEach(function (c) {
+    var ids = CRITERIA.map(function (x) { return x.id; });
+    var at = c.after && ids.indexOf(c.after) !== -1 ? ids.indexOf(c.after) + 1 : ids.indexOf('residence');
+    CRITERIA.splice(at === -1 ? CRITERIA.length : at, 0, c);
+  });
+  Object.keys(F.EXTRA_SCORES || {}).forEach(function (k) {
+    Object.keys(F.EXTRA_SCORES[k]).forEach(function (cid) { SCORES[k][cid] = F.EXTRA_SCORES[k][cid]; });
+  });
+  Object.keys(F.EXTRA_SOURCES || {}).forEach(function (s) { SOURCES[s] = F.EXTRA_SOURCES[s]; });
+
   var api = {
+    LEGAL_FORMS: F.LEGAL_FORMS || {}, FIRST_YEAR_COST: F.FIRST_YEAR_COST || {}, TAX_FACTS: F.TAX_FACTS || {},
+    COURSE_READING: F.COURSE_READING || [],
     DATA_AS_OF: DATA_AS_OF, COUNTRIES: COUNTRIES, CRITERIA: CRITERIA, SCORES: SCORES,
     RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
     ROADMAP: ROADMAP, SOURCES: SOURCES, LITERATURE: LITERATURE

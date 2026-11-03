@@ -9,6 +9,7 @@
   var KEY = 'foundersnavigator-lang';
   var DE = {
     /* residence texts + answer-effect templates (engine.js effectParts) */
+    "country profile": "Länderprofil",
     "Evidence texts and sources are shown in their original English.": "Belegtexte und Quellen stehen im englischen Original.",
     "You already live here": "Du lebst bereits hier",
     "EU free movement": "EU-Freizügigkeit",

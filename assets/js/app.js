@@ -297,7 +297,7 @@
     var lb = document.getElementById('lang-toggle');
     if (lb) {
       var de = lang() === 'de';
-      lb.setAttribute('aria-label', de ? 'Switch to English' : 'Auf Deutsch umschalten');
+      lb.removeAttribute('aria-label'); lb.setAttribute('title', de ? 'Switch to English' : 'Auf Deutsch umschalten'); // name = visible label ("Deutsch"/"English")
       lb.setAttribute('lang', de ? 'en' : 'de');
       lb.querySelector('.topnav__label').textContent = de ? 'English' : 'Deutsch';
       lb.querySelector('.lang-code').textContent = de ? 'EN' : 'DE';
@@ -376,7 +376,7 @@
         '<div class="bar"><span data-wkey="demo-' + c.id + '" style="width:' + demo[i] + '%"></span></div></li>';
     }).join('');
     var chips = D.COUNTRIES.map(function (c) {
-      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" aria-label="' + esc(t('{country} – country profile', { country: t(c.name) })) + '">' + avatar(c.id) + esc(t(c.name)) + '</button></li>';
+      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" ><span aria-hidden="true">' + avatar(c.id) + '</span>' + esc(t(c.name)) + '<span class="sr-only"> – ' + esc(t('country profile')) + '</span></button></li>';
     }).join('');
     var stats = [['public', D.COUNTRIES.length, 'countries'], ['tune', D.CRITERIA.length, 'criteria'], ['checklist', Q.length, 'questions'], ['lock', 0, 'data sent']].map(function (s) {
       return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + esc(t(s[2])) + '</span></li>';
@@ -692,7 +692,11 @@
     var done = function () { html.classList.add('fonts-ready'); };
     if (!document.fonts || !document.fonts.load) { done(); return; }
     setTimeout(done, 3000); // never keep icons hidden if the font fails to load
-    document.fonts.load('24px "Material Symbols Rounded"', 'home').then(function () { return document.fonts.ready; }).then(done, done);
+    var probe = function () { document.fonts.load('24px "Material Symbols Rounded"', 'home').then(function () { return document.fonts.ready; }).then(done, done); };
+    // the icon stylesheet loads non-blocking (media="print" → "all" on load): wait for it before probing the font
+    var link = document.querySelector('link[href*="Material+Symbols"]');
+    if (link && link.media === 'print') link.addEventListener('load', function () { setTimeout(probe, 0); });
+    else probe();
   })();
 
   function liveSummary() {

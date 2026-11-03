@@ -193,6 +193,26 @@
 /* Insights: show-all toggle + warning kinds */
 .insight .r-more { align-self: flex-start; margin-top: -8px; color: inherit; }
 .insight li.r-w--warn { box-shadow: inset 3px 0 0 var(--warning); }
+/* columns keep their own height, so an empty column doesn't stretch to match a long one */
+.insights { align-items: start; }
+.insight .empty strong { font: var(--type-body-m); letter-spacing: var(--ls-body-m); }
+.insight .empty strong .msr { color: var(--success, var(--primary)); }
+/* Watch out: one short title per item; the full text opens on demand */
+.insight li.r-w { padding: 0; align-items: stretch; }
+.r-wd > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 48px; padding: 8px 12px 8px 16px; border-radius: var(--shape-lg); }
+.r-wd > summary::-webkit-details-marker { display: none; }
+.r-wd > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.r-wd > summary > .msr { flex-shrink: 0; color: var(--on-surface-variant); transition: transform var(--dur-short, .15s) var(--emph, ease); }
+.r-wd[open] > summary > .msr { transform: rotate(180deg); }
+.r-wd > summary strong .msr { flex-shrink: 0; }
+.r-w--warn .r-wd > summary strong .msr { color: var(--warning); }
+.r-wd__body { padding: 0 16px 12px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.insight .r-w .r-wd__body .nb--list li { background: none; padding: 0 0 0 16px; border-radius: 0; display: list-item; font: inherit; }
+.insights__note { margin-top: -4px; padding: 0 8px; }
+.insights__note .srclink { margin-left: 4px; }
+/* Matrix: "no data" / "est." sits under the dots, so the dots line up in every cell */
+.matrix td.has-tag { position: relative; }
+.matrix .mx-tag { position: absolute; left: 50%; top: calc(50% + 10px); transform: translateX(-50%); white-space: nowrap; pointer-events: none; line-height: 1; }
 
 /* Single-select filter chips (radio / tab semantics) */
 .r-chipset { gap: 8px; }
@@ -367,7 +387,8 @@
   body.is-results { padding-bottom: 0; }
   .results { gap: 12px; }
   .card { padding: 20px; gap: 16px; }
-  .r-exp::details-content, .r-exp--card::details-content { content-visibility: visible !important; height: auto !important; }
+  .r-exp::details-content, .r-exp--card::details-content, .r-wd::details-content { content-visibility: visible !important; height: auto !important; }
+  .r-wd > summary > .msr { display: none; }
   .r-exp > summary .msr, .r-exp__chev { display: none; }
   .r-hero { grid-template-columns: minmax(0, 1fr); }
   .matrix th[scope="row"], .matrix thead th:first-child { position: static; box-shadow: none; }

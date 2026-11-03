@@ -205,8 +205,8 @@
   }
 
   /* ---------- insights ---------- */
-  function capped(key, items, emptyText, state) {
-    if (!items.length) return '<ul><li class="empty">' + esc(emptyText) + '</li></ul>';
+  function capped(key, items, emptyText, state, emptyIcon) {
+    if (!items.length) return '<ul><li class="empty">' + (emptyIcon ? '<strong>' + icon(emptyIcon) + '<span>' + esc(emptyText) + '</span></strong>' : esc(emptyText)) + '</li></ul>';
     var open = !!state.openInfo[key];
     var shown = open ? items : items.slice(0, CAP);
     var more = items.length > CAP ? '<button type="button" class="btn btn--text r-more" data-action="more" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="ins-' + key + '">' + icon(open ? 'expand_less' : 'expand_more') + esc(open ? t('Show fewer') : t('Show all ({n})', { n: items.length })) + '</button>' : '';
@@ -225,14 +225,22 @@
       return '<li><strong>' + critIcon(c) + esc(t(crit(c).name)) + '</strong><span>' + esc(factOf(top, c)) + '</span>' + (stronger ? '<span class="chip chip--small chip--tonal">' + icon('arrow_upward') + esc(t('{c} stronger', { c: tn(better.id) })) + '</span>' : '') + (s ? srcLink(s) : '') + '</li>';
     });
     // engine.warnings() is already specific to the winner (and to the founder's answers)
-    var watch = res.warnings.map(function (w) {
-      var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []);
-      return '<li class="r-w r-w--' + esc(w.type) + '"><span>' + esc(warnText(w)) + '</span>' + ss.map(function (x) { return srcLink(x); }).join('') + '</li>';
+    // Each warning shows as a short title; the full text and its sources open on demand.
+    // The sector note is context, not a risk, so it sits under the three columns instead.
+    var W_ICON = { warn: 'warning', info: 'info', tip: 'lightbulb' };
+    function srcsOf(w) { var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []); return ss.map(function (x) { return srcLink(x); }).join(''); }
+    var watch = res.warnings.filter(function (w) { return w.type !== 'sector'; }).map(function (w) {
+      var key = 'w-' + String(w.title || w.text).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40);
+      var open = !!state.openInfo[key];
+      return '<li class="r-w r-w--' + esc(w.type) + '"><details class="r-wd" data-keep="' + key + '"' + (open ? ' open' : '') + '><summary><strong>' + icon(W_ICON[w.type] || 'info') + '<span>' + esc(t(w.title || '')) + '</span></strong>' + icon('expand_more') + '</summary>' +
+        '<div class="r-wd__body">' + UI.noteBlocks(warnText(w)) + srcsOf(w) + '</div></details></li>';
     });
+    var sector = res.warnings.filter(function (w) { return w.type === 'sector'; })[0];
     return '<div class="insights">' +
       '<section class="insight insight--why" aria-labelledby="ins-h-why"><h3 id="ins-h-why">' + icon('thumb_up') + esc(t('Why it fits')) + '</h3>' + capped('why', why, t('Balanced profile – no single standout.'), state) + '</section>' +
-      '<section class="insight insight--trade" aria-labelledby="ins-h-trade"><h3 id="ins-h-trade">' + icon('balance') + esc(t('Trade-offs')) + '</h3>' + capped('trade', trade, t('No major weakness on what you care about.'), state) + '</section>' +
-      '<section class="insight insight--watch" aria-labelledby="ins-h-watch"><h3 id="ins-h-watch">' + icon('warning') + esc(t('Watch out')) + '</h3>' + capped('watch', watch, t('Nothing specific to flag.'), state) + '</section></div>';
+      '<section class="insight insight--trade" aria-labelledby="ins-h-trade"><h3 id="ins-h-trade">' + icon('balance') + esc(t('Trade-offs')) + '</h3>' + capped('trade', trade, t('No major weakness on what you care about.'), state, 'check_circle') + '</section>' +
+      '<section class="insight insight--watch" aria-labelledby="ins-h-watch"><h3 id="ins-h-watch">' + icon('warning') + esc(t('Watch out')) + '</h3>' + capped('watch', watch, t('Nothing specific to flag.'), state, 'check_circle') + '</section></div>' +
+      (sector ? '<p class="r-note insights__note">' + icon('info') + '<span>' + esc(warnText(sector)) + ' ' + srcsOf(sector) + '</span></p>' : '');
   }
 
   /* ---------- legal forms & founding vs Germany ---------- */
@@ -344,8 +352,10 @@
         orderIds.map(function (k) {
           var s = rowOf(res, k).scores[c.id];
           var cell = D.SCORES[k][c.id];
-          var tag = cell.nodata ? '<span class="conf-low" aria-hidden="true">' + esc(t('no data')) + '</span>' : (cell.confidence === 'low' && !(c.id === 'residence' && rowOf(res, k).residence) ? '<span class="conf-low" aria-hidden="true">' + esc(t('est.')) + '</span>' : '');
-          return '<td class="' + (k === top.id ? 'col-win' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(tn(k) + ', ' + t(c.name) + ': ' + s.value + ' / 5. ' + t('Show evidence')) + '">' + dots(s.value) + tag + '</button></td>';
+          // the label sits under the dots, outside the button's flow, so the dots stay centred in every cell
+          var tagTxt = cell.nodata ? t('no data') : (cell.confidence === 'low' && !(c.id === 'residence' && rowOf(res, k).residence) ? t('est.') : '');
+          var tag = tagTxt ? '<span class="conf-low mx-tag" aria-hidden="true">' + esc(tagTxt) + '</span>' : '';
+          return '<td class="' + (k === top.id ? 'col-win' : '') + (tagTxt ? ' has-tag' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(tn(k) + ', ' + t(c.name) + ': ' + s.value + ' / 5' + (tagTxt ? ' (' + tagTxt + ')' : '') + '. ' + t('Show evidence')) + '">' + dots(s.value) + '</button>' + tag + '</td>';
         }).join('') + '</tr>';
     }).join('');
     return '<section class="card r-matrix" id="matrix" aria-labelledby="mx-title"><div class="card__head"><h2 id="mx-title" tabindex="-1">' + icon('grid_view') + esc(t('Compare all six')) + '</h2><span class="rail__meta">' + esc(t('tap a cell for evidence')) + '</span></div>' +

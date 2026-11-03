@@ -119,3 +119,13 @@ test('every scored cell cites at least one source (cells marked nodata excepted)
   }
   assert.deepStrictEqual(missing, []);
 });
+
+test('"Not sure yet" scores exactly like skipping the question', () => {
+  const base = { citizenship: ['eu'], residence: 'DE', relocation: 'anywhere', hires: '1to2' };
+  const scores = a => E.evaluate(a).rows.map(r => r.id + ':' + r.score + ':' + JSON.stringify(r.scores));
+  for (const [q, v] of [['market', 'unsure'], ['funding', ['unsure']], ['esop', 'unsure']]) {
+    assert.deepStrictEqual(scores({ ...base, [q]: v }), scores(base), q);
+    const ex = E.evaluate({ ...base, [q]: v }).effects.find(x => x.q === q);
+    assert.match(ex.effect, /Not sure yet/, q);
+  }
+});

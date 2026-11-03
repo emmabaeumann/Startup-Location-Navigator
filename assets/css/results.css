@@ -302,7 +302,9 @@
 /* Your answers – collapsed card */
 .r-answers { padding: 0; gap: 0; }
 .r-exp--card { background: none; border-radius: inherit; }
-.r-exp--card > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 24px 32px; border-radius: inherit; position: relative; isolation: isolate; }
+.r-exp--card > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 24px 32px; border-radius: var(--shape-xl); position: relative; isolation: isolate; }
+/* explicit radius: `inherit` resolves against <details>' internal slot (0px), so the focus ring was a square box around the rounded card */
+.r-exp--card[open] > summary { border-radius: var(--shape-xl) var(--shape-xl) 0 0; }
 .r-exp--card > summary::-webkit-details-marker { display: none; }
 .r-exp--card > summary::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--on-surface); opacity: 0; transition: opacity var(--dur-short3) linear; }
 .r-exp--card > summary:hover::before { opacity: var(--state-hover); }

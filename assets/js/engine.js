@@ -37,7 +37,7 @@
         { v: 'UK', l: 'United Kingdom' }, { v: 'US', l: 'United States' }, { v: 'PT', l: 'Portugal' },
         { v: 'euother', l: 'Another EU / EEA country' }, { v: 'elsewhere', l: 'Somewhere else' }
       ] },
-    { id: 'relocation', block: 'you', type: 'single', title: 'Are you open to relocating for your startup?',
+    { id: 'relocation', block: 'you', type: 'single', title: 'Would you relocate for your startup?',
       help: 'Excluded countries stay visible, greyed out.',
       options: [
         { v: 'stay', l: 'No, I’ll stay where I live', s: 'Keep my current home' },
@@ -71,13 +71,15 @@
         { v: 'unsure', l: 'Not sure yet', s: 'No effect on the score', exclusive: true }
       ] },
     { id: 'capital', block: 'capital', type: 'single', title: 'How much capital is already secured?',
-      help: 'Paid in before registration: Switzerland CHF 20,000, Liechtenstein CHF 10,000, German GmbH €12,500 (a UG from €1). UK, US and Portugal: practically nothing.',
+      help: 'Paid in before registration: Switzerland CHF 20,000; Liechtenstein CHF 10,000; German GmbH €12,500 (UG from €1); UK, US, Portugal practically nothing.',
       options: [
         { v: 'none', l: 'Nothing yet' }, { v: 'lt10', l: 'Less than €10k' }, { v: '10to25', l: '€10k – €25k' },
         { v: '25to100', l: '€25k – €100k' }, { v: '100to1m', l: '€100k – €1M' }, { v: 'gt1m', l: 'More than €1M' }
       ] },
     { id: 'investors', block: 'capital', type: 'multi', title: 'Where are your current investors based?',
       help: 'Investors prefer jurisdictions they know.',
+      // Not asked when no capital is secured yet: the answer is then recorded as 'No investors yet'.
+      showIf: function (a) { return !a || a.capital !== 'none'; }, autoValue: ['none'], dependsOn: 'capital',
       options: [
         { v: 'none', l: 'No investors yet', exclusive: true },
         { v: 'DE', l: 'Germany' }, { v: 'CHLI', l: 'Switzerland / Liechtenstein' },
@@ -92,7 +94,7 @@
         { v: 'ipo', l: 'Go public', s: 'IPO' },
         { v: 'undecided', l: 'Not decided yet', s: 'Keep options open' }
       ] },
-    { id: 'esop', block: 'exit', type: 'single', title: 'Do you want to offer employees equity?',
+    { id: 'esop', block: 'exit', type: 'single', title: 'Will you offer employees equity?',
       help: 'Option taxes differ widely between countries.',
       options: [
         { v: 'all', l: 'Yes, broadly', s: 'Most employees' },
@@ -100,7 +102,7 @@
         { v: 'no', l: 'No' },
         { v: 'unsure', l: 'Not sure yet', s: 'No effect on the score' }
       ] },
-    { id: 'hires', block: 'exit', type: 'single', title: 'How many people do you plan to hire in year one?',
+    { id: 'hires', block: 'exit', type: 'single', title: 'How many people will you hire in year one?',
       help: 'Employer payroll costs differ widely between countries.',
       options: [
         { v: '0', l: 'Nobody yet', s: 'Founders only' },
@@ -297,7 +299,7 @@
       var upRes = Math.max(0, out[h].residence.value - resBaseline[h]);
       var upMkt = Math.max(0, out[h].market.value - out[h].market.base);
       var cut = Math.min(upMkt, Math.max(0, upRes + upMkt - HOME_BASE_CAP));
-      if (cut > 0) adj(h, 'market', -cut, 'home-base cap: living here is already counted under residence');
+      if (cut > 0) adj(h, 'market', -cut, 'home-base cap: already counted under residence');
       out[h].market.homeCapped = cut;
     }
     // Paid-in capital
@@ -397,6 +399,22 @@
     return { same: f.tested - flipped, total: f.tested, share: f.tested ? (f.tested - flipped) / f.tested : 1, flips: f.flips };
   }
 
+  // A question with a showIf condition is only asked when the condition holds for the current answers.
+  function isAsked(q, a) { return !q || typeof q.showIf !== 'function' || !!q.showIf(a || {}); }
+  // Answers as the engine reads them: a question that is not asked takes its auto value
+  // (capital 'none' → investors ['none']), whatever was stored (old saved state, share links).
+  function normalize(a) {
+    a = a || {};
+    var out = null;
+    QUESTIONS.forEach(function (q) {
+      if (isAsked(q, a) || !q.autoValue) return;
+      if (JSON.stringify(a[q.id]) === JSON.stringify(q.autoValue)) return;
+      if (!out) { out = {}; Object.keys(a).forEach(function (k) { out[k] = a[k]; }); }
+      out[q.id] = q.autoValue.slice();
+    });
+    return out || a;
+  }
+
   function answeredCount(a) {
     var n = 0;
     QUESTIONS.forEach(function (q) {
@@ -413,37 +431,37 @@
     var k = top.id;
     var cl = cits(a);
     if (a.relocation === 'stay' && COUNTRY_IN_LIST[a.residence]) {
-      var stayTpl = 'Because you want to stay where you live, only {c} is ranked. Registering a company abroad while running it from home usually does not move its tax residence: a company is generally taxed where it is actually managed (e.g. §10 AO, §1 KStG in Germany).';
+      var stayTpl = 'Only {c} is ranked because you stay where you live. A company registered abroad but run from home usually stays tax-resident where it is actually managed (e.g. §10 AO, §1 KStG in Germany).';
       var stayName = D.COUNTRIES[IDS.indexOf(a.residence)].name;
       // tpl + vars let the UI translate the sentence (vars are English names, translated at render time)
       w.push({ type: 'info', title: 'Tax follows where you manage', text: stayTpl.replace('{c}', stayName), tpl: stayTpl, vars: { c: stayName }, src: 'ao10' });
     } else if (a.relocation === 'stay' && (a.residence === 'euother' || a.residence === 'elsewhere')) {
-      w.push({ type: 'info', title: 'Tax follows where you manage', text: 'You want to stay in a country outside this comparison. A company registered in one of these six countries but managed from your home is usually taxed where it is actually managed.', src: 'ao10' });
+      w.push({ type: 'info', title: 'Tax follows where you manage', text: 'You stay in a country outside this comparison. A company registered in one of the six but managed from your home is usually taxed where it is actually managed.', src: 'ao10' });
     }
     if (a.residence === 'DE' && k !== 'DE' && a.relocation !== 'stay') {
-      w.push({ type: 'warn', title: 'Exit tax when leaving Germany', text: 'Moving away from Germany: if you already hold ≥ 1% of a company, emigration can trigger exit tax on unrealised gains (§6 AStG; since 2022 payable in 7 instalments, usually against security). Plan before you move.', src: 'astg6' });
+      w.push({ type: 'warn', title: 'Exit tax when leaving Germany', text: 'Leaving Germany while holding ≥ 1% of a company can trigger exit tax on unrealised gains (§6 AStG; since 2022 payable in 7 instalments, usually against security). Plan before you move.', src: 'astg6' });
     }
     if (has(cl, 'us') && k !== 'US') {
       w.push({ type: 'warn', title: 'US tax on worldwide income', text: 'US citizens are taxed on worldwide income wherever they live. Check foreign tax credits and reporting before founding abroad.', src: 'irs_abroad' });
     }
     if (has(a.investors, 'US') && k !== 'US') {
-      w.push({ type: 'info', title: 'US investors may want a Delaware flip', text: 'Your US investors may ask for a "Delaware flip" (a US holding above your local company) before investing. It is common, but costs time and can have tax consequences.', src: 'stripe_flip' });
+      w.push({ type: 'info', title: 'US investors may want a Delaware flip', text: 'US investors may require a "Delaware flip" (a US holding above your local company) before investing. Common, but costs time and can have tax consequences.', src: 'stripe_flip' });
     }
     if (has(a.investors, 'elsewhere')) {
-      w.push({ type: 'info', title: 'Ask your investors early', text: 'Investors based outside these six countries may prefer a structure they know, often a US or UK entity. Ask them early.', src: null });
+      w.push({ type: 'info', title: 'Ask your investors early', text: 'Investors outside these six countries may prefer a structure they know, often a US or UK entity. Ask early.', src: null });
     }
     if (k === 'US' && cl.length && !has(cl, 'us')) {
-      w.push({ type: 'info', title: 'QSBS helps US taxpayers only', text: 'The QSBS exclusion benefits US taxpayers; as a non-US founder your home-country tax rules on the exit still matter.', src: 'qsbs_obbba' });
+      w.push({ type: 'info', title: 'QSBS helps US taxpayers only', text: 'QSBS exclusion benefits US taxpayers only; as a non-US founder, your home-country tax rules on the exit still apply.', src: 'qsbs_obbba' });
     }
     if (k === 'LI') w.push({ type: 'warn', title: 'Residence permits are limited', text: 'Liechtenstein limits residence permits (partly allocated by lottery). Most people working there live in Switzerland or Austria.', src: 'li_quota' });
-    if (k === 'CH') w.push({ type: 'info', title: 'Pick your canton carefully', text: 'Choose your canton deliberately: the profit tax ranges from ≈ 11.9% (Zug) to ≈ 19.6% (Zurich) and above.', src: 'kpmg_ch' });
-    if (k === 'DE' && (a.capital === 'none' || a.capital === 'lt10')) w.push({ type: 'tip', title: 'Start as a UG from €1', text: 'With little capital, a UG (haftungsbeschränkt) can be founded from €1 and converted into a GmbH later.', src: 'gmbhg' });
-    if (k === 'DE' && (a.exit === 'sale' || a.exit === 'ipo')) w.push({ type: 'tip', title: 'Use a holding GmbH for the exit', text: 'Planning an exit from Germany? Holding your shares through a holding GmbH can cut the tax on the sale from ≈ 28.5% to ≈ 1.5% (§8b KStG). Set it up early with a tax adviser.', src: 'kstg8b' });
+    if (k === 'CH') w.push({ type: 'info', title: 'Pick your canton carefully', text: 'Profit tax ranges from ≈ 11.9% (Zug) to ≈ 19.6% (Zurich) and above.', src: 'kpmg_ch' });
+    if (k === 'DE' && (a.capital === 'none' || a.capital === 'lt10')) w.push({ type: 'tip', title: 'Start as a UG from €1', text: 'Low on capital: found a UG (haftungsbeschränkt) from €1, convert to a GmbH later.', src: 'gmbhg' });
+    if (k === 'DE' && (a.exit === 'sale' || a.exit === 'ipo')) w.push({ type: 'tip', title: 'Use a holding GmbH for the exit', text: 'Exit from Germany: holding your shares via a holding GmbH can cut tax on the sale from ≈ 28.5% to ≈ 1.5% (§8b KStG). Set it up early with a tax adviser.', src: 'kstg8b' });
     var sn = D.SECTOR_NOTES[a.sector];
     if (sn) w.push({ type: 'sector', text: sn.text, src: sn.src });
     var lowConf = D.CRITERIA.filter(function (c) { return cellOf(k, c.id).confidence === 'low'; }).map(function (c) { return c.short; });
     if (lowConf.length >= 2) {
-      var thinTpl = 'Data for {c} is thin on: {list}. Treat those scores as estimates.';
+      var thinTpl = 'Thin data for {c}: {list}. Treat those scores as estimates.';
       w.push({ type: 'info', title: 'Some scores are estimates', text: thinTpl.replace('{c}', top.country.name).replace('{list}', lowConf.join(', ')), tpl: thinTpl, vars: { c: top.country.name, list: lowConf }, src: null });
     }
     return w;
@@ -497,48 +515,48 @@
       } else if (q.id === 'residence') {
         if (COUNTRY_IN_LIST[v]) {
           say('{c} gets the top residence score (5) for your existing home base.', { c: [v] });
-          if (a.market === 'home') say('Together with your home market this home-base uplift is capped at {n} score steps, so it is not counted twice.', { n: HOME_BASE_CAP });
+          if (a.market === 'home') say('With your home market, this home-base uplift is capped at {n} score steps (no double counting).', { n: HOME_BASE_CAP });
         } else say('Not one of the six countries, so no home-base bonus.');
       } else if (q.id === 'relocation') {
         if (v === 'europe') say('The United States is excluded (still shown, greyed out).');
-        else if (v === 'stay') { if (COUNTRY_IN_LIST[a.residence]) say('Only {c} is ranked; the others are shown for reference.', { c: [a.residence] }); else say('No country excluded, because your home is outside the six.'); }
-        else say('No exclusions, and residence starts at “somewhat important” because you are mobile.');
+        else if (v === 'stay') { if (COUNTRY_IN_LIST[a.residence]) say('Only {c} is ranked; the others are shown for reference.', { c: [a.residence] }); else say('No country excluded: your home is outside the six.'); }
+        else say('No exclusions; residence starts at “somewhat important” because you are mobile.');
       } else if (q.id === 'sector') {
         var sa = D.SECTOR_ADJ[v];
         if (v === 'other') say('No effect – no sector bonus applied.');
         else if (sa) say('+1 on the ecosystem score for {list}.', { list: IDS.filter(function (k) { return sa[k]; }) });
-        else say(v === 'ai' ? 'No bonus needed: the leading AI hubs (US, UK) already hold the top score.' : (v === 'software' ? 'No sector bonus: software is the least location-bound sector.' : 'No sector bonus: no comparable country-level evidence.'));
+        else say(v === 'ai' ? 'No bonus needed: the leading AI hubs (US, UK) already score 5.' : (v === 'software' ? 'No sector bonus: software is the least location-bound sector.' : 'No sector bonus: no comparable country-level evidence.'));
       } else if (q.id === 'market' && v === 'unsure') {
         say('Not sure yet – market access keeps its evidence score for every country.');
       } else if (q.id === 'market') {
         var best = res.rows.filter(function (r) { return r.scores.market.value === 5; }).map(function (r) { return r.id; });
-        if (best.length) say('Market access is highest (5) for {list}.', { list: best }); else say('No effect, because your home is outside the six countries.');
+        if (best.length) say('Market access is highest (5) for {list}.', { list: best }); else say('No effect: your home is outside the six countries.');
       } else if (q.id === 'funding') {
         var f = [];
         if (has(v, 'vc')) f.push('VC access');
         if (has(v, 'grants') || has(v, 'angels')) f.push('public funding (incl. angel tax reliefs)');
         if (has(v, 'accelerator')) f.push('talent & ecosystem');
         if (has(v, 'bootstrap')) f.push('low profit tax and low living cost');
-        if (f.length) say('Raises the weight of {list} by one level.', { list: f }); else say(has(v, 'unsure') ? 'Not sure yet – all funding criteria keep the weight you chose.' : 'No effect.');
+        if (f.length) say('Raises the weight of {list} by one level.', { list: f }); else say(has(v, 'unsure') ? 'Not sure yet – funding criteria keep your chosen weights.' : 'No effect.');
       } else if (q.id === 'capital') {
-        if (v === 'none' || v === 'lt10') say('−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000), where the minimum capital must be fully paid in. In Germany a UG can start from €1.');
-        else if (v === '10to25') say('Covers the paid-in minimum in Liechtenstein (CHF 10,000) and a German UG; a German GmbH (€12,500) and Switzerland (CHF 20,000) may need more – no score change.');
-        else say('Covers the paid-in minimum in all six countries – no penalty applies.');
+        if (v === 'none' || v === 'lt10') say('−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000): minimum capital must be fully paid in. In Germany a UG starts from €1.');
+        else if (v === '10to25') say('Covers the paid-in minimum in Liechtenstein (CHF 10,000) and for a German UG; a German GmbH (€12,500) and Switzerland (CHF 20,000) may need more. No score change.');
+        else say('Covers the paid-in minimum in all six countries; no penalty.');
       } else if (q.id === 'investors') {
         var map = { DE: ['DE'], CHLI: ['CH', 'LI'], UK: ['UK'], US: ['US'], EU: ['PT', 'DE'] };
         var ks = [];
         v.forEach(function (x) { (map[x] || []).forEach(function (k) { if (ks.indexOf(k) === -1) ks.push(k); }); });
-        if (ks.length) say('+1 on VC access for {list} (your investors are based there; capped at the top score 5).', { list: ks });
-        else say(has(v, 'elsewhere') ? 'No score effect (outside the six countries) – see the note under “Watch out”.' : 'No existing investors – no effect on scores.');
+        if (ks.length) say('+1 on VC access for {list} (your investors are there; max. score 5).', { list: ks });
+        else say(has(v, 'elsewhere') ? 'No score effect (outside the six countries); see “Watch out”.' : 'No existing investors; no score effect.');
       } else if (q.id === 'exit') {
         say(v === 'hold' ? 'Raises the weight of low profit tax by one level.' : (v === 'undecided' ? 'No effect – both tax criteria keep your chosen weight.' : 'Raises the weight of low exit tax by one level.'));
       } else if (q.id === 'esop') {
-        say(v === 'all' ? 'Raises the weight of founder-friendly stock options by one level.' : (v === 'no' ? (res.weights.esop && !res.weights.esop.isDefault ? 'You set a priority for stock options yourself, so it is kept.' : 'Stock-option rules are not counted (weight 0).') : (v === 'unsure' ? 'Not sure yet – stock options keep the weight you chose.' : 'No change – stock options keep the weight you chose.')));
+        say(v === 'all' ? 'Raises the weight of founder-friendly stock options by one level.' : (v === 'no' ? (res.weights.esop && !res.weights.esop.isDefault ? 'You set a stock-option priority yourself; it is kept.' : 'Stock-option rules are not counted (weight 0).') : (v === 'unsure' ? 'Not sure yet – stock options keep the weight you chose.' : 'No change – stock options keep the weight you chose.')));
         if (res.weights.labor && plansToHire(a) && res.weights.labor.value > 0) say('Because you plan to hire, employer payroll costs are counted.');
       } else if (q.id === 'hires') {
         var hn = hiresOf(a), lw = res.weights.labor;
-        if (!hn) say(lw && lw.value > 0 && !lw.isDefault ? 'No hires in year one – but you set a priority for employer payroll costs yourself, so it is kept.' : 'No hires in year one: employer payroll costs are not counted.');
-        else { say(lw && lw.bonus ? 'Raises the weight of employer payroll costs by one level.' : 'Employer payroll costs keep the weight you chose.'); say('The first-year cost estimate includes payroll for {n} employees.', { n: hn }); }
+        if (!hn) say(lw && lw.value > 0 && !lw.isDefault ? 'No hires in year one, but your own priority for employer payroll costs is kept.' : 'No hires in year one: employer payroll costs are not counted.');
+        else { say(lw && lw.bonus ? 'Raises the weight of employer payroll costs by one level.' : 'Employer payroll costs keep the weight you chose.'); say('First-year cost estimate includes payroll for {n} employees.', { n: hn }); }
       }
       var text = P.map(function (p) { return fillTpl(p.k, p.v); }).join(' ').replace(/;$/, '.');
       out.push({ q: q.id, title: q.title, answer: label, effect: text, effectParts: P, answered: !!answered });
@@ -618,7 +636,7 @@
   }
 
   function evaluate(a, light) {
-    a = a || {};
+    a = normalize(a);
     var wi = weightsInfo(a);
     var weights = wi.w;
     var scores = adjustedScores(a);
@@ -659,7 +677,7 @@
     return res;
   }
 
-  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights, defaultLevel: defaultLevel, hiresOf: hiresOf,
+  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, isAsked: isAsked, normalize: normalize, computeWeights: computeWeights, defaultLevel: defaultLevel, hiresOf: hiresOf,
     HOME_BASE_CAP: HOME_BASE_CAP, TIE_POINTS: TIE_POINTS, ROBUST_GAP: ROBUST_GAP, CONF_HIGH_MAX: CONF_HIGH_MAX, CONF_MED_MAX: CONF_MED_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SSN_ENGINE = api;

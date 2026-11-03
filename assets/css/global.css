@@ -349,6 +349,7 @@ body.is-wizard .topbar__inner { max-width: calc(var(--max) + 160px); }
 
 /* ---------- Print (always light; tonal containers kept; interactive chrome hidden) ---------- */
 @page { margin: 16mm 14mm; }
+@media screen { .print-only { display: none; } }
 @media print {
   /* id-level specificity beats both the dark media block and [data-theme="dark"] */
   :root:not(#print-light) {

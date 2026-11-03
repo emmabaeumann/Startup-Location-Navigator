@@ -21,6 +21,8 @@ function randomProfile(rnd, opts = {}) {
       a[q.id] = s;
     }
   });
+  // as in the app: investors is not asked when no capital is secured and is recorded as 'No investors yet'
+  if (a.capital === 'none') a.investors = ['none'];
   if (rnd() < (opts.prio ?? 0.8)) {
     a.priorities = {};
     D.CRITERIA.forEach(c => { if (rnd() < 0.7) a.priorities[c.id] = Math.floor(rnd() * 4); });

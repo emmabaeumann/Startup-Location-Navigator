@@ -33,9 +33,8 @@ body.is-about, body.is-country {
 .formula-card__key { font: var(--type-body-m); letter-spacing: var(--ls-body-m); margin-top: -12px; display: flex; flex-direction: column; gap: 2px; }
 
 /* sections (h2) with jump links in the header; cards inside use h3 titles styled like card h2s */
-.mjump ul { display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; margin-left: -12px; }
+.mjump ul { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin-left: -12px; }
 .mjump li { display: flex; align-items: center; }
-.mjump li + li::before { content: '·'; color: var(--on-surface-variant); padding-right: 4px; }
 .mjump .msr { font-size: 18px; }
 .msec { display: flex; flex-direction: column; gap: 16px; scroll-margin-top: 88px; }
 .msec + .msec, .msec + .page__cta { margin-top: 24px; }
@@ -204,11 +203,17 @@ body.is-about, body.is-country {
 .cp-head__text { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
 .avatar--xl { width: 96px; height: 96px; font: var(--type-headline-m); letter-spacing: var(--ls-headline-m); font-weight: 500; background: var(--primary-container); color: var(--on-primary-container); border-radius: var(--shape-xl); }
 .avatar--xl.avatar--flag { border-radius: var(--shape-full); background: var(--surface-container-highest); }
-.cp-switch { margin: 0 0 8px; }
+/* Country switcher: its own labelled, tinted bar so it reads as a control, not as more metadata tags */
+.cp-switch { margin: 8px 0; padding: 12px 16px; border-radius: var(--shape-xl); background: var(--surface-container); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.cp-switch__label { display: inline-flex; align-items: center; gap: 8px; font: var(--type-label-l); letter-spacing: var(--ls-label-l); color: var(--on-surface-variant); }
+.cp-switch__label .msr { font-size: 20px; color: var(--primary); }
+.cp-switch__list { display: flex; flex-wrap: wrap; gap: 8px; }
+.cp-switch__list > li { display: flex; }
 /* 48dp target: the transparent border must be --tgt wide (the generic .chip border would otherwise win) */
-.cp-switch .chip--filter { border-width: var(--tgt); background-clip: padding-box; }
-.cp-switch .chip--filter[aria-current="page"] { background-color: var(--secondary-container); color: var(--on-secondary-container); box-shadow: none; padding-left: 8px; }
-.cp-switch .chip--filter[aria-current="page"] .msr { color: inherit; }
+.cp-switch .chip--filter { border-width: var(--tgt); background-clip: padding-box; background-color: var(--surface-container-lowest); padding: 0 16px 0 8px; border-radius: var(--shape-full); }
+.cp-switch .chip--filter .avatar { width: 22px; height: 22px; margin-left: 0; box-shadow: 0 0 0 1px var(--outline-variant); }
+.cp-switch .chip--filter[aria-current="page"] { background-color: var(--secondary-container); color: var(--on-secondary-container); box-shadow: inset 0 0 0 2px var(--primary); font-weight: 600; }
+.cp-switch .chip--filter[aria-current="page"] .avatar { box-shadow: none; }
 
 .cmp { display: flex; flex-direction: column; gap: 12px; }
 .cmp__title { display: flex; align-items: center; gap: 8px; }
@@ -281,7 +286,6 @@ body.is-about, body.is-country {
   .msteps { --gap: 12px; --pad: 16px; }
   /* phone: step details use the full card width; the connector runs behind them */
   .mstep > .details { margin-left: 0; position: relative; }
-  .mjump li + li::before { content: none; }
   .mjump ul { gap: 0 8px; }
   /* step 2 rules table: one stacked block per rule (answer, then criterion + effect) */
   .tbl--rules, .tbl--rules tbody { display: block; }

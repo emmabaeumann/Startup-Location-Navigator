@@ -33,6 +33,11 @@
         if (f.length) out[q.id] = f;
       } else if (q.type === 'single' && typeof v === 'string' && vals.indexOf(v) !== -1) out[q.id] = v;
     });
+    // a question that is not asked for these answers (showIf false) takes its auto value,
+    // e.g. capital 'Nothing yet' → investors 'No investors yet', whatever was stored
+    (questions || []).forEach(function (q) {
+      if (typeof q.showIf === 'function' && Array.isArray(q.autoValue) && !q.showIf(out)) out[q.id] = q.autoValue.slice();
+    });
     if (isPlainObject(a.priorities)) {
       out.priorities = {};
       (criteria || []).forEach(function (c) { var l = a.priorities[c.id]; if (l === 0 || l === 1 || l === 2 || l === 3) out.priorities[c.id] = l; });
@@ -56,6 +61,8 @@
     var maxStep = typeof opts.maxStep === 'number' && opts.maxStep >= 0 ? Math.floor(opts.maxStep) : 0;
     st.answers = sanitize(s.answers, opts.questions, opts.criteria);
     st.skipped = sanitizeSkipped(s.skipped, opts.questions);
+    // an auto-filled (not asked) question cannot be skipped
+    (opts.questions || []).forEach(function (q) { if (st.skipped[q.id] && typeof q.showIf === 'function' && !q.showIf(st.answers)) delete st.skipped[q.id]; });
     var step = typeof s.step === 'number' && isFinite(s.step) ? Math.floor(s.step) : 0;
     st.step = Math.max(0, Math.min(maxStep, step));
     st.view = typeof s.view === 'string' && views.indexOf(s.view) !== -1 ? s.view : 'landing';

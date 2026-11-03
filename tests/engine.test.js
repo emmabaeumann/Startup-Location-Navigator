@@ -64,7 +64,7 @@ test('living in a country gives the home-base maximum', () => {
 });
 
 test('all adjusted scores are whole steps', () => {
-  const r = E.evaluate({ citizenship: ['eu'], investors: ['EU', 'CHLI'], sector: 'fintech', market: 'dach', capital: 'none' });
+  const r = E.evaluate({ citizenship: ['eu'], investors: ['EU', 'CHLI'], sector: 'fintech', market: 'dach', capital: 'lt10' });
   for (const row of r.rows) for (const k of Object.keys(row.scores)) assert.ok(Number.isInteger(row.scores[k].value));
 });
 
@@ -128,4 +128,29 @@ test('"Not sure yet" scores exactly like skipping the question', () => {
     const ex = E.evaluate({ ...base, [q]: v }).effects.find(x => x.q === q);
     assert.match(ex.effect, /Not sure yet/, q);
   }
+});
+
+test('investors is not asked when no capital is secured', () => {
+  const inv = E.QUESTIONS.find(q => q.id === 'investors');
+  assert.strictEqual(E.isAsked(inv, {}), true);
+  assert.strictEqual(E.isAsked(inv, { capital: 'lt10' }), true);
+  assert.strictEqual(E.isAsked(inv, { capital: 'none' }), false);
+  for (const q of E.QUESTIONS) if (q.id !== 'investors') assert.strictEqual(E.isAsked(q, { capital: 'none' }), true, q.id);
+});
+
+test('capital "Nothing yet" forces investors to "No investors yet" (no VC bonus, no investor warnings)', () => {
+  const base = { citizenship: ['eu'], residence: 'DE', funding: ['vc'], capital: 'none', exit: 'sale', esop: 'key' };
+  const stale = E.evaluate(Object.assign({ investors: ['US', 'elsewhere', 'DE'] }, base));
+  const clean = E.evaluate(Object.assign({ investors: ['none'] }, base));
+  assert.deepStrictEqual(stale.rows.map(r => [r.id, r.total]), clean.rows.map(r => [r.id, r.total]));
+  for (const r of stale.rows) assert.ok(!(r.scores.vc.adj || []).some(s => /investors/.test(s)), r.id);
+  assert.ok(!stale.warnings.some(w => /investor/i.test(w.title)));
+  assert.deepStrictEqual(E.normalize(Object.assign({ investors: ['US'] }, base)).investors, ['none']);
+  // the stored answers are not mutated
+  const a = Object.assign({ investors: ['US'] }, base); E.evaluate(a); assert.deepStrictEqual(a.investors, ['US']);
+  // the auto-recorded answer counts: a full profile stays 11 of 11 answered
+  const full = Object.assign({ market: 'dach', sector: 'software', relocation: 'europe', hires: '0' }, base);
+  const r = E.evaluate(full);
+  assert.strictEqual(r.totalQuestions, 11);
+  assert.strictEqual(r.answered, 11);
 });

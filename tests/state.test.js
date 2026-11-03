@@ -88,3 +88,14 @@ test('sanitize: hires keeps known option values only; info views restore to land
   assert.strictEqual(S.load(st, KEY, OPTS).countryId, 'PT');
   assert.strictEqual(S.load(put({ view: 'wizard', step: MAX }), KEY, OPTS).step, MAX);
 });
+
+test('sanitize records "No investors yet" when no capital is secured; skips are dropped', () => {
+  assert.deepStrictEqual(S.sanitize({ capital: 'none', investors: ['US'] }, Q, C), { capital: 'none', investors: ['none'] });
+  assert.deepStrictEqual(S.sanitize({ capital: 'none' }, Q, C), { capital: 'none', investors: ['none'] });
+  assert.deepStrictEqual(S.sanitize({ capital: 'lt10', investors: ['US'] }, Q, C), { capital: 'lt10', investors: ['US'] });
+  const st = S.fromObject({ view: 'wizard', step: 8, answers: { capital: 'none' }, skipped: { investors: true } }, OPTS);
+  assert.deepStrictEqual(st.skipped, {});
+  assert.deepStrictEqual(st.answers.investors, ['none']);
+  const link = '#r=' + S.encodeShare({ capital: 'none', investors: ['US'] }).split('#r=').pop();
+  assert.deepStrictEqual(S.readShare(link, Q, C).investors, ['none']);
+});

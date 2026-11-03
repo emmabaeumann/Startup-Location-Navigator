@@ -1,4 +1,4 @@
-/* FoundersNavigator – results view + evidence dialog (registered on SSN_UI) · Material 3
+/* FoundersNavigator – results view + evidence dialog (registered on SSN_UI), Material 3
  *
  * Card order: print header → mobile top-3 → bar → hero (winner + ranking) → why-over-runner-up →
  * insights (why / trade-offs / watch out) → legal forms vs Germany → first-year cost → matrix →
@@ -87,7 +87,7 @@
       var open = !!state.openInfo.tie;
       chip = '<span class="chip chip--warning">' + icon('balance') + esc(t('Tie with {list}', { list: andList(others) })) + '</span>' +
         '<button type="button" class="iconbtn iconbtn--small r-chipinfo" data-action="info" data-key="tie" aria-expanded="' + open + '" aria-controls="info-tie" title="' + esc(t('Why is it listed first?')) + '">' + icon('info') + '<span class="sr-only">' + esc(t('Why is it listed first?')) + '</span></button>';
-      if (open) info = '<p class="infopanel" id="info-tie">' + esc(t('Scores less than {p} points apart count as a tie – that is within data precision.', { p: E.TIE_POINTS })) + ' ' + esc(tieReason(res)) + '</p>';
+      if (open) info = '<p class="infopanel" id="info-tie">' + esc(t('Under {p} points apart = tie (within data precision).', { p: E.TIE_POINTS })) + ' ' + esc(tieReason(res)) + '</p>';
     } else if (res.verdict === 'close') {
       chip = '<span class="chip chip--warning">' + icon('compare_arrows') + esc(t('Close call with {c}', { c: tn(res.runnerUp.id) })) + '</span>';
     } else if (res.verdict === 'robust') {
@@ -102,21 +102,21 @@
     var a = res.top, b = rowOf(res, res.tie[1]);
     if (!b) return '';
     var ra = a.scores.residence.value, rb = b.scores.residence.value;
-    if (ra !== rb) return t('Tie-break: the stronger home base comes first. {a} scores {x}/5 on residence & home base for you, {b} {y}/5.', { a: tn(a.id), b: tn(b.id), x: ra, y: rb });
+    if (ra !== rb) return t('Tie-break: stronger home base first. Residence & home base: {a} {x}/5, {b} {y}/5.', { a: tn(a.id), b: tn(b.id), x: ra, y: rb });
     var order = D.CRITERIA.map(function (c, i) { return { id: c.id, w: res.weights[c.id].value, i: i }; })
       .filter(function (c) { return c.w > 0; }).sort(function (p, q) { return q.w - p.w || p.i - q.i; });
     for (var i = 0; i < order.length; i++) {
       var c = order[i].id, x = a.scores[c].value, y = b.scores[c].value;
-      if (x !== y) return t('Tie-break: same home base, so your most important criteria decide. On “{crit}” {a} scores {x}/5, {b} {y}/5.', { crit: t(crit(c).name), a: tn(a.id), b: tn(b.id), x: x, y: y });
+      if (x !== y) return t('Tie-break: equal home base, so your top-weighted criteria decide. “{crit}”: {a} {x}/5, {b} {y}/5.', { crit: t(crit(c).name), a: tn(a.id), b: tn(b.id), x: x, y: y });
     }
-    return t('Tie-break: everything is equal, so the fixed order DE, CH, LI, UK, US, PT applies – it is not a preference.');
+    return t('Tie-break: all equal, so fixed order DE, CH, LI, UK, US, PT (not a preference).');
   }
   function confidenceTile(res) {
     var cf = res.confidence; if (!cf) return '';
     var pct = Math.round(cf.estShare * 100);
     var lbl = { high: t('High confidence'), medium: t('Medium confidence'), low: t('Low confidence') }[cf.level];
     var title = cf.lowCriteria.length ? t('Estimated: {list}', { list: cf.lowCriteria.map(function (c) { return t(crit(c).short); }).join(', ') }) : '';
-    return '<li class="fact-tile r-conf r-conf--' + cf.level + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + icon('signal_cellular_alt') + '<b>' + esc(lbl) + '</b><span>' + esc(pct > 0 ? t('{x}% of your weighted score rests on estimates', { x: pct }) : t('{h}% high-, {m}% medium-confidence data · no estimates', { h: Math.round((cf.highShare || 0) * 100), m: Math.round((cf.medShare || 0) * 100) })) + '</span></li>';
+    return '<li class="fact-tile r-conf r-conf--' + cf.level + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + icon('signal_cellular_alt') + '<b>' + esc(lbl) + '</b><span>' + esc(pct > 0 ? t('{x}% of your weighted score rests on estimates', { x: pct }) : t('{h}% high-, {m}% medium-confidence data; no estimates', { h: Math.round((cf.highShare || 0) * 100), m: Math.round((cf.medShare || 0) * 100) })) + '</span></li>';
   }
   function winnerCard(res, state) {
     var top = res.top;
@@ -136,7 +136,7 @@
       '<div class="winner__row"><h1 id="winner-title" class="winner__name" tabindex="-1">' + esc(tn(top.id)) + '</h1>' +
         '<div class="r-score"><span class="r-score__label">' + esc(t('Match score')) + '</span><div class="scorebig"><b data-ckey="win-' + top.id + '" data-count0>' + top.score + '</b><span>/100</span>' +
         '<button type="button" class="iconbtn iconbtn--small" data-action="info" data-key="score" aria-expanded="' + scoreOpen + '" aria-controls="info-score" title="' + esc(t('What does the match score mean?')) + '">' + icon('info') + '<span class="sr-only">' + esc(t('What does the match score mean?')) + '</span></button></div></div></div>' +
-      (scoreOpen ? '<p class="infopanel" id="info-score">' + esc(t('How close this country gets to 5/5 on everything you weight (100 = top score on every factor). Gaps of 2–3 points are within data precision.')) + '</p>' : '') +
+      (scoreOpen ? '<p class="infopanel" id="info-score">' + esc(t('100 = 5/5 on every criterion you weight, 0 = 1/5. Gaps of 2–3 points are within data precision.')) + '</p>' : '') +
       verdictHtml(res, state) +
       '<ul class="fact-tiles">' +
         '<li class="fact-tile">' + icon('domain') + '<b>' + esc(form ? form.name : t(top.country.entity)) + '</b><span>' + esc(t('typical legal form')) + '</span></li>' +
@@ -167,11 +167,11 @@
     }).join('');
     var out = res.filteredOut.length ? '<div class="r-out"><h3 class="label">' + icon('filter_alt') + esc(t('Filtered out')) + '</h3><ul class="r-out__list">' +
       res.filteredOut.map(function (r) {
-        return '<li class="is-excluded">' + avatar(r.id) + '<span class="ranking__body"><span class="ranking__name">' + esc(tn(r.id)) + '</span><small>' + esc(t(r.excluded)) + (A().state.answers.relocation === 'europe' && r.id === 'US' ? ' · ' + esc(t('outside Europe')) : '') + '</small></span></li>';
+        return '<li class="is-excluded">' + avatar(r.id) + '<span class="ranking__body"><span class="ranking__name">' + esc(tn(r.id)) + '</span><small>' + esc(t(r.excluded)) + (A().state.answers.relocation === 'europe' && r.id === 'US' ? ', ' + esc(t('outside Europe')) : '') + '</small></span></li>';
       }).join('') + '</ul></div>' : '';
     return '<section class="card r-rank" aria-labelledby="rank-title"><div class="card__head"><h2 id="rank-title">' + icon('leaderboard') + esc(t('Full ranking')) + '</h2><span class="rail__meta">' + esc(t('Match score')) + '</span></div>' +
       '<ol class="ranking">' + items + '</ol>' + out +
-      '<p class="r-rank__foot">' + icon('info') + '<span>' + esc(t('Ranked on your answers. Gaps under {p} points are a tie; filtered countries are not scored.', { p: E.TIE_POINTS })) + '</span></p></section>';
+      '<p class="r-rank__foot">' + icon('info') + '<span>' + esc(t('Gaps under {p} points are a tie; filtered countries are not scored.', { p: E.TIE_POINTS })) + '</span></p></section>';
   }
 
   /* ---------- top-3 strip (mobile) ---------- */
@@ -189,17 +189,17 @@
     var rows = res.comparison.filter(function (x) { return Math.abs(x.deltaPoints) >= 0.05; }).slice(0, 4);
     var gap = res.gap || 0;
     var title = res.verdict === 'tie' ? t('{a} vs {b}: where they differ', { a: tn(top.id), b: tn(run.id) }) : t('Why {a} over {b}', { a: tn(top.id), b: tn(run.id) });
-    var body = rows.length ? '<div class="r-vs__wrap"><table class="r-vs"><caption class="sr-only">' + esc(t('Criteria with the biggest difference between {a} and {b}, in points of the match score', { a: tn(top.id), b: tn(run.id) })) + '</caption>' +
+    var body = rows.length ? '<div class="r-vs__wrap"><table class="r-vs"><caption class="sr-only">' + esc(t('Largest criterion differences between {a} and {b}, in match-score points', { a: tn(top.id), b: tn(run.id) })) + '</caption>' +
       '<thead><tr><th scope="col">' + esc(t('Criterion')) + '</th><th scope="col">' + avatar(top.id, true) + '<span class="sr-only">' + esc(tn(top.id)) + '</span></th><th scope="col">' + avatar(run.id) + '<span class="sr-only">' + esc(tn(run.id)) + '</span></th><th scope="col">' + esc(t('Points')) + '</th></tr></thead><tbody>' +
       rows.map(function (x) {
         var pos = x.deltaPoints > 0;
         return '<tr><th scope="row"><span class="mx-crit">' + critIcon(x.c) + esc(t(crit(x.c).short)) + '</span><small>' + wdots(res.weights[x.c]) + esc(t(E.LEVELS[Math.min(res.weights[x.c].level, 3)].l)) + '</small></th>' +
           '<td>' + dots(x.winnerScore) + '<b class="r-vs__n">' + x.winnerScore + '</b></td><td>' + dots(x.runnerScore) + '<b class="r-vs__n">' + x.runnerScore + '</b></td>' +
           '<td><span class="r-delta ' + (pos ? 'r-delta--up' : 'r-delta--down') + '">' + (pos ? '+' : '−') + fmt1(Math.abs(x.deltaPoints)) + '</span></td></tr>';
-      }).join('') + '</tbody></table></div>' : '<p class="muted">' + esc(t('Both score the same on every criterion you weight.')) + '</p>';
+      }).join('') + '</tbody></table></div>' : '<p class="muted">' + esc(t('Identical on every weighted criterion.')) + '</p>';
     return '<section class="card r-vscard" aria-labelledby="vs-title"><div class="card__head"><h2 id="vs-title">' + icon('compare_arrows') + esc(title) + '</h2>' +
       '<span class="chip chip--small chip--tonal">' + esc(res.verdict === 'tie' ? t('Gap: {n} points', { n: fmt1(gap) }) : t('Lead: {n} points', { n: fmt1(gap) })) + '</span></div>' +
-      '<p class="r-lede">' + esc(t('The match-score lead is the sum of these per-criterion differences (score gap × your weight). Positive = in favour of {a}.', { a: tn(top.id) })) + '</p>' +
+      '<p class="r-lede">' + esc(t('Lead = sum of per-criterion differences (score gap × your weight). Positive favours {a}.', { a: tn(top.id) })) + '</p>' +
       body +
       '<div class="r-actions-row"><button type="button" class="btn btn--text" data-action="tomatrix">' + icon('grid_view') + esc(t('Compare all criteria')) + '</button></div></section>';
   }
@@ -238,8 +238,8 @@
     var sector = res.warnings.filter(function (w) { return w.type === 'sector'; })[0];
     return '<div class="insights">' +
       '<section class="insight insight--why" aria-labelledby="ins-h-why"><h3 id="ins-h-why">' + icon('thumb_up') + esc(t('Why it fits')) + '</h3>' + capped('why', why, t('Balanced profile – no single standout.'), state) + '</section>' +
-      '<section class="insight insight--trade" aria-labelledby="ins-h-trade"><h3 id="ins-h-trade">' + icon('balance') + esc(t('Trade-offs')) + '</h3>' + capped('trade', trade, t('No major weakness on what you care about.'), state, 'check_circle') + '</section>' +
-      '<section class="insight insight--watch" aria-labelledby="ins-h-watch"><h3 id="ins-h-watch">' + icon('warning') + esc(t('Watch out')) + '</h3>' + capped('watch', watch, t('Nothing specific to flag.'), state, 'check_circle') + '</section></div>' +
+      '<section class="insight insight--trade" aria-labelledby="ins-h-trade"><h3 id="ins-h-trade">' + icon('balance') + esc(t('Trade-offs')) + '</h3>' + capped('trade', trade, t('No major weakness on your weighted criteria.'), state, 'check_circle') + '</section>' +
+      '<section class="insight insight--watch" aria-labelledby="ins-h-watch"><h3 id="ins-h-watch">' + icon('warning') + esc(t('Watch out')) + '</h3>' + capped('watch', watch, t('Nothing to flag.'), state, 'check_circle') + '</section></div>' +
       (sector ? '<p class="r-note insights__note">' + icon('info') + '<span>' + esc(warnText(sector)) + ' ' + srcsOf(sector) + '</span></p>' : '');
   }
 
@@ -273,7 +273,7 @@
     var row = function (label, ic, val, sub, bad, bval) {
       return '<tr><th scope="row">' + icon(ic) + '<span>' + esc(label) + '</span></th><td><span class="r-lf__v">' + val + '</span>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + (bad || '') + '</td><td class="r-lf__base" data-label="' + esc(bName) + '">' + bval + '</td></tr>';
     };
-    var capVal = function (x) { return x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' · ' + esc(t('{x} paid in', { x: eur(x.minCapital.paidInEur) })) : esc(t('none')); };
+    var capVal = function (x) { return x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' (' + esc(t('{x} paid in', { x: eur(x.minCapital.paidInEur) })) + ')' : esc(t('none')); };
     var table = '<div class="r-lf__wrap"><table class="r-lf"><caption class="sr-only">' + esc(t('{form} in {c} compared with {base}', { form: f.name, c: inName(sel), base: bName })) + '</caption>' +
       '<thead><tr><th scope="col"><span class="sr-only">' + esc(t('Aspect')) + '</span></th><th scope="col">' + avatar(sel, true) + '<span class="sr-only">' + esc(tn(sel)) + ': </span>' + esc(f.name) + '</th><th scope="col" class="r-lf__base">' + avatar(baseId) + esc(t('vs {b}', { b: b.name })) + '<span class="sr-only"> (' + esc(tn(baseId)) + ')</span>' + '</th></tr></thead><tbody>' +
       row(t('Minimum capital'), 'account_balance', capVal(f), t(f.minCapital.text), cmp.cap, capVal(b)) +
@@ -285,7 +285,7 @@
       '</tbody></table></div>';
     var alts = (D.LEGAL_FORMS[sel] || []).filter(function (x) { return x !== f; });
     var altHtml = alts.length ? '<div class="r-lf__alts"><span class="label">' + esc(t('Also possible')) + '</span><ul class="chips">' + alts.map(function (x) {
-      return '<li class="chip chip--small" title="' + esc(t(x.note || '')) + '">' + icon('domain') + esc(x.name) + ' · ' + esc(x.minCapital.eur ? t('from {x}', { x: eur(x.minCapital.eur) }) : t('no minimum capital')) + '</li>';
+      return '<li class="chip chip--small" title="' + esc(t(x.note || '')) + '">' + icon('domain') + esc(x.name) + ': ' + esc(x.minCapital.eur ? t('from {x}', { x: eur(x.minCapital.eur) }) : t('no minimum capital')) + '</li>';
     }).join('') + '</ul></div>' : '';
     var all = '<table class="r-all"><caption class="sr-only">' + esc(t('Typical legal form in all six countries')) + '</caption><thead><tr><th scope="col">' + esc(t('Country')) + '</th><th scope="col">' + esc(t('Typical form')) + '</th><th scope="col">' + esc(t('Min. capital (paid in)')) + '</th><th scope="col">' + esc(t('Notary')) + '</th><th scope="col">' + esc(t('Profit tax')) + '</th><th scope="col">' + esc(t('Setup days')) + '</th><th scope="col">' + esc(t('Setup cost')) + '</th></tr></thead><tbody>' +
       orderIds.map(function (k) {
@@ -301,7 +301,7 @@
       '<p class="r-lede r-lede--strong">' + esc(summary) + '</p>' + table +
       (f.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(t(f.note)) + '</span></p>' : '') + altHtml +
       (srcs ? '<div class="r-srcs">' + srcs + '</div>' : '') +
-      '<details class="details r-exp" data-keep="legal-all"' + (openAll ? ' open' : '') + '><summary>' + icon('expand_more') + esc(t('Compare the typical form in all six countries')) + '</summary><div class="details__body"><div class="r-scroll">' + all + '</div></div></details>' +
+      '<details class="details r-exp" data-keep="legal-all"' + (openAll ? ' open' : '') + '><summary>' + icon('expand_more') + esc(t('Typical legal form in all six countries')) + '</summary><div class="details__body"><div class="r-scroll">' + all + '</div></div></details>' +
       '</section>';
   }
 
@@ -334,9 +334,9 @@
     var items = '<ul class="r-items">' + c0.items.map(function (it) {
       return '<li><div><strong>' + esc(t(it.label)) + '</strong><span>' + esc(t(it.note || '')) + '</span>' + (it.sources || []).slice(0, 2).map(function (s) { return srcLink(s); }).join('') + '</div><b>' + esc(eur(it.eur)) + '</b></li>';
     }).join('') + '</ul>';
-    var hireNote = hires > 0 ? t('Payroll is shown for {n} hires based on your answer “{a}”.', { n: hires, a: A().answerLabel(A().Q.filter(function (q) { return q.id === 'hires'; })[0]) || '' }) : t('Payroll is not included – you plan no hires in year one (or skipped the question).');
+    var hireNote = hires > 0 ? t('Payroll for {n} hires (your answer: “{a}”).', { n: hires, a: A().answerLabel(A().Q.filter(function (q) { return q.id === 'hires'; })[0]) || '' }) : t('Payroll excluded: no hires planned in year one (or question skipped).');
     return '<section class="card r-cost" aria-labelledby="cost-title"><div class="card__head"><h2 id="cost-title">' + icon('savings') + esc(t('First-year cost')) + '</h2><span class="chip chip--small chip--warning">' + icon('info') + esc(t('Estimate')) + '</span></div>' +
-      '<p class="r-lede">' + esc(t('Rough cost of setting up and running the typical legal form for one year, in euros. Share capital is shown separately: it stays in the company and is not an expense.')) + ' ' + esc(hireNote) + '</p>' +
+      '<p class="r-lede">' + esc(t('Typical legal form: setup plus year-one running cost, in euros. Share capital is separate; it stays in the company.')) + ' ' + esc(hireNote) + '</p>' +
       bars + '<div class="r-scroll"><table class="r-costtab"><caption class="sr-only">' + esc(t('Estimated first-year cost by country')) + '</caption><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
       (c0.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(t(c0.note)) + '</span></p>' : '') +
       '<details class="details r-exp" data-keep="cost-items"' + (openItems ? ' open' : '') + '><summary>' + icon('expand_more') + esc(t('Line items for {c}', { c: tn(top.id) })) + '</summary><div class="details__body">' + items + '</div></details></section>';
@@ -345,10 +345,10 @@
   /* ---------- matrix ---------- */
   function matrixCard(res, orderIds) {
     var top = res.top;
-    var head = '<tr><th scope="col">' + esc(t('Criterion · your weight')) + '</th>' + orderIds.map(function (k) { var ex = rowOf(res, k).excluded; return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + (ex ? ' is-excluded' : '') + '">' + avatar(k, k === top.id) + '<span class="sr-only">' + esc(tn(k)) + (ex ? ' (' + esc(t('filtered out')) + ')' : '') + '</span></th>'; }).join('') + '</tr>';
+    var head = '<tr><th scope="col">' + esc(t('Criterion (your weight)')) + '</th>' + orderIds.map(function (k) { var ex = rowOf(res, k).excluded; return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + (ex ? ' is-excluded' : '') + '">' + avatar(k, k === top.id) + '<span class="sr-only">' + esc(tn(k)) + (ex ? ' (' + esc(t('filtered out')) + ')' : '') + '</span></th>'; }).join('') + '</tr>';
     var bodyRows = D.CRITERIA.map(function (c) {
       var w = res.weights[c.id];
-      return '<tr><th scope="row"><span class="mx-crit">' + critIcon(c.id) + '<span>' + esc(t(c.name)) + '</span></span><small>' + wdots(w) + ' ' + esc(t(E.LEVELS[Math.min(w.level, 3)].l)) + (w.bonus ? ' · +' + w.bonus + ' ' + esc(t('from answers')) : '') + (w.value === 0 && w.level > 0 ? ' · ' + esc(t('0 from answers')) : '') + '</small></th>' +
+      return '<tr><th scope="row"><span class="mx-crit">' + critIcon(c.id) + '<span>' + esc(t(c.name)) + '</span></span><small>' + wdots(w) + ' ' + esc(t(E.LEVELS[Math.min(w.level, 3)].l)) + (w.bonus ? ', +' + w.bonus + ' ' + esc(t('from answers')) : '') + (w.value === 0 && w.level > 0 ? ', ' + esc(t('0 from answers')) : '') + '</small></th>' +
         orderIds.map(function (k) {
           var s = rowOf(res, k).scores[c.id];
           var cell = D.SCORES[k][c.id];
@@ -360,7 +360,7 @@
     }).join('');
     return '<section class="card r-matrix" id="matrix" aria-labelledby="mx-title"><div class="card__head"><h2 id="mx-title" tabindex="-1">' + icon('grid_view') + esc(t('Compare all six')) + '</h2><span class="rail__meta">' + esc(t('tap a cell for evidence')) + '</span></div>' +
       '<ul class="legend">' +
-        '<li>' + dots(4) + '<span>' + esc(t('Score 1–5 · more is better')) + '</span></li>' +
+        '<li>' + dots(4) + '<span>' + esc(t('Score 1–5, higher is better')) + '</span></li>' +
         '<li><span class="wdots" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></span><span>' + esc(t('Your weight 0–3')) + '</span></li>' +
         '<li><span class="conf-low">' + esc(t('est.')) + '</span><span>' + esc(t('Estimate')) + '</span></li>' +
         '<li><span class="conf-low">' + esc(t('no data')) + '</span><span>' + esc(t('Neutral 3')) + '</span></li></ul>' +
@@ -374,7 +374,7 @@
     var changed = base && !samePrio(base.had ? base.p : null, state.answers.priorities);
     return '<section class="card whatif-card" aria-labelledby="wi-title"><div class="card__head"><h2 id="wi-title">' + icon('tune') + esc(t('What if priorities change?')) + '</h2>' +
       (changed ? '<button type="button" class="btn btn--tonal" data-action="whatifReset">' + icon('restart_alt') + esc(t('Reset to my answers')) + '</button>' : '<span class="rail__meta">' + esc(t('updates live')) + '</span>') + '</div>' +
-      '<p class="r-lede" aria-live="polite">' + (changed ? icon('science') + esc(t('Exploring: the whole page now shows this scenario. Leading: {c} ({n}).', { c: tn(res.top.id), n: res.top.score })) : esc(t('Try a different weight – the ranking and every card above re-score instantly.'))) + '</p>' +
+      '<p class="r-lede" aria-live="polite">' + (changed ? icon('science') + esc(t('Scenario active across the page. Leading: {c} ({n}).', { c: tn(res.top.id), n: res.top.score })) : esc(t('Change a weight; everything above re-scores.'))) + '</p>' +
       '<div class="prio whatif">' + A().prioRows(false) + '</div></section>';
   }
 
@@ -394,14 +394,22 @@
   function answersCard(res, state) {
     var open = !!state.openInfo.answers;
     return '<section class="card r-answers" aria-labelledby="ans-title"><details class="r-exp r-exp--card" data-keep="answers"' + (open ? ' open' : '') + '><summary><h2 id="ans-title">' + icon('checklist') + esc(t('Your answers')) + '</h2><span class="rail__meta">' + esc(t('{n} of {m} answered', { n: res.answered, m: res.totalQuestions })) + '</span>' + icon('expand_more', 'r-exp__chev') + '</summary>' +
-      '<div class="answers">' + A().Q.map(function (q, i) { var l = A().answerLabel(q); var ef = res.effects && res.effects[i]; return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '" title="' + esc(UI.effectText(ef)) + '"><small>' + esc(t(q.title)) + '</small><span>' + esc(l || t('Skipped')) + '</span>' + icon('edit', 'answer__edit') + '</button>'; }).join('') +
+      '<div class="answers">' + A().Q.map(function (q, i) {
+        var l = A().answerLabel(q); var ef = res.effects && res.effects[i];
+        // a question that was not asked (e.g. investors after capital 'Nothing yet') was filled in
+        // automatically: say so, and edit it through the answer it follows from
+        var auto = !E.isAsked(q, A().state.answers), step = i;
+        if (auto && q.dependsOn) A().Q.forEach(function (qq, j) { if (qq.id === q.dependsOn) step = j; });
+        if (auto && l) l += ' (' + t('set by your capital answer') + ')';
+        return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + step + '" title="' + esc(UI.effectText(ef)) + '"><small>' + esc(t(q.title)) + '</small><span>' + esc(l || t('Skipped')) + '</span>' + icon('edit', 'answer__edit') + '</button>';
+      }).join('') +
       '</div></details></section>';
   }
 
   function printHead() {
     var d = new Date(), asOf = new Date(D.DATA_AS_OF + 'T12:00:00');
     var f = function (x) { return x.toLocaleDateString(UI.i18n && UI.i18n.lang && UI.i18n.lang() === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); };
-    return '<header class="r-printhead"><strong>' + esc(t('FoundersNavigator – your result')) + '</strong><span>' + esc(t('Created {d}', { d: f(d) })) + ' · ' + esc(t('Data as of {d}', { d: f(asOf) })) + '</span></header>';
+    return '<header class="r-printhead"><strong>' + esc(t('FoundersNavigator – your result')) + '</strong><span>' + esc(t('Created {d}', { d: f(d) })) + '. ' + esc(t('Data as of {d}', { d: f(asOf) })) + '</span></header>';
   }
 
   function actionButtons(cls) {
@@ -424,7 +432,7 @@
       whyOverCard(res) + insights(res, state) + legalCard(res, state, orderIds) + costCard(res, state) +
       matrixCard(res, orderIds) + whatIfCard(res, state) + roadmapCard(res, state, orderIds) + answersCard(res, state) +
       (UI.i18n && UI.i18n.lang() === 'de' ? '<p class="disclaimer">' + icon('translate') + esc(t('Source titles are shown in their original language.')) + '</p>' : '') +
-      '<p class="disclaimer">' + icon('info') + esc(t('Orientation, not legal or tax advice')) + ' · ' + esc(t('Deterministic · sourced · reproducible')) + ' · <button type="button" class="btn btn--text btn--inline" data-action="method">' + esc(t('How it’s calculated')) + '</button></p>' +
+      '<p class="disclaimer">' + icon('info') + '<span class="print-only">' + esc(t('Orientation, not legal or tax advice.')) + ' </span>' + esc(t('Deterministic, sourced, reproducible.')) + ' <button type="button" class="btn btn--text btn--inline" data-action="method">' + esc(t('How it’s calculated')) + '</button></p>' +
       '<nav class="r-actionbar" aria-label="' + esc(t('Result actions')) + '">' + actionButtons(' r-actionbar__btn') + '</nav>' +
       '</section>';
   }

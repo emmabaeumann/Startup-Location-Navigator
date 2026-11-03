@@ -316,7 +316,7 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 .rail__meta { font: var(--type-label-m); letter-spacing: var(--ls-label-m); color: var(--on-surface-variant); }
 
 /* ---------- Landing ---------- */
-.landing { max-width: var(--max); margin: 0 auto; padding: clamp(32px, 6vw, 80px) var(--gutter) 64px; display: flex; flex-direction: column; gap: clamp(40px, 6vw, 72px); position: relative; isolation: isolate; }
+.landing { max-width: var(--max); margin: 0 auto; padding: clamp(32px, 6vw, 80px) var(--gutter) 32px; display: flex; flex-direction: column; gap: clamp(40px, 6vw, 72px); position: relative; isolation: isolate; }
 .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
 .hero__main { display: flex; flex-direction: column; align-items: flex-start; gap: 24px; }
 .hero h1 { font: var(--type-display-l); letter-spacing: var(--ls-display-l); max-width: 12ch; }
@@ -490,7 +490,7 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 .rail-mobile__panel .rank-item__top { font: var(--type-title-s); letter-spacing: var(--ls-title-s); }
 .rail-mobile__panel .rank-item__move { display: none; }
 
-/* Results view → results.css · Method/about/country pages → pages.css · Decor, motion, responsive, print → global.css (loaded last, keeps the cascade order) */
+/* Results view → results.css; Method/about/country pages → pages.css; Decor, motion, responsive, print → global.css (loaded last, keeps the cascade order) */
 
 /* ---------- Landing: example founders (outlined cards as buttons) ---------- */
 .examples { display: flex; flex-direction: column; gap: 16px; }

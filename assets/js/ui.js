@@ -1,4 +1,4 @@
-/* FoundersNavigator – shared UI helpers and module registry (vanilla JS, no build step) · Material 3
+/* FoundersNavigator – shared UI helpers and module registry (vanilla JS, no build step), Material 3
  *
  * Module layout (all loaded as plain <script>s, in this order):
  *   ui.js       helpers (pure HTML builders) + registries   → window.SSN_UI
@@ -83,16 +83,16 @@
     return '<ul class="nb nb--list' + (cls ? ' ' + cls : '') + '">' + ss.map(function (s) { return '<li>' + sentenceHtml(s) + '</li>'; }).join('') + '</ul>';
   }
   /* Anchor text → { caption, levels: [{ n, text }], numeric, note } or null (caller shows the raw text).
-   *   'Effective tax on €100,000 of profit: 5 ≤ 13% · 4 ≤ 18% · …'  → caption + numeric levels
-   *   '5 = online, no notary … · 3 = … · 1 = …'                     → qualitative levels (gaps allowed)
+   *   'Effective tax on €100,000 of profit: 5 ≤ 13%; 4 ≤ 18%; …'  → caption + numeric levels
+   *   '5 = online, no notary …; 3 = …; 1 = …'                     → qualitative levels (gaps allowed)
    * A trailing sentence after the last level ('… Agreement). Adjusted by your target market.') becomes `note`.
-   * Works on the German translations too (same structure). */
+   * Works on the German translations too (same structure). Level separator: ";" (or ","). */
   function parseAnchors(s) {
     var m = /(^|:\s+)([1-5])(?=\s)/.exec(s || '');
     if (!m) return null;
     var start = m.index + m[1].length, caption = s.slice(0, start).replace(/:\s*$/, '').trim();
     var levels = [], ok = true, prev = 6;
-    s.slice(start).split(/\s+·\s+/).forEach(function (seg) {
+    s.slice(start).split(/\s*[;,]\s+(?=[1-5](?:\s*=|\s))/).forEach(function (seg) {
       var p = /^([1-5])(\s*=\s*|\s+)(\S[\s\S]*)$/.exec(seg.trim());
       if (!p || +p[1] >= prev) { ok = false; return; }
       prev = +p[1];

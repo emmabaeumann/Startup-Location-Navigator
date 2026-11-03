@@ -1,4 +1,4 @@
-/* FoundersNavigator – UI layer (vanilla JS, no build step) · Material 3
+/* FoundersNavigator – UI layer (vanilla JS, no build step), Material 3
  * State, navigation, wizard, landing, global chrome (top bar, theme, language, snackbar), events, boot.
  * Every user-visible string goes through t() (i18n.js, keyed by the English text). */
 (function () {
@@ -23,17 +23,17 @@
 
   /* "Why we ask" – one line per question (question id → English text, translated at render time) */
   var WHY = {
-    citizenship: 'Residence rights decide where you may live and run the company yourself.',
-    residence: 'Founders do measurably better where they already have roots and a network.',
-    relocation: 'Countries you would not move to are excluded from the ranking.',
-    sector: 'Some hubs get +1 on talent & ecosystem for your sector, where evidence supports it.',
-    market: 'Being close to your first customers raises market access for those countries.',
-    funding: 'Each funding route raises the weight of the matching criterion by one level.',
+    citizenship: 'Residence rights decide where you can live and run the company.',
+    residence: 'Founders with local roots and a network perform measurably better.',
+    relocation: 'Countries you won’t move to drop out of the ranking.',
+    sector: 'Sourced sector hubs get +1 on talent & ecosystem.',
+    market: 'Countries near your first customers score higher on market access.',
+    funding: 'Each funding route adds +1 weight to its criterion.',
     capital: 'Switzerland and Liechtenstein require minimum capital paid in before registration.',
-    investors: 'Existing investors raise VC access in the countries where they are based.',
-    exit: 'Selling shifts weight to exit tax; keeping the company shifts it to profit tax.',
-    esop: 'Tax on employee stock options differs widely and matters for hiring.',
-    hires: 'Planned hires bring employer payroll costs into the ranking and the first-year cost.'
+    investors: 'Investors raise VC access where they are based.',
+    exit: 'Selling weights exit tax; holding weights profit tax.',
+    esop: 'Stock-option tax varies widely and affects hiring.',
+    hires: 'Hires add employer payroll costs to ranking and first-year cost.'
   };
 
   /* ---------- motion (Material 3) ---------- */
@@ -160,7 +160,7 @@
     var ms = typeof opts.timeout === 'number' ? opts.timeout : (opts.actionLabel ? 8000 : 4000);
     snackLeft = Math.max(4000, Math.min(10000, ms)); snackStart = Date.now();
     snackTimer = setTimeout(hideSnackbar, snackLeft);
-    announce(msg + (opts.actionLabel ? ' – ' + t('{action} is available in the message at the bottom of the page.', { action: opts.actionLabel }) : ''));
+    announce(msg + (opts.actionLabel ? ' – ' + t('{action}: see message at page bottom.', { action: opts.actionLabel }) : ''));
   }
 
   /* ---------- persistence ---------- */
@@ -184,16 +184,31 @@
   function go(view, opts) {
     state.view = view;
     if (opts && typeof opts.step === 'number') state.step = opts.step;
+    if (view === 'wizard') state.step = askedStep(state.step);
     save(); render();
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
     focusH1();
   }
+  /* Steps whose question is not asked for the current answers (engine showIf, e.g. investors
+     when no capital is secured) are skipped by Next/Back and never shown. */
+  function stepAsked(i) { var s = STEPS[i]; return !!s && (s.kind !== 'q' || E.isAsked(s.q, state.answers)); }
+  function askedFrom(i, dir) {
+    for (var j = i; j >= 0 && j < STEPS.length; j += dir) if (stepAsked(j)) return j;
+    return -1;
+  }
+  // nearest asked step at or after i (else before): where a goto / restored step lands
+  function askedStep(i) { var j = askedFrom(i, 1); return j !== -1 ? j : Math.max(0, askedFrom(i, -1)); }
   function nextStep() {
     state.dir = 'fwd';
-    if (state.step < STEPS.length - 1) { state.step++; save(); render(); focusHeading(); }
+    var j = askedFrom(state.step + 1, 1);
+    if (j !== -1) { state.step = j; save(); render(); focusHeading(); }
     else go('results');
   }
-  function prevStep() { state.dir = 'back'; if (state.step > 0) { state.step--; save(); render(); focusHeading(); } else go('landing'); }
+  function prevStep() {
+    state.dir = 'back';
+    var j = askedFrom(state.step - 1, -1);
+    if (j !== -1) { state.step = j; save(); render(); focusHeading(); } else go('landing');
+  }
   function focusHeading() { var h = app.querySelector('.qhead h1'); if (h) h.focus({ preventScroll: true }); var c = app.querySelector('.qcard'); if (c && c.getBoundingClientRect().top < 60) window.scrollTo({ top: 0 }); }
 
   /* ---------- answers ---------- */
@@ -201,7 +216,9 @@
   function change(mutator, label, qid) {
     state.example = null;
     var before = snapshotOrder();
+    var wasAsked = Q.map(function (q) { return E.isAsked(q, state.answers); });
     mutator();
+    syncAsked(wasAsked);
     var after = snapshotOrder();
     state.prevOrder = before;
     var best = null;
@@ -212,6 +229,19 @@
     });
     state.lastMove = (best && Math.abs(best.d) >= 0.5) ? { k: best.k, d: best.d, label: label } : { none: true, label: label, qid: qid };
     save();
+  }
+  /* Keep conditional questions consistent with the answers they depend on.
+     Not asked (capital 'Nothing yet') → record the auto value ('No investors yet'), drop any skip.
+     Asked again (capital changed away from 'Nothing yet') → clear the value, so the question is
+     really asked. No flag is needed: while the question was hidden its value was always the auto
+     value, so whatever is stored at that transition was filled in automatically. */
+  function syncAsked(wasAsked) {
+    Q.forEach(function (q, i) {
+      if (!q.autoValue) return;
+      var now = E.isAsked(q, state.answers);
+      if (!now) { state.answers[q.id] = q.autoValue.slice(); delete state.skipped[q.id]; }
+      else if (wasAsked && !wasAsked[i]) { delete state.answers[q.id]; delete state.skipped[q.id]; }
+    });
   }
   function setSingle(q, v) { change(function () { state.answers[q.id] = v; delete state.skipped[q.id]; }, q.title, q.id); }
   function toggleMulti(q, v) {
@@ -248,7 +278,7 @@
     go('results');
     snackbar(t('Example loaded: {name}', { name: t(x.label) }), had ? {
       actionLabel: t('Undo'),
-      onAction: function () { state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example; go('results', { step: prev.step }); announce(t('Your own answers are back.')); }
+      onAction: function () { state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example; go('results', { step: prev.step }); announce(t('Answers restored.')); }
     } : null);
   }
   function restart() {
@@ -384,10 +414,10 @@
     var stats = [['public', D.COUNTRIES.length, 'countries'], ['tune', D.CRITERIA.length, 'criteria'], ['checklist', Q.length, 'questions'], ['lock', 0, 'data sent']].map(function (s) {
       return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + esc(t(s[2])) + '</span></li>';
     }).join('');
-    var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic · reproducible', 'Same answers, same result. Every score traceable to a source.']].map(function (f) {
+    var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic, reproducible', 'Same answers, same ranking.']].map(function (f) {
       return '<li class="feature"><span class="feature__icon">' + icon(f[0]) + '</span><h3>' + esc(t(f[1])) + '</h3><p>' + esc(t(f[2])) + '</p></li>';
     }).join('');
-    var examples = EXAMPLES.length ? '<section class="examples" aria-labelledby="ex-title"><div class="examples__head"><h2 id="ex-title">' + esc(t('Try an example founder')) + '</h2><p>' + esc(t('One click fills in every answer – change anything afterwards.')) + '</p></div><ul class="examples__list">' +
+    var examples = EXAMPLES.length ? '<section class="examples" aria-labelledby="ex-title"><div class="examples__head"><h2 id="ex-title">' + esc(t('Example founders')) + '</h2><p>' + esc(t('One click fills all answers; edit afterwards.')) + '</p></div><ul class="examples__list">' +
       EXAMPLES.map(function (x) {
         return '<li><button type="button" class="example" data-action="example" data-k="' + esc(x.id) + '"><span class="example__icon">' + icon(x.icon) + '</span><span class="example__text"><span class="example__l">' + esc(t(x.label)) + '</span>' + (x.desc ? '<span class="example__s">' + esc(t(x.desc)) + '</span>' : '') + '</span>' + icon('arrow_forward', 'example__go') + '</button></li>';
       }).join('') + '</ul></section>' : '';
@@ -395,12 +425,12 @@
       '<div class="hero"><div class="hero__main">' +
         '<span class="chip chip--assist">' + icon('explore') + esc(t('Founder decision helper')) + '</span>' +
         '<h1>' + t('Where should you <em>found</em> your startup?') + '</h1>' +
-        '<p class="hero__lead">' + esc(t('{n} quick questions. One ranked, sourced answer.', { n: Q.length })) + '</p>' +
+        '<p class="hero__lead">' + esc(t('{n} questions. One ranked, sourced answer.', { n: Q.length })) + '</p>' +
         '<div class="hero__cta"><button class="btn btn--filled btn--lg" type="button" data-action="start">' + esc(started ? t('Continue') : t('Find my location')) + icon('arrow_forward') + '</button>' +
         (started ? '<button class="btn btn--outlined btn--lg" type="button" data-action="results">' + esc(t('See my result')) + '</button>' : '<button class="btn btn--outlined btn--lg" type="button" data-action="method">' + esc(t('How it works')) + '</button>') + '</div>' +
-        '<ul class="chips" aria-label="' + esc(t('Countries compared – open a country profile')) + '">' + chips + '</ul>' +
+        '<ul class="chips" aria-label="' + esc(t('Compared countries: open a profile')) + '">' + chips + '</ul>' +
       '</div>' +
-      '<aside class="card card--elevated preview" aria-label="' + esc(started ? t('Your live ranking') : t('Example of the live ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small' + (started ? ' chip--tonal' : '') + '">' + esc(started ? t('Your result') : t('Example')) + '</span></div>' +
+      '<aside class="card card--elevated preview" aria-label="' + esc(started ? t('Your live ranking') : t('Example ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small' + (started ? ' chip--tonal' : '') + '">' + esc(started ? t('Your result') : t('Example')) + '</span></div>' +
         '<ol class="rank-list">' + rows + '</ol>' +
         '<p class="preview__foot">' + icon('bolt') + esc(t('Re-scores with every click.')) + '</p>' +
       '</aside></div>' +
@@ -410,15 +440,18 @@
       '<ul class="stats">' + stats + '</ul>' +
       '<ul class="features">' + feats + '</ul>' +
       (FX ? FX.demoHtml() : '') +
-      '<p class="disclaimer">' + icon('info') + esc(t('Orientation, not legal or tax advice.')) + '</p>' +
       '</section>';
   }
 
-  function stepDone(s) { return s.kind === 'prio' ? !!state.answers.priorities : (isAnswered(s.q) || !!state.skipped[s.q.id]); }
+  function stepDone(s) { return s.kind === 'prio' ? !!state.answers.priorities : (!E.isAsked(s.q, state.answers) || isAnswered(s.q) || !!state.skipped[s.q.id]); }
   function viewWizard() {
+    state.step = askedStep(state.step); // e.g. a restored step that is no longer asked
     var step = STEPS[state.step];
     var res = E.evaluate(state.answers);
-    var blockSteps = E.BLOCKS.map(function (b) { return STEPS.map(function (s, j) { return s.block === b.id ? j : -1; }).filter(function (j) { return j !== -1; }); });
+    // only steps that are asked count for the rail, progress bar and "Question n of m"
+    var blockSteps = E.BLOCKS.map(function (b) { return STEPS.map(function (s, j) { return s.block === b.id && stepAsked(j) ? j : -1; }).filter(function (j) { return j !== -1; }); });
+    var askedQ = STEPS.map(function (s, j) { return j; }).filter(function (j) { return STEPS[j].kind === 'q' && stepAsked(j); });
+    var askedAll = askedQ.length + 1; // + priorities step
     var blocksHtml = E.BLOCKS.map(function (b, i) {
       var idxs = blockSteps[i];
       var current = idxs.indexOf(state.step) !== -1;
@@ -427,7 +460,7 @@
       return '<button type="button" class="step' + (current ? ' step--current' : '') + (done ? ' step--done' : '') + '" data-action="goto" data-step="' + idxs[0] + '"' + (current ? ' aria-current="step"' : '') + ' aria-label="' + esc(lbl) + '"><span class="step__dot" aria-hidden="true">' + (done ? icon('check') : (i + 1)) + '</span><span>' + esc(t(b.name)) + '</span></button>';
     }).join('');
     // one progress indicator, segmented like the step rail; the current step counts as reached → 100 % on the last step
-    var pct = Math.round((state.step + 1) / STEPS.length * 100);
+    var pct = Math.round((step.kind === 'prio' ? askedAll : askedQ.indexOf(state.step) + 1) / askedAll * 100);
     var segs = blockSteps.map(function (idxs, i) {
       var reached = idxs.filter(function (j) { return j <= state.step; }).length;
       var w = Math.round(reached / idxs.length * 100);
@@ -437,13 +470,13 @@
     var blockIdx = E.BLOCKS.indexOf(block) + 1;
     var body = step.kind === 'prio' ? viewPriorities(res) : viewQuestion(step.q);
     // the priorities step is not one of the {Q.length} questions: label it as the final step instead
-    var countLbl = step.kind === 'prio' ? t('Final step: your priorities') : t('Question {n} of {m}', { n: state.step + 1, m: Q.length });
+    var countLbl = step.kind === 'prio' ? t('Final step: your priorities') : t('Question {n} of {m}', { n: askedQ.indexOf(state.step) + 1, m: askedQ.length });
     return '<section class="wizard has-bg">' + pageBg('wizard') +
       '<nav class="steps" aria-label="' + esc(t('Questionnaire sections')) + '">' + blocksHtml +
       '<p class="steps__note">' + icon('lock') + '<span>' + esc(t('Stays on this device.')) + '</span></p></nav>' +
       '<div class="wizard__main">' + viewRailMobile(res) + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + (step.kind === 'prio' ? ' qcard--prio' : '') + '" data-step="' + state.step + '">' +
         '<div class="progress" role="progressbar" aria-label="' + esc(t('Questionnaire progress')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-valuetext="' + esc(countLbl) + '">' + segs + '</div>' +
-        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ' · ' + t(block.name)) + '</span><span class="overline__count">' + esc(countLbl) + '</span></p>' + body.head + '</div>' +
+        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ': ' + t(block.name)) + '</span><span class="overline__count">' + esc(countLbl) + '</span></p>' + body.head + '</div>' +
         body.main +
         '<div class="qfoot">' +
           '<button type="button" class="btn btn--text" data-action="prev">' + icon('arrow_back') + esc(t('Back')) + '</button>' +
@@ -472,7 +505,7 @@
       head: '<h1 id="q-title" tabindex="-1">' + esc(t(q.title)) + '</h1>' +
         ((q.help || multi) ? '<p class="qhead__help" id="q-help">' + (q.help ? '<span>' + esc(t(q.help)) + '</span>' : '') + (multi ? '<span class="chip chip--small chip--tonal">' + icon('done_all') + esc(t('Select all that apply')) + '</span>' : '') + '</p>' : '') +
         (why ? '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(t(why)) + '</span></p>' : '') +
-        (state.skipped[q.id] ? '<p class="skipped-note">' + icon('block') + esc(t('Skipped – no effect on the result.')) + '</p>' : ''),
+        (state.skipped[q.id] ? '<p class="skipped-note">' + icon('block') + esc(t('Skipped: no effect.')) + '</p>' : ''),
       main: '<div class="options" role="' + (multi ? 'group' : 'radiogroup') + '" aria-labelledby="q-title"' + (q.help ? ' aria-describedby="q-help"' : '') + '>' + opts + '</div>'
     };
   }
@@ -501,8 +534,8 @@
   function viewPriorities(res) {
     var bumped = D.CRITERIA.filter(function (c) { var w = res.weights[c.id]; return w && w.bonus > 0 && w.value > 0; }).length;
     return {
-      head: '<h1 id="q-title" tabindex="-1">' + esc(t('How much does each goal matter?')) + '</h1><p class="qhead__help">' + esc(t('Defaults are pre-set – change only what matters.')) + '</p>' +
-        '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(bumped ? t('Your answers already raised {n} goals by one level (+1). Here you set the base level.', { n: bumped }) : t('Your priorities are the weights of the ranking. Here you set the base level.')) + '</span></p>',
+      head: '<h1 id="q-title" tabindex="-1">' + esc(t('How much does each goal matter?')) + '</h1><p class="qhead__help">' + esc(t('Defaults are set; change what matters.')) + '</p>' +
+        '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(bumped ? t('Your answers added +1 to {n} goals. Set base levels here.', { n: bumped }) : t('Priorities are the ranking weights. Set base levels here.')) + '</span></p>',
       main: '<div class="prio prio--grid">' + prioRows(true) + '</div>'
     };
   }
@@ -533,8 +566,8 @@
   function viewRail(res) {
     var why = '';
     if (state.lastMove && state.lastMove.none) {
-      var reason = t('This answer does not affect any score for your current profile.');
-      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = t('This passport gives no additional rights compared with your other one(s).');
+      var reason = t('This answer changes no score for your profile.');
+      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = t('This passport adds no rights beyond your other one(s).');
       else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = UI.effectText(ef); }
       why = '<p class="rail__why">' + icon('remove') + '<span><strong>' + esc(t('No change:')) + '</strong> ' + esc(reason) + '</span></p>';
     } else if (state.lastMove) {
@@ -724,7 +757,7 @@
   function firstOpenStep() {
     for (var i = 0; i < STEPS.length; i++) {
       var s = STEPS[i];
-      if (s.kind === 'q' && !isAnswered(s.q) && !state.skipped[s.q.id]) return i;
+      if (s.kind === 'q' && E.isAsked(s.q, state.answers) && !isAnswered(s.q) && !state.skipped[s.q.id]) return i;
       if (s.kind === 'prio' && !state.answers.priorities) return i;
     }
     return 0;

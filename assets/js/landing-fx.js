@@ -155,7 +155,8 @@
     if (th) return th === 'dark';
     return !!(root.matchMedia && root.matchMedia('(prefers-color-scheme: dark)').matches);
   }
-  function demoFile(kind) { var m = darkTheme() ? 'dark' : 'light'; return kind === 'poster' ? 'assets/media/demo-poster-' + m + '.jpg' : 'assets/media/demo-' + m + '.mp4'; }
+  var DEMO_V = '?v=5'; // bump when the demo takes are re-recorded, so cached copies are replaced
+  function demoFile(kind) { var m = darkTheme() ? 'dark' : 'light'; return (kind === 'poster' ? 'assets/media/demo-poster-' + m + '.jpg' : 'assets/media/demo-' + m + '.mp4') + DEMO_V; }
   // theme switched while the page is open: swap the file, keep the position and the play state
   function syncDemoTheme() {
     var v = document.querySelector('.demo__video'); if (!v) return;

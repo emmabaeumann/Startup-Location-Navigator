@@ -9,7 +9,12 @@
  * 3. Fit       Fit_k = 100 · Σ w_c·(s_kc − 1)/4 / Σ w_c   (additive value model, 0–100)
  *              100 = the country reaches the top score on every factor you weight.
  * 4. Filters   relocation choices exclude countries (shown greyed, never hidden)
- * 5. Robustness: every weight shifted ±1 level → share of cases with the same winner
+ * 5. Robustness: every PRIORITY LEVEL moved ±1 (clamped 0–3), weights recomputed through the same
+ *              answer rules → share of scenarios with the same winner. 'robust' only if NO single
+ *              1-level change flips the winner and the gap is ≥ 4 points.
+ * 6. Ties      totals are rounded to 1e-6 before sorting (no float noise); a gap < 0.5 points between
+ *              #1 and #2 is reported as a tie (verdict 'tie'). Exact ties fall back to the fixed
+ *              country order DE, CH, LI, UK, US, PT – documented, deterministic, but not a preference.
  */
 (function (root) {
   'use strict';
@@ -120,7 +125,20 @@
   var IDS = D.COUNTRIES.map(function (c) { return c.id; });
   var COUNTRY_IN_LIST = { DE: 1, CH: 1, LI: 1, UK: 1, US: 1, PT: 1 };
 
+  var HOME_BASE_CAP = 2;      // max combined score steps from "I live here" + "my home market" (see below)
+  var TIE_POINTS = 0.5;       // #1 and #2 closer than this (0–100 scale) → reported as a tie
+  var ROBUST_GAP = 4;         // minimum lead (points) for a 'robust' verdict
+  // Confidence of the winner: share of its fit score resting on cells with confidence 'low' or nodata.
+  var CONF_HIGH_MAX = 0.15;   // < 15 % → 'high'
+  var CONF_MED_MAX = 0.35;    // 15–35 % → 'medium', otherwise 'low'
+
   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+  function round6(x) { return Math.round(x * 1e6) / 1e6; }
+  // A missing cell (criterion added before its scores) is neutral and flagged as no data.
+  function cellOf(k, cid) {
+    var c = D.SCORES[k] && D.SCORES[k][cid];
+    return c || { score: 3, nodata: true, confidence: 'low', sources: [], value: 'No data yet' };
+  }
   function has(arr, v) { return Array.isArray(arr) && arr.indexOf(v) !== -1; }
   function cits(a) { return Array.isArray(a.citizenship) ? a.citizenship : (a.citizenship ? [a.citizenship] : []); }
 
@@ -128,20 +146,30 @@
   // Default level: 1 ("somewhat important"), except residence & local roots = 2 ("important"),
   // because home advantage is one of the most robust findings (Dahl & Sorenson 2012).
   // Founders who say they would move anywhere signal mobility → back to 1.
+  // The two later-added criteria ('labor' = employer payroll on-costs, 'rnd' = R&D tax incentives)
+  // start at 0 so that results for founders who give no related answer are unchanged; the answer
+  // rules below raise them to 1 when they matter (planned hires / R&D-heavy sector).
+  var DEFAULT_ZERO = { labor: 1, rnd: 1 };
+  var RND_SECTORS = { ai: 1, hardware: 1, life: 1 };
+  function plansToHire(a) { return a.esop === 'all' || a.esop === 'key' || (typeof a.hires === 'number' && a.hires > 0); }
   function defaultLevel(id, a) {
     if (id === 'residence') return a.relocation === 'anywhere' ? 1 : 2;
+    if (DEFAULT_ZERO[id]) return 0;
     return 1;
   }
-  function computeWeights(a) {
+  function isLevel(x) { return x === 0 || x === 1 || x === 2 || x === 3; }
+  // Returns { w, allZero }. allZero = every weight ended at 0 → equal-weight fallback was used.
+  function weightsInfo(a) {
     var pr = a.priorities || {};
     var w = {};
     D.CRITERIA.forEach(function (c) {
-      var explicit = typeof pr[c.id] === 'number';
+      var explicit = isLevel(pr[c.id]);
       var lvl = explicit ? pr[c.id] : defaultLevel(c.id, a);
       w[c.id] = { level: lvl, value: lvl, bonus: 0, reasons: [], isDefault: !explicit };
     });
     function bump(id, why) {
-      if (w[id].level === 0) return; // an explicit "not important" always wins
+      if (!w[id]) return; // criterion not (yet) in the data set
+      if (w[id].level === 0 && !w[id].isDefault) return; // an explicit "not important" always wins
       if (w[id].value >= 4 || w[id].bonus >= 1) { if (w[id].reasons.indexOf(why) === -1 && w[id].bonus >= 1) w[id].reasons.push(why); return; }
       w[id].value += 1; w[id].bonus += 1;
       w[id].reasons.push(why);
@@ -154,12 +182,17 @@
     if (a.exit === 'sale' || a.exit === 'ipo') bump('exitTax', 'You plan an exit');
     if (a.exit === 'hold') bump('corpTax', 'You plan to keep the company and its profits');
     if (a.esop === 'all') bump('esop', 'You plan broad employee equity');
-    if (a.esop === 'no' && w.esop.level > 0) { w.esop.value = 0; w.esop.bonus = 0; w.esop.reasons.push('You do not plan employee equity'); }
+    if (plansToHire(a)) bump('labor', 'You plan to hire employees');
+    if (RND_SECTORS[a.sector]) bump('rnd', 'R&D-heavy sector: R&D tax incentives matter');
+    // "No employee equity" only switches the ESOP factor off while its priority is still the default;
+    // a priority the founder set explicitly is respected.
+    if (a.esop === 'no' && w.esop && w.esop.isDefault && w.esop.level > 0) { w.esop.value = 0; w.esop.bonus = 0; w.esop.reasons.push('You do not plan employee equity'); }
     var total = 0;
     D.CRITERIA.forEach(function (c) { total += w[c.id].value; });
     if (total === 0) D.CRITERIA.forEach(function (c) { w[c.id].value = 1; w[c.id].reasons.push('All factors were set to "not important" – equal weights used'); });
-    return w;
+    return { w: w, allZero: total === 0 };
   }
+  function computeWeights(a) { return weightsInfo(a || {}).w; }
 
   /* ---------- residence status ---------- */
   function residenceStatus(a, k) {
@@ -183,7 +216,7 @@
     IDS.forEach(function (k) {
       out[k] = {};
       D.CRITERIA.forEach(function (c) {
-        var cell = D.SCORES[k][c.id];
+        var cell = cellOf(k, c.id);
         out[k][c.id] = { base: cell.score, value: cell.score, adj: [] };
       });
     });
@@ -195,19 +228,25 @@
     function setTo(k, c, target, why) { adj(k, c, target - out[k][c].value, why); }
 
     // Residence & home base (from profile)
+    // Baseline without the "where do you live" answer (citizenship only) – needed for the home-base cap.
+    var noHome = {}; for (var key in a) if (Object.prototype.hasOwnProperty.call(a, key) && key !== 'residence') noHome[key] = a[key];
+    var resBaseline = {};
     IDS.forEach(function (k) {
+      var rs0 = residenceStatus(noHome, k);
+      resBaseline[k] = rs0 ? RES_SCORE[rs0.level] : out[k].residence.base;
       var rs = residenceStatus(a, k);
       if (rs) setTo(k, 'residence', RES_SCORE[rs.level], rs.text);
       out[k].residence.status = rs;
     });
     // Investors' home jurisdictions
-    // Existing investors are part of your local network → "local roots", not the size of the VC market
+    // Existing investors make the next round easier where they invest → +1 on VC access (clamped at 5).
+    // (Until Nov 2026 this was +1 on residence, which was silently lost for founders already living there.)
     var inv = Array.isArray(a.investors) ? a.investors : [];
-    if (has(inv, 'DE')) adj('DE', 'residence', 1, 'your investors are based here');
-    if (has(inv, 'CHLI')) { adj('CH', 'residence', 1, 'your investors are based here'); adj('LI', 'residence', 1, 'your investors are based in CH/LI'); }
-    if (has(inv, 'UK')) adj('UK', 'residence', 1, 'your investors are based here');
-    if (has(inv, 'US')) adj('US', 'residence', 1, 'your investors are based here');
-    if (has(inv, 'EU')) { adj('PT', 'residence', 1, 'your investors are EU-based'); adj('DE', 'residence', 1, 'your investors are EU-based'); }
+    if (has(inv, 'DE')) adj('DE', 'vc', 1, 'your investors are based here');
+    if (has(inv, 'CHLI')) { adj('CH', 'vc', 1, 'your investors are based here'); adj('LI', 'vc', 1, 'your investors are based here'); }
+    if (has(inv, 'UK')) adj('UK', 'vc', 1, 'your investors are based here');
+    if (has(inv, 'US')) adj('US', 'vc', 1, 'your investors are based here');
+    if (has(inv, 'EU')) { adj('PT', 'vc', 1, 'your investors are based here'); adj('DE', 'vc', 1, 'your investors are based here'); }
     // SBIR ownership rule
     var cl = cits(a);
     if (has(cl, 'us')) adj('US', 'grants', 1, 'SBIR/STTR is open to US-owned companies');
@@ -223,6 +262,22 @@
       IDS.forEach(function (k) { setTo(k, 'market', a.residence === k ? 5 : 2, a.residence === k ? 'this is your home market' : 'outside your home market'); });
     } else if (MARKET_TABLE[mkt]) {
       IDS.forEach(function (k) { var t = MARKET_TABLE[mkt][k]; setTo(k, 'market', t, t >= 4 ? 'inside or next to your target market' : 'away from your target market'); });
+    }
+    /* HOME-BASE CAP (quoted on the method page)
+     * Living in a country and selling to its market are both real advantages, but they describe the
+     * same fact – "this is home". So the combined uplift that the home country receives from the
+     * home answers (residence 5 instead of the citizenship-based score, plus market 5 instead of the
+     * evidence score when your first customers are "in my home country") is capped at
+     * HOME_BASE_CAP = 2 score steps. Any excess is taken off the market uplift; the residence score
+     * itself is never reduced (an existing residence permit is a real, separate advantage). Local
+     * investors no longer touch residence at all; they count once, on VC access. */
+    if (COUNTRY_IN_LIST[a.residence] && a.market === 'home') {
+      var h = a.residence;
+      var upRes = Math.max(0, out[h].residence.value - resBaseline[h]);
+      var upMkt = Math.max(0, out[h].market.value - out[h].market.base);
+      var cut = Math.min(upMkt, Math.max(0, upRes + upMkt - HOME_BASE_CAP));
+      if (cut > 0) adj(h, 'market', -cut, 'home-base cap: living here is already counted under residence');
+      out[h].market.homeCapped = cut;
     }
     // Paid-in capital
     if (a.capital === 'none' || a.capital === 'lt10') {
@@ -254,34 +309,71 @@
     var rows = IDS.map(function (k) {
       var f = fit(scores[k], weights);
       return {
-        id: k, country: D.COUNTRIES[IDS.indexOf(k)], total: f.fit, score: Math.round(f.fit),
+        // total is rounded to 1e-6 so that float noise (e.g. 62.50000000000001) never decides the order
+        id: k, country: D.COUNTRIES[IDS.indexOf(k)], total: round6(f.fit), score: Math.round(f.fit),
         contrib: f.contrib, residence: scores[k].residence.status, excluded: exclusion(a, k), scores: scores[k]
       };
     });
+    // Tie-break for equal totals (documented on the method page):
+    //   1. the stronger home base wins (higher residence score) – relocating has costs the model does
+    //      not score, and ventures do better where founders have roots (Dahl & Sorenson 2012);
+    //   2. then the countries' scores on the founder's criteria from most to least important
+    //      (by weight, then criteria order) – the first difference decides;
+    //   3. only if all of that is equal does the fixed order DE, CH, LI, UK, US, PT apply.
+    var byImportance = D.CRITERIA.map(function (c, i) { return { id: c.id, w: weights[c.id].value, i: i }; })
+      .filter(function (c) { return c.w > 0; })
+      .sort(function (p, q) { return q.w - p.w || p.i - q.i; });
     rows.sort(function (x, y) {
       if (!!x.excluded !== !!y.excluded) return x.excluded ? 1 : -1;
       if (y.total !== x.total) return y.total - x.total;
-      return IDS.indexOf(x.id) - IDS.indexOf(y.id); // deterministic tie-break
+      var dr = y.scores.residence.value - x.scores.residence.value;
+      if (dr !== 0) return dr;
+      for (var i = 0; i < byImportance.length; i++) {
+        var cid = byImportance[i].id, d = y.scores[cid].value - x.scores[cid].value;
+        if (d !== 0) return d;
+      }
+      return IDS.indexOf(x.id) - IDS.indexOf(y.id);
     });
     return rows;
   }
+  function winnerOf(rows) { return rows[0] && !rows[0].excluded ? rows[0].id : null; }
 
-  /* ---------- 5. Robustness ---------- */
-  function robustness(a, weights, scores, winner) {
-    var same = 0, total = 0;
+  /* ---------- 5. Robustness & "what would change it" – one shared perturbation ----------
+   * A scenario = the founder's priority level for ONE criterion set to another level (0–3), with
+   * weights recomputed through computeWeights (so answer rules apply exactly as for the real
+   * profile). Scenarios in which every weight is 0 are skipped (they would only trigger the
+   * equal-weight fallback). Robustness uses the ±1 scenarios; "what changes" lists all levels. */
+  function scenario(a, cid, lvl) {
+    var b = {};
+    for (var key in a) if (Object.prototype.hasOwnProperty.call(a, key)) b[key] = a[key];
+    var pr = {};
+    if (a.priorities) for (var p in a.priorities) if (Object.prototype.hasOwnProperty.call(a.priorities, p)) pr[p] = a.priorities[p];
+    pr[cid] = lvl; b.priorities = pr;
+    var wi = weightsInfo(b);
+    return wi.allZero ? null : wi.w;
+  }
+  function flipsFor(a, weights, scores, winner, maxDist) {
+    var out = [], tested = 0;
+    var lo = LEVELS[0].v, hi = LEVELS[LEVELS.length - 1].v;
     D.CRITERIA.forEach(function (c) {
-      [-1, 1].forEach(function (d) {
-        var w2 = {};
-        D.CRITERIA.forEach(function (x) { w2[x.id] = { value: weights[x.id].value }; });
-        var nv = clamp(w2[c.id].value + d, 0, 4);
-        if (nv === w2[c.id].value) return;
-        w2[c.id].value = nv;
+      var cur = weights[c.id].level;
+      for (var lvl = lo; lvl <= hi; lvl++) {
+        var dist = Math.abs(lvl - cur);
+        if (!dist || dist > maxDist) continue;
+        var w2 = scenario(a, c.id, lvl);
+        if (!w2) continue;
+        if (dist === 1) tested++;
         var r = rank(a, w2, scores);
-        total++;
-        if (r[0].id === winner) same++;
-      });
+        var win = winnerOf(r);
+        if (win !== winner) out.push({ c: c.id, from: cur, to: lvl, dist: dist, winner: win });
+      }
     });
-    return { same: same, total: total, share: total ? same / total : 1 };
+    return { flips: out, tested: tested };
+  }
+  function robustness(a, weights, scores, winner) {
+    var f = flipsFor(a, weights, scores, winner, 1);
+    var flipped = f.flips.length;
+    return { same: f.tested - flipped, total: f.tested, share: f.tested ? (f.tested - flipped) / f.tested : 1, flips: f.flips };
   }
 
   function answeredCount(a) {
@@ -301,7 +393,7 @@
     var cl = cits(a);
     if (a.relocation === 'stay' && COUNTRY_IN_LIST[a.residence]) {
       w.push({ type: 'info', text: 'Because you want to stay where you live, only ' + D.COUNTRIES[IDS.indexOf(a.residence)].name + ' is ranked. Registering a company abroad while running it from home usually does not move its tax residence: a company is generally taxed where it is actually managed (e.g. §10 AO, §1 KStG in Germany).', src: 'ao10' });
-    } else if (a.relocation === 'stay') {
+    } else if (a.relocation === 'stay' && (a.residence === 'euother' || a.residence === 'elsewhere')) {
       w.push({ type: 'info', text: 'You want to stay in a country outside this comparison. A company registered in one of these six countries but managed from your home is usually taxed where it is actually managed.', src: 'ao10' });
     }
     if (a.residence === 'DE' && k !== 'DE' && a.relocation !== 'stay') {
@@ -325,7 +417,7 @@
     if (k === 'DE' && (a.exit === 'sale' || a.exit === 'ipo')) w.push({ type: 'tip', text: 'Planning an exit from Germany? Holding your shares through a holding GmbH can cut the tax on the sale from ≈ 28.5% to ≈ 1.5% (§8b KStG). Set it up early with a tax adviser.', src: 'kstg8b' });
     var sn = D.SECTOR_NOTES[a.sector];
     if (sn) w.push({ type: 'info', text: sn.text, src: sn.src });
-    var lowConf = D.CRITERIA.filter(function (c) { return D.SCORES[k][c.id].confidence === 'low'; }).map(function (c) { return c.short; });
+    var lowConf = D.CRITERIA.filter(function (c) { return cellOf(k, c.id).confidence === 'low'; }).map(function (c) { return c.short; });
     if (lowConf.length >= 2) w.push({ type: 'info', text: 'Data for ' + top.country.name + ' is thin on: ' + lowConf.join(', ') + '. Treat those scores as estimates.', src: null });
     return w;
   }
@@ -362,7 +454,7 @@
         if (li.length) parts.push('residence quota-limited in ' + names(li));
         t = 'Sets your residence score: ' + parts.join('; ') + '.';
       } else if (q.id === 'residence') {
-        t = COUNTRY_IN_LIST[v] ? names([v]) + ' gets the top residence score (5) for your existing home base.' : 'Not one of the six countries, so no home-base bonus.';
+        t = COUNTRY_IN_LIST[v] ? names([v]) + ' gets the top residence score (5) for your existing home base.' + (a.market === 'home' ? ' Together with your home market this home-base uplift is capped at ' + HOME_BASE_CAP + ' score steps, so it is not counted twice.' : '') : 'Not one of the six countries, so no home-base bonus.';
       } else if (q.id === 'relocation') {
         if (v === 'europe') t = 'The United States is excluded (still shown, greyed out).';
         else if (v === 'stay') t = COUNTRY_IN_LIST[a.residence] ? 'Only ' + names([a.residence]) + ' is ranked; the others are shown for reference.' : 'No country excluded, because your home is outside the six.';
@@ -388,61 +480,126 @@
         var map = { DE: ['DE'], CHLI: ['CH', 'LI'], UK: ['UK'], US: ['US'], EU: ['PT', 'DE'] };
         var ks = [];
         v.forEach(function (x) { (map[x] || []).forEach(function (k) { if (ks.indexOf(k) === -1) ks.push(k); }); });
-        t = ks.length ? '+1 on “local roots” for ' + names(ks) + ' (your existing network).' : (has(v, 'elsewhere') ? 'No score effect (outside the six countries) – see the note under “Watch out”.' : 'No existing investors – no effect on scores.');
+        t = ks.length ? '+1 on VC access for ' + names(ks) + ' (your investors are based there; capped at the top score 5).' : (has(v, 'elsewhere') ? 'No score effect (outside the six countries) – see the note under “Watch out”.' : 'No existing investors – no effect on scores.');
       } else if (q.id === 'exit') {
         t = v === 'hold' ? 'Raises the weight of low profit tax by one level.' : (v === 'undecided' ? 'No effect – both tax criteria keep your chosen weight.' : 'Raises the weight of low exit tax by one level.');
       } else if (q.id === 'esop') {
-        t = v === 'all' ? 'Raises the weight of founder-friendly stock options by one level.' : (v === 'no' ? 'Stock-option rules are not counted (weight 0).' : 'No change – stock options keep the weight you chose.');
+        t = v === 'all' ? 'Raises the weight of founder-friendly stock options by one level.' : (v === 'no' ? (res.weights.esop && !res.weights.esop.isDefault ? 'You set a priority for stock options yourself, so it is kept.' : 'Stock-option rules are not counted (weight 0).') : 'No change – stock options keep the weight you chose.') + (res.weights.labor && plansToHire(a) && res.weights.labor.value > 0 ? ' Because you plan to hire, employer payroll costs are counted.' : '');
       }
       out.push({ q: q.id, title: q.title, answer: label, effect: t, answered: !!answered });
     });
     return out;
   }
 
-  /* ---------- What would change the result? ---------- */
+  /* ---------- What would change the result? ----------
+   * Same scenarios as robustness (one priority level changed, weights through computeWeights,
+   * all-zero scenarios skipped), all levels 0–3. Closest change per criterion, max 3 entries. */
   function whatChanges(a, res) {
-    if (!res.top) return [];
-    var cur = res.weights, found = [];
-    D.CRITERIA.forEach(function (c) {
-      var curLvl = cur[c.id].level;
-      for (var lvl = 0; lvl <= 3; lvl++) {
-        if (lvl === curLvl) continue;
-        var b = JSON.parse(JSON.stringify(a));
-        b.priorities = b.priorities || {};
-        b.priorities[c.id] = lvl;
-        var r = evaluate(b, true);
-        if (r.top && r.top.id !== res.top.id) {
-          found.push({ c: c.id, from: curLvl, to: lvl, dist: Math.abs(lvl - curLvl), winner: r.top.id });
-        }
-      }
-    });
-    found.sort(function (x, y) { return x.dist - y.dist || D.CRITERIA.map(function (c) { return c.id; }).indexOf(x.c) - D.CRITERIA.map(function (c) { return c.id; }).indexOf(y.c); });
+    if (!res.top || !res.runnerUp) return [];
+    var found = flipsFor(a, res.weights, res._scores, res.top.id, LEVELS.length).flips;
+    var order = D.CRITERIA.map(function (c) { return c.id; });
+    found.sort(function (x, y) { return x.dist - y.dist || order.indexOf(x.c) - order.indexOf(y.c) || x.to - y.to; });
     var seen = {}, out = [];
-    found.forEach(function (f) { if (!seen[f.c] && out.length < 3) { seen[f.c] = 1; out.push(f); } });
+    found.forEach(function (f) { if (!seen[f.c] && out.length < 3) { seen[f.c] = 1; out.push({ c: f.c, from: f.from, to: f.to, dist: f.dist, winner: f.winner }); } });
+    return out;
+  }
+
+  /* ---------- Confidence of the recommendation ---------- */
+  function lowCell(k, cid, scores) {
+    if (cid === 'residence' && scores[k].residence.status) return false; // derived from your own answers
+    var cell = cellOf(k, cid);
+    return !!cell.nodata || cell.confidence === 'low';
+  }
+  function confidenceOf(top, scores) {
+    if (!top) return null;
+    var low = 0, lowIds = [];
+    D.CRITERIA.forEach(function (c) {
+      if (lowCell(top.id, c.id, scores) && top.contrib[c.id] > 0) { low += top.contrib[c.id]; lowIds.push(c.id); }
+    });
+    var share = top.total > 0 ? round6(low / top.total) : 0;
+    return { level: share < CONF_HIGH_MAX ? 'high' : (share < CONF_MED_MAX ? 'medium' : 'low'), estShare: share, lowCriteria: lowIds };
+  }
+
+  /* ---------- Winner vs runner-up, per criterion (points on the 0–100 scale; Σ = gap) ---------- */
+  function comparisonOf(top, run, weights) {
+    if (!top || !run) return null;
+    var out = D.CRITERIA.map(function (c) {
+      return { c: c.id, winnerScore: top.scores[c.id].value, runnerScore: run.scores[c.id].value, weight: weights[c.id].value, deltaPoints: round6(top.contrib[c.id] - run.contrib[c.id]) };
+    });
+    out.sort(function (x, y) { return Math.abs(y.deltaPoints) - Math.abs(x.deltaPoints); });
+    return out;
+  }
+
+  /* ---------- First-year cost (from D.FIRST_YEAR_COST, if present) ----------
+   * oneOff = Σ one-off items, recurring = Σ recurring items, both excluding 'capitalLocked'
+   * (paid-in share capital is not spent; shown separately) and 'payrollPerEmployee'
+   * (shown per employee; multiplied by a.hires when a number of hires is known, else 0). */
+  function firstYearCostOf(a) {
+    var F = D.FIRST_YEAR_COST;
+    if (!F || typeof F !== 'object' || !Object.keys(F).length) return null;
+    var hires = (typeof a.hires === 'number' && a.hires > 0 && isFinite(a.hires)) ? Math.floor(a.hires) : 0;
+    var out = {};
+    IDS.forEach(function (k) {
+      var e = F[k];
+      if (!e || !Array.isArray(e.items)) { out[k] = null; return; }
+      var oneOff = 0, recurring = 0, locked = null, perEmp = null;
+      e.items.forEach(function (it) {
+        var eur = typeof it.eur === 'number' && isFinite(it.eur) ? it.eur : 0;
+        if (it.id === 'capitalLocked') { locked = eur; return; }
+        if (it.id === 'payrollPerEmployee') { perEmp = eur; return; }
+        if (it.oneOff) oneOff += eur; else recurring += eur;
+      });
+      var payroll = perEmp != null ? perEmp * hires : 0;
+      out[k] = { currency: 'EUR', oneOff: oneOff, recurring: recurring, total: oneOff + recurring + payroll,
+        capitalLocked: locked, payrollPerEmployee: perEmp, hires: hires, payroll: payroll, items: e.items, note: e.note || null };
+    });
     return out;
   }
 
   function evaluate(a, light) {
     a = a || {};
-    var weights = computeWeights(a);
+    var wi = weightsInfo(a);
+    var weights = wi.w;
     var scores = adjustedScores(a);
     var rows = rank(a, weights, scores);
     var eligible = rows.filter(function (r) { return !r.excluded; });
     var top = eligible[0] || null;
-    var gap = eligible.length > 1 ? top.total - eligible[1].total : null;
-    var rob = top && !light ? robustness(a, weights, scores, top.id) : null;
+    var run = eligible[1] || null;
+    var gap = run ? round6(top.total - run.total) : null;
+    var rob = run && !light ? robustness(a, weights, scores, top.id) : null;
+    var tie = null;
+    if (run && gap < TIE_POINTS) tie = eligible.filter(function (r) { return top.total - r.total < TIE_POINTS; }).map(function (r) { return r.id; });
+    rows.forEach(function (r) { r.tie = !!(tie && tie.indexOf(r.id) !== -1); });
     var verdict = 'only';
-    if (eligible.length > 1 && rob) verdict = (rob.share >= 0.85 && gap >= 4) ? 'robust' : 'close';
+    if (run) {
+      if (tie) verdict = 'tie';
+      else if (rob) verdict = (rob.flips.length === 0 && gap >= ROBUST_GAP) ? 'robust' : 'close';
+      else verdict = gap >= ROBUST_GAP ? 'robust' : 'close'; // light mode: no perturbation run
+    }
+    var filtered = rows.filter(function (r) { return r.excluded; });
     var res = {
-      weights: weights, rows: rows, top: top, runnerUp: eligible[1] || null, gap: gap,
+      weights: weights, rows: rows, top: top, runnerUp: run, gap: gap,
       robustness: rob, verdict: verdict, answered: answeredCount(a), totalQuestions: QUESTIONS.length,
-      warnings: warnings(a, top), explain: explain(top, weights)
+      warnings: warnings(a, top), explain: explain(top, weights),
+      // --- added Nov 2026 (additive) ---
+      tie: tie, allZero: wi.allZero,
+      confidence: confidenceOf(top, scores),
+      comparison: comparisonOf(top, run, weights),
+      firstYearCost: firstYearCostOf(a),
+      excluded: filtered.map(function (r) { return { id: r.id, reason: r.excluded }; }),
+      filteredOut: filtered,
+      eligible: eligible.map(function (r) { return r.id; })
     };
-    if (!light) { res.effects = answerEffects(a, res); res.changes = whatChanges(a, res); }
+    if (!light) {
+      res.effects = answerEffects(a, res);
+      Object.defineProperty(res, '_scores', { value: scores, enumerable: false });
+      res.changes = whatChanges(a, res);
+    }
     return res;
   }
 
-  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights, defaultLevel: defaultLevel };
+  var api = { QUESTIONS: QUESTIONS, BLOCKS: BLOCKS, LEVELS: LEVELS, MARKET_TABLE: MARKET_TABLE, evaluate: evaluate, computeWeights: computeWeights, defaultLevel: defaultLevel,
+    HOME_BASE_CAP: HOME_BASE_CAP, TIE_POINTS: TIE_POINTS, ROBUST_GAP: ROBUST_GAP, CONF_HIGH_MAX: CONF_HIGH_MAX, CONF_MED_MAX: CONF_MED_MAX };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SSN_ENGINE = api;
 })(this);

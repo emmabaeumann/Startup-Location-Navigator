@@ -1,0 +1,11 @@
+{
+  "name": "founders-navigator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FoundersNavigator – deterministic startup-location decision engine (TUM seminar)",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "simulate": "node tests/simulate.js"
+  },
+  "engines": { "node": ">=20" }
+}

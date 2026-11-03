@@ -1,7 +1,7 @@
 /* FoundersNavigator – UI layer (vanilla JS, no build step) · Material 3 */
 (function () {
   'use strict';
-  var D = window.SSN_DATA, E = window.SSN_ENGINE;
+  var D = window.SSN_DATA, E = window.SSN_ENGINE, S = window.SSN_STATE;
   var Q = E.QUESTIONS;
   var STORE_KEY = 'foundersnavigator-v1';
   var STEPS = Q.map(function (q) { return { kind: 'q', q: q, block: q.block }; }).concat([{ kind: 'prio', block: 'priorities' }]);
@@ -122,43 +122,21 @@
   function announce(msg) { srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
 
   /* ---------- persistence ---------- */
-  function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ view: state.view, step: state.step, answers: state.answers, skipped: state.skipped })); } catch (e) { /* storage unavailable */ }
-  }
+  // State persistence lives in state.js (pure, tested); these wrappers bind it to this page.
+  function storage() { try { return window.localStorage; } catch (e) { return null; } }
+  function save() { S.save(storage(), STORE_KEY, state); }
   function load() {
-    try {
-      var raw = localStorage.getItem(STORE_KEY);
-      if (raw) { var s = JSON.parse(raw); state.answers = sanitize(s.answers || {}); state.skipped = s.skipped || {}; state.step = s.step || 0; state.view = s.view || 'landing'; }
-    } catch (e) { /* ignore */ }
-    if (state.view === 'method') state.view = 'landing';
+    var s = S.load(storage(), STORE_KEY, { questions: Q, criteria: D.CRITERIA, maxStep: STEPS.length - 1 });
+    state.answers = s.answers; state.skipped = s.skipped; state.step = s.step; state.view = s.view;
   }
   function encodeShare() {
     var json = JSON.stringify({ v: 1, a: state.answers });
     return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
   function readShare() {
-    var m = location.hash.match(/^#r=([A-Za-z0-9_-]+)/);
-    if (!m) return false;
-    try {
-      var b = m[1].replace(/-/g, '+').replace(/_/g, '/');
-      while (b.length % 4) b += '=';
-      var obj = JSON.parse(decodeURIComponent(escape(atob(b))));
-      if (obj && obj.a && typeof obj.a === 'object') { state.answers = sanitize(obj.a); state.view = 'results'; return true; }
-    } catch (e) { /* invalid link */ }
-    return false;
-  }
-  function sanitize(a) {
-    var out = {};
-    Q.forEach(function (q) {
-      var v = a[q.id], vals = q.options.map(function (o) { return o.v; });
-      if (q.type === 'multi' && Array.isArray(v)) { var f = v.filter(function (x) { return vals.indexOf(x) !== -1; }); if (f.length) out[q.id] = f; }
-      else if (q.type === 'single' && vals.indexOf(v) !== -1) out[q.id] = v;
-    });
-    if (a.priorities && typeof a.priorities === 'object') {
-      out.priorities = {};
-      D.CRITERIA.forEach(function (c) { var l = a.priorities[c.id]; if (l === 0 || l === 1 || l === 2 || l === 3) out.priorities[c.id] = l; });
-    }
-    return out;
+    var a = S.readShare(location.hash, Q, D.CRITERIA);
+    if (!a) return false;
+    state.answers = a; state.view = 'results'; return true;
   }
 
   /* ---------- navigation ---------- */

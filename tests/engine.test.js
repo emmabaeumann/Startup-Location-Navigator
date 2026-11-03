@@ -79,10 +79,14 @@ test('residence defaults to important unless the founder would move anywhere', (
   assert.strictEqual(E.computeWeights({ relocation: 'anywhere', priorities: { residence: 3 } }).residence.value, 3);
 });
 
-test('US investors raise the US (local roots), even though US VC access is already at the maximum', () => {
-  const base = E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'US').total;
-  const withInv = E.evaluate({ citizenship: ['eu'], investors: ['US'] }).rows.find(r => r.id === 'US').total;
-  assert.ok(withInv > base);
+test('local investors raise VC access (+1, clamped at 5), never residence', () => {
+  const base = E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'DE');
+  const withInv = E.evaluate({ citizenship: ['eu'], investors: ['DE'] }).rows.find(r => r.id === 'DE');
+  assert.strictEqual(withInv.scores.vc.value, Math.min(5, base.scores.vc.value + 1));
+  assert.strictEqual(withInv.scores.residence.value, base.scores.residence.value);
+  const us = E.evaluate({ citizenship: ['eu'], investors: ['US'] }).rows.find(r => r.id === 'US');
+  assert.ok(us.scores.vc.value <= 5);
+  assert.strictEqual(us.scores.residence.value, E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'US').scores.residence.value);
 });
 
 test('business angels raise the weight of public funding (once)', () => {
@@ -103,4 +107,15 @@ test('own passport country counts like free movement; only living there gives 5'
   assert.strictEqual(r.rows.find(x => x.id === 'UK').scores.residence.value, 2);
   const home = E.evaluate({ citizenship: ['ch'], residence: 'CH' });
   assert.strictEqual(home.rows.find(x => x.id === 'CH').scores.residence.value, 5);
+});
+
+test('every scored cell cites at least one source (cells marked nodata excepted)', () => {
+  const missing = [];
+  for (const c of D.COUNTRIES) for (const k of D.CRITERIA) {
+    const cell = D.SCORES[c.id][k.id];
+    assert.ok(cell, `${c.id}.${k.id} missing`);
+    assert.ok(['high', 'medium', 'low'].includes(cell.confidence), `${c.id}.${k.id} confidence`);
+    if (!cell.nodata && !(Array.isArray(cell.sources) && cell.sources.length)) missing.push(`${c.id}.${k.id}`);
+  }
+  assert.deepStrictEqual(missing, []);
 });

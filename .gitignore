@@ -8,3 +8,4 @@ demo/
 skills-lock.json
 .vercel
 .env*
+.superpowers/

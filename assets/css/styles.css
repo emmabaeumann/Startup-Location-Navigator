@@ -525,3 +525,84 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 .snackbar .btn--text { color: var(--inverse-primary); padding: 0 12px; }
 .snackbar .iconbtn { color: var(--inverse-on-surface); }
 .snackbar :focus-visible { outline-color: var(--inverse-primary); }
+
+/* ---------- Landing: flight-paths map (landing-fx.js) ---------- */
+.flightpaths { display: flex; flex-direction: column; gap: 20px; }
+.flightpaths__head h2, .demo__head h2 { font: var(--type-headline-s); letter-spacing: var(--ls-headline-s); }
+.flightpaths__head p, .demo__head p { font: var(--type-body-l); letter-spacing: var(--ls-body-l); color: var(--on-surface-variant); margin-top: 4px; }
+.fp-stage {
+  position: relative; aspect-ratio: 1000 / 411; border-radius: var(--shape-xl); overflow: hidden; isolation: isolate; box-shadow: inset 0 0 0 1px var(--outline-variant);
+  background: radial-gradient(90% 120% at 78% 35%, color-mix(in srgb, var(--primary-container) 70%, transparent) 0%, transparent 60%),
+              radial-gradient(70% 90% at 18% 70%, color-mix(in srgb, var(--tertiary-container, var(--primary-container)) 45%, transparent) 0%, transparent 60%),
+              var(--surface-container-low);
+}
+.fp-map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fp-land { fill: none; stroke: color-mix(in srgb, var(--on-surface-variant) 38%, transparent); stroke-width: 3.4; stroke-linecap: round; }
+.fp-route { fill: none; stroke: var(--primary); stroke-width: 1.6; stroke-dasharray: 3 6; stroke-linecap: round; opacity: .45; vector-effect: non-scaling-stroke; }
+.fp-route--win { stroke-width: 3; opacity: 1; vector-effect: none; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 55%, transparent)); }
+.is-drawn .fp-route--win { animation: fp-draw 1.1s var(--emph) .15s forwards; }
+.is-drawn .fp-route:not(.fp-route--win) { animation: fp-flow 1.6s linear infinite; }
+@keyframes fp-draw { to { stroke-dashoffset: 0; } }
+@keyframes fp-flow { to { stroke-dashoffset: -18; } }
+.fp-home__dot { fill: var(--tertiary); stroke: var(--surface-container-lowest); stroke-width: 2; }
+.fp-home__pulse { fill: var(--tertiary); transform-box: fill-box; transform-origin: center; animation: fp-pulse 2.2s ease-out infinite; }
+@keyframes fp-pulse { from { transform: scale(.6); opacity: .55; } to { transform: scale(3.2); opacity: 0; } }
+.fp-you { position: absolute; z-index: 3; transform: translate(-50%, -30px); padding: 1px 8px; border-radius: var(--shape-full); background: var(--tertiary); color: var(--surface-container-lowest) !important; font: var(--type-label-m); letter-spacing: var(--ls-label-m); color: var(--tertiary); font-weight: 600; pointer-events: none; }
+.fp-you { white-space: nowrap; }
+.fp-you--out { transform: translate(calc(-100% - 12px), -50%); }
+.fp-pin { position: absolute; width: 0; height: 0; z-index: 1; }
+.fp-dot { fill: var(--surface-container-lowest); stroke: var(--primary); stroke-width: 2; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; transition: transform var(--dur-medium) var(--emph), fill var(--dur-medium) var(--emph); }
+.fp-dot.is-win { fill: var(--primary); transform: scale(1.5); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--primary) 60%, transparent)); }
+.fp-dot.is-out { stroke: var(--outline); }
+.fp-pin__label {
+  position: absolute; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; padding: 3px 10px 3px 3px; border-radius: var(--shape-full);
+  background: color-mix(in srgb, var(--surface-container-lowest) 88%, transparent); border: 1px solid var(--outline-variant); box-shadow: var(--elev-1);
+  font: var(--type-label-l); letter-spacing: var(--ls-label-l); color: var(--on-surface);
+  transition: transform var(--dur-medium) var(--emph), background var(--dur-medium) var(--emph), color var(--dur-medium) var(--emph), opacity var(--dur-medium) var(--emph);
+}
+.fp-pin__label .avatar { width: 22px; height: 22px; }
+.fp-pin__score { font-variant-numeric: tabular-nums; color: var(--primary); }
+.fp-pin--ne .fp-pin__label { left: 10px; bottom: 8px; }
+.fp-pin--nw .fp-pin__label { right: 10px; bottom: 8px; }
+.fp-pin--se .fp-pin__label { left: 10px; top: 8px; }
+.fp-pin--sw .fp-pin__label { right: 10px; top: 8px; }
+.fp-pin--w .fp-pin__label { right: 14px; top: -14px; }
+.fp-pin.is-win .fp-pin__label { background: var(--primary); color: var(--on-primary); border-color: transparent; transform: scale(1.08); z-index: 2; }
+.fp-pin.is-win .fp-pin__score { color: inherit; }
+.fp-pin.is-win { z-index: 2; }
+.fp-pin.is-out .fp-pin__label { opacity: .5; }
+.fp-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.fp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.landing .fp-chip[aria-pressed="true"] { background-color: var(--secondary-container, var(--primary-container)); color: var(--on-secondary-container, var(--on-surface)); border-color: transparent; }
+.fp-result { display: flex; align-items: center; gap: 8px; font: var(--type-title-s); letter-spacing: var(--ls-title-s); color: var(--on-surface); }
+.fp-result .msr { color: var(--primary); font-size: 20px; }
+.flightpaths.is-paused *, body.is-paused .flightpaths * { animation-play-state: paused !important; }
+
+/* ---------- Landing: demo video ---------- */
+.demo { display: flex; flex-direction: column; gap: 20px; }
+.demo__frame { position: relative; border-radius: var(--shape-xl); overflow: hidden; background: var(--surface-container-high); box-shadow: var(--elev-2); aspect-ratio: 16 / 9; }
+.demo__video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.demo__toggle {
+  position: absolute; right: 16px; bottom: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+  background: color-mix(in srgb, var(--surface-container-lowest) 86%, transparent); color: var(--on-surface); box-shadow: var(--elev-2); backdrop-filter: blur(6px);
+  transition: transform var(--dur-short4) var(--emph);
+}
+.demo__toggle:hover { transform: scale(1.06); }
+.demo__toggle:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.demo__toggle .msr { font-size: 28px; font-variation-settings: 'FILL' 1; }
+/* before it plays: a big centred play button over the poster */
+.demo__frame:not(.is-playing) .demo__toggle { right: 50%; bottom: 50%; transform: translate(50%, 50%); width: 80px; height: 80px; background: var(--primary); color: var(--on-primary); }
+.demo__frame:not(.is-playing) .demo__toggle .msr { font-size: 44px; }
+.demo__frame:not(.is-playing) .demo__toggle:hover { transform: translate(50%, 50%) scale(1.06); }
+
+@media (max-width: 720px) {
+  .fp-pin__name { display: none; }
+  .fp-pin__label { padding: 2px 8px 2px 2px; gap: 4px; font: var(--type-label-m); }
+  .fp-pin__label .avatar { width: 18px; height: 18px; }
+  .demo__frame { border-radius: var(--shape-lg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fp-home__pulse, .is-drawn .fp-route { animation: none !important; }
+  .fp-route--win { stroke-dashoffset: 0 !important; }
+}
+@media print { .flightpaths, .demo { display: none !important; } }

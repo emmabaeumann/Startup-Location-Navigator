@@ -5,6 +5,7 @@
   'use strict';
   var D = window.SSN_DATA, E = window.SSN_ENGINE, S = window.SSN_STATE, UI = window.SSN_UI;
   var EXAMPLES = window.SSN_EXAMPLES || [];
+  var FX = window.SSN_LANDING || null; // landing extras: flight-paths map + demo video (landing-fx.js)
   var esc = UI.esc, icon = UI.icon, avatar = UI.avatar, critIcon = UI.critIcon, country = UI.country, crit = UI.crit,
     shapePath = UI.shapePath, pageBg = UI.pageBg;
   function t(s, vars) { return UI.i18n && UI.i18n.t ? UI.i18n.t(s, vars) : (s == null ? '' : String(s)); }
@@ -283,6 +284,7 @@
     updateParallax();
     onScroll();
     observeDecor();
+    if (state.view === 'landing' && FX) FX.mount();
     var cTitle = state.view === 'country' && state.countryId && country(state.countryId) ? t(country(state.countryId).name) : null;
     document.title = (cTitle || (VIEW_TITLES[state.view] ? t(VIEW_TITLES[state.view]) : '')).replace(/(.+)/, '$1 – ') + 'FoundersNavigator';
   }
@@ -402,10 +404,12 @@
         '<ol class="rank-list">' + rows + '</ol>' +
         '<p class="preview__foot">' + icon('bolt') + esc(t('Re-scores with every click.')) + '</p>' +
       '</aside></div>' +
+      (FX ? (FX.setAnswers(state.answers), FX.routesHtml()) : '') +
       examples +
       '<h2 class="sr-only">' + esc(t('At a glance')) + '</h2>' +
       '<ul class="stats">' + stats + '</ul>' +
       '<ul class="features">' + feats + '</ul>' +
+      (FX ? FX.demoHtml() : '') +
       '<p class="disclaimer">' + icon('info') + esc(t('Orientation, not legal or tax advice.')) + '</p>' +
       '</section>';
   }

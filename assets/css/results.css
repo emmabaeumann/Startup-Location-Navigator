@@ -67,6 +67,13 @@
 .insight li strong .msr { color: var(--primary); font-size: 18px; }
 .insight li > span:not(.chip) { color: var(--on-surface-variant); }
 .insight .empty { color: var(--on-surface-variant); }
+/* dark theme: opaque, lighter inner cards with full-contrast text (the translucent near-black looked muddy) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .insight li { background: var(--surface-container-high); }
+  :root:not([data-theme="light"]) .insight li > span:not(.chip) { color: var(--on-surface); }
+}
+:root[data-theme="dark"] .insight li { background: var(--surface-container-high); }
+:root[data-theme="dark"] .insight li > span:not(.chip) { color: var(--on-surface); }
 /* inline source link: 16dp visual, 48dp-tall hit area */
 .srclink { position: relative; display: inline-flex; align-items: center; gap: 4px; font: var(--type-label-m); letter-spacing: var(--ls-label-m); text-decoration: none; overflow-wrap: anywhere; }
 .srclink::after { content: ''; position: absolute; inset: -16px -4px; }
@@ -80,7 +87,9 @@
 .roadmap li::before { counter-increment: step; content: counter(step); width: 40px; height: 40px; border-radius: var(--shape-full); background: var(--primary); color: var(--on-primary); font: var(--type-title-m); letter-spacing: var(--ls-title-m); display: flex; align-items: center; justify-content: center; position: relative; z-index: 1; }
 .roadmap li::after { content: ''; position: absolute; left: 19px; top: 44px; bottom: 4px; width: 2px; border-radius: var(--shape-full); background: var(--outline-variant); }
 .roadmap li:last-child::after { display: none; }
-.roadmap li > div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 8px; }
+.roadmap li > div { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding-top: 8px; } /* 8 + 24/2 = 20 = circle centre */
+.r-rmpanel { display: flex; flex-direction: column; gap: 24px; }
+.r-rmpanel .roadmap { margin-top: 0; }
 .roadmap strong { font: var(--type-title-m); letter-spacing: var(--ls-title-m); }
 .roadmap p { color: var(--on-surface-variant); font: var(--type-body-m); letter-spacing: var(--ls-body-m); }
 
@@ -219,10 +228,13 @@
 .r-all { width: 100%; min-width: 760px; border-collapse: collapse; font: var(--type-body-s); letter-spacing: var(--ls-body-s); color: var(--on-surface); }
 .r-all th, .r-all td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--outline-variant); vertical-align: middle; }
 .r-all thead th { font: var(--type-label-m); letter-spacing: var(--ls-label-m); color: var(--on-surface-variant); }
-.r-all th[scope="row"] { display: flex; align-items: center; gap: 8px; font: var(--type-title-s); letter-spacing: var(--ls-title-s); white-space: nowrap; }
+.r-all th[scope="row"] { display: table-cell; font: var(--type-title-s); letter-spacing: var(--ls-title-s); white-space: nowrap; }
+.r-all__c { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
 .r-all .avatar { width: 28px; height: 28px; font: var(--type-label-s); letter-spacing: var(--ls-label-s); font-weight: 700; }
 .r-all tr.is-sel > * { background: color-mix(in srgb, var(--secondary-container) 60%, transparent); }
 .r-all small { color: var(--on-surface-variant); }
+/* no rounded clip here: a rounded scroll container cut the last row's line short at both ends */
+.r-legal .r-exp .r-scroll { border-radius: 0; }
 
 /* First-year cost */
 .r-cost { gap: 20px; }
@@ -260,6 +272,7 @@
 .matrix td { text-align: center; }
 .matrix .cellbtn { margin: 0; justify-content: center; }
 .matrix thead th.is-excluded .avatar { background: var(--surface-container-highest); color: var(--on-surface-variant); }
+.matrix thead th.is-excluded .avatar--flag { filter: grayscale(1); opacity: .6; }
 
 /* What-if (compact: 3 columns on wide screens) */
 .whatif-card .card__head .btn { margin-block: -8px; }

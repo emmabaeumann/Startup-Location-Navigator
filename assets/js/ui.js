@@ -34,7 +34,14 @@
   }
   var CRIT_ICONS = { setup: 'rocket_launch', corpTax: 'percent', exitTax: 'sell', vc: 'trending_up', grants: 'savings', rnd: 'science', talent: 'hub', esop: 'groups', cost: 'shopping_cart', labor: 'payments', market: 'storefront', residence: 'home_pin' };
   function critIcon(id) { return icon(CRIT_ICONS[id] || 'radio_button_checked'); }
-  function avatar(code, lead) { return '<span class="avatar' + (lead ? ' avatar--lead' : '') + '">' + esc(code) + '</span>'; }
+  /* Round country flag (assets/flags/*.svg, copied from the flag-icons package, 1x1 set). Decorative:
+   * the country name is always given as visible or sr-only text next to it. Unknown codes fall back to letters. */
+  var FLAGS = { DE: 'de', CH: 'ch', LI: 'li', UK: 'gb', US: 'us', PT: 'pt' };
+  function avatar(code, lead, cls) {
+    var f = FLAGS[code], c = 'avatar' + (f ? ' avatar--flag' : '') + (lead ? ' avatar--lead' : '') + (cls ? ' ' + cls : '');
+    if (!f) return '<span class="' + c + '">' + esc(code) + '</span>';
+    return '<span class="' + c + '" aria-hidden="true"><img src="assets/flags/' + f + '.svg" alt="" width="36" height="36"></span>';
+  }
   function dots(v) {
     var out = '<span class="dots" aria-hidden="true">';
     for (var i = 1; i <= 5; i++) out += '<i class="' + (v >= i ? 'on' : (v >= i - 0.5 ? 'half' : '')) + '"></i>';
@@ -51,6 +58,13 @@
   function de() { return !!(UI.i18n && UI.i18n.lang && UI.i18n.lang() === 'de'); }
   /* € amounts follow the UI language: "€32,150" (EN) / "32.150 €" (DE) */
   function eur(n) { var v = Math.round(n); return de() ? v.toLocaleString('de-DE') + ' €' : '€' + v.toLocaleString('en-GB'); }
+  /* € range in the UI language: "€115–400" (EN) / "115–400 €" (DE); equal ends → one amount */
+  function eurRange(min, max) {
+    if (min && typeof min === 'object') { max = min.max; min = min.min; }
+    var a = Math.round(min), b = Math.round(max);
+    if (a === b) return eur(a);
+    return de() ? a.toLocaleString('de-DE') + '–' + b.toLocaleString('de-DE') + ' €' : '€' + a.toLocaleString('en-GB') + '–' + b.toLocaleString('en-GB');
+  }
   /* translated list: ids of countries render as (translated) names, other strings are translated */
   function listText(arr) {
     var n = arr.map(function (x) { var c = country(x); return t(c ? c.name : x); });
@@ -93,7 +107,7 @@
 
   var UI = root.SSN_UI = {
     esc: esc, t: t, country: country, crit: crit, src: src, srcLink: srcLink, icon: icon, CRIT_ICONS: CRIT_ICONS,
-    critIcon: critIcon, avatar: avatar, dots: dots, wdots: wdots, details: details, eur: eur, effectText: effectText, listText: listText,
+    critIcon: critIcon, avatar: avatar, dots: dots, wdots: wdots, details: details, eur: eur, eurRange: eurRange, effectText: effectText, listText: listText,
     shapePath: shapePath, shapeSvg: shapeSvg, pageBg: pageBg,
     views: {}, actions: {}, app: null, i18n: null
   };

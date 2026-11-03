@@ -305,7 +305,7 @@
     renderThemeButton();
     Array.prototype.forEach.call(document.querySelectorAll('.topnav [data-action]'), function (b) {
       var a = b.getAttribute('data-action');
-      if (a === 'method' || a === 'about') { if (state.view === a) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
+      if (a === 'method' || a === 'about' || a === 'country') { if (state.view === a) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
     });
   }
 
@@ -376,7 +376,7 @@
         '<div class="bar"><span data-wkey="demo-' + c.id + '" style="width:' + demo[i] + '%"></span></div></li>';
     }).join('');
     var chips = D.COUNTRIES.map(function (c) {
-      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" ><span aria-hidden="true">' + avatar(c.id) + '</span>' + esc(t(c.name)) + '<span class="sr-only"> – ' + esc(t('country profile')) + '</span></button></li>';
+      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" >' + avatar(c.id) + esc(t(c.name)) + '<span class="sr-only"> – ' + esc(t('country profile')) + '</span></button></li>';
     }).join('');
     var stats = [['public', D.COUNTRIES.length, 'countries'], ['tune', D.CRITERIA.length, 'criteria'], ['checklist', Q.length, 'questions'], ['lock', 0, 'data sent']].map(function (s) {
       return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + esc(t(s[2])) + '</span></li>';
@@ -511,8 +511,15 @@
       }
       if (!mv) mv = '<span class="rank-item__move" aria-hidden="true"></span>';
       var lead = i === 0 && !r.excluded;
-      return '<li class="rank-item' + (lead ? ' rank-item--lead' : '') + (r.excluded ? ' rank-item--excluded' : '') + '"' + (withMoves ? ' data-flip="' + keyPrefix + r.id + '"' : '') + '>' +
-        '<div class="rank-item__top">' + avatar(r.id, lead) + '<span class="rank-item__name">' + esc(t(r.country.name)) + (r.excluded ? ' <span class="sr-only">(' + esc(t('excluded')) + ')</span>' : '') + '</span><span class="rank-item__score" data-ckey="' + keyPrefix + r.id + '">' + r.score + '</span>' + mv + '</div>' +
+      var flip = withMoves ? ' data-flip="' + keyPrefix + r.id + '"' : '';
+      if (r.excluded) {
+        // excluded countries are not ranked: no fit number and no bar, only the reason (as on the results page)
+        var divider = (i === 0 || !res.rows[i - 1].excluded) ? '<li class="rank-divider" aria-hidden="true"><span>' + esc(t('Not ranked')) + '</span></li>' : '';
+        return divider + '<li class="rank-item rank-item--excluded"' + flip + '>' +
+          '<div class="rank-item__top">' + avatar(r.id) + '<span class="rank-item__name">' + esc(t(r.country.name)) + ' <span class="sr-only">(' + esc(t('not ranked')) + ')</span><small class="rank-item__reason">' + esc(t(r.excluded)) + '</small></span>' + mv + '</div></li>';
+      }
+      return '<li class="rank-item' + (lead ? ' rank-item--lead' : '') + '"' + flip + '>' +
+        '<div class="rank-item__top">' + avatar(r.id, lead) + '<span class="rank-item__name">' + esc(t(r.country.name)) + '</span><span class="rank-item__score" data-ckey="' + keyPrefix + r.id + '">' + r.score + '</span>' + mv + '</div>' +
         '<div class="bar"><span data-wkey="' + keyPrefix + r.id + '" style="width:' + r.score + '%"></span></div></li>';
     }).join('');
   }

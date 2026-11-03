@@ -69,7 +69,7 @@
         { v: 'vc', l: 'Venture capital', s: 'Institutional rounds' }
       ] },
     { id: 'capital', block: 'capital', type: 'single', title: 'How much capital is already secured?',
-      help: 'Some legal forms need capital paid in before registration.',
+      help: 'Paid in before registration: Switzerland CHF 20,000, Liechtenstein CHF 10,000, German GmbH €12,500 (a UG from €1). UK, US and Portugal: practically nothing.',
       options: [
         { v: 'none', l: 'Nothing yet' }, { v: 'lt10', l: 'Less than €10k' }, { v: '10to25', l: '€10k – €25k' },
         { v: '25to100', l: '€25k – €100k' }, { v: '100to1m', l: '€100k – €1M' }, { v: 'gt1m', l: 'More than €1M' }
@@ -410,7 +410,10 @@
     var k = top.id;
     var cl = cits(a);
     if (a.relocation === 'stay' && COUNTRY_IN_LIST[a.residence]) {
-      w.push({ type: 'info', text: 'Because you want to stay where you live, only ' + D.COUNTRIES[IDS.indexOf(a.residence)].name + ' is ranked. Registering a company abroad while running it from home usually does not move its tax residence: a company is generally taxed where it is actually managed (e.g. §10 AO, §1 KStG in Germany).', src: 'ao10' });
+      var stayTpl = 'Because you want to stay where you live, only {c} is ranked. Registering a company abroad while running it from home usually does not move its tax residence: a company is generally taxed where it is actually managed (e.g. §10 AO, §1 KStG in Germany).';
+      var stayName = D.COUNTRIES[IDS.indexOf(a.residence)].name;
+      // tpl + vars let the UI translate the sentence (vars are English names, translated at render time)
+      w.push({ type: 'info', text: stayTpl.replace('{c}', stayName), tpl: stayTpl, vars: { c: stayName }, src: 'ao10' });
     } else if (a.relocation === 'stay' && (a.residence === 'euother' || a.residence === 'elsewhere')) {
       w.push({ type: 'info', text: 'You want to stay in a country outside this comparison. A company registered in one of these six countries but managed from your home is usually taxed where it is actually managed.', src: 'ao10' });
     }
@@ -436,7 +439,10 @@
     var sn = D.SECTOR_NOTES[a.sector];
     if (sn) w.push({ type: 'info', text: sn.text, src: sn.src });
     var lowConf = D.CRITERIA.filter(function (c) { return cellOf(k, c.id).confidence === 'low'; }).map(function (c) { return c.short; });
-    if (lowConf.length >= 2) w.push({ type: 'info', text: 'Data for ' + top.country.name + ' is thin on: ' + lowConf.join(', ') + '. Treat those scores as estimates.', src: null });
+    if (lowConf.length >= 2) {
+      var thinTpl = 'Data for {c} is thin on: {list}. Treat those scores as estimates.';
+      w.push({ type: 'info', text: thinTpl.replace('{c}', top.country.name).replace('{list}', lowConf.join(', ')), tpl: thinTpl, vars: { c: top.country.name, list: lowConf }, src: null });
+    }
     return w;
   }
 
@@ -511,7 +517,7 @@
       } else if (q.id === 'capital') {
         if (v === 'none' || v === 'lt10') say('−1 on setup for Switzerland (CHF 20,000) and Liechtenstein (CHF 10,000), where the minimum capital must be fully paid in. In Germany a UG can start from €1.');
         else if (v === '10to25') say('Enough for every minimum except possibly Switzerland’s CHF 20,000 (fully paid in) – no score change.');
-        else say('Minimum capital is no constraint in any of the six countries – no effect on scores.');
+        else say('Covers the paid-in minimum in all six countries – no penalty applies.');
       } else if (q.id === 'investors') {
         var map = { DE: ['DE'], CHLI: ['CH', 'LI'], UK: ['UK'], US: ['US'], EU: ['PT', 'DE'] };
         var ks = [];

@@ -273,7 +273,7 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 }
 .chip .msr { font-size: 18px; color: var(--primary); }
 .chip:not(:has(.msr, .avatar)) { padding-left: 16px; }
-.chip .avatar { width: 24px; height: 24px; margin-left: -4px; }
+.chip .avatar { width: 24px; height: 24px; margin-left: -4px; flex: none; }
 .chip--small { height: 28px; padding: 0 12px 0 8px; font: var(--type-label-m); letter-spacing: var(--ls-label-m); }
 .chip--small .msr { font-size: 16px; }
 .chip--assist { border-color: var(--outline-variant); }
@@ -297,6 +297,12 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
   font: var(--type-label-m); letter-spacing: var(--ls-label-m); font-weight: 700;
 }
 .avatar--lead { background: var(--primary); color: var(--on-primary); }
+/* Flag avatars: round flag fills the circle; lead = 2px primary ring instead of a filled background */
+.avatar--flag { background: var(--surface-container-highest); overflow: hidden; box-shadow: inset 0 0 0 1px var(--outline-variant); position: relative; }
+.avatar--flag img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.avatar--flag::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-surface) 12%, transparent); pointer-events: none; }
+.avatar--flag.avatar--lead { background: var(--surface-container-highest); box-shadow: 0 0 0 2px var(--primary); overflow: visible; }
+.avatar--flag.avatar--lead img { border-radius: var(--shape-full); }
 
 /* ---------- Cards (M3: elevated = container-low + level 1, filled = container-highest, outlined = surface + outline-variant) ---------- */
 .card { background: var(--surface-container-low); box-shadow: var(--elev-1); border-radius: var(--shape-xl); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
@@ -359,8 +365,13 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 /* Filtered-out countries: full-contrast muted text + muted container (no opacity: AA on every surface) */
 .is-excluded, .rank-item--excluded { color: var(--on-surface-variant); }
 .is-excluded .avatar, .rank-item--excluded .avatar { background: var(--surface-container-highest); color: var(--on-surface-variant); }
+.is-excluded .avatar--flag, .rank-item--excluded .avatar--flag { filter: grayscale(1); opacity: .6; }
 .is-excluded .bar span, .rank-item--excluded .bar span { background: var(--outline-variant); }
 .is-excluded :is(.ranking__score, .rank-item__score, .ranking__pos), .rank-item--excluded .rank-item__score { color: var(--on-surface-variant); font-weight: 400; }
+.rank-item__reason { display: block; font: var(--type-body-s); letter-spacing: var(--ls-body-s); color: var(--on-surface-variant); }
+.rank-divider { display: flex; align-items: center; gap: 8px; font: var(--type-label-s); letter-spacing: var(--ls-label-s); color: var(--on-surface-variant); text-transform: uppercase; }
+.rank-divider::before, .rank-divider::after { content: ""; flex: 1; height: 1px; background: var(--outline-variant); }
+.rank-divider::before { flex: 0 0 12px; }
 
 /* ---------- Wizard ---------- */
 .wizard { max-width: var(--max); margin: 0 auto; padding: 16px var(--gutter) 32px; display: grid; grid-template-columns: 220px minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
@@ -422,7 +433,8 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
   .prio--grid .seg button { font: var(--type-label-m); letter-spacing: 0; padding: 0 2px; }
 }
 .prio__bonus { align-self: flex-start; margin-top: 4px; }
-.prio__text .prio__bonus { font: var(--type-label-m); letter-spacing: var(--ls-label-m); color: var(--on-secondary-container); }
+.prio__text .prio__bonus { display: inline-flex; align-items: center; gap: 4px; font: var(--type-label-m); letter-spacing: var(--ls-label-m); line-height: 1; color: var(--on-secondary-container); }
+.prio__bonus .msr { font-size: 16px; line-height: 1; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; vertical-align: 0; }
 .seg__short { display: none; }
 .prio__row { min-width: 0; justify-content: space-between; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--shape-lg); background: var(--surface-container-lowest); }
 .prio__label { display: flex; align-items: center; gap: 12px; }
@@ -430,7 +442,7 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 .prio__icon .msr { font-size: 20px; }
 .prio__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .prio__text strong { font: var(--type-title-m); letter-spacing: var(--ls-title-m); }
-.prio__text span { font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface-variant); }
+.prio__text > span:not(.chip) { font: var(--type-body-m); letter-spacing: var(--ls-body-m); color: var(--on-surface-variant); }
 .seg { display: flex; width: 100%; border: 1px solid var(--outline); border-radius: var(--shape-full); margin: 4px 0; }
 .seg button {
   --tgt: 5px; /* 38 + 2×1 outline = 40dp visual; 38 + 2×5 = 48dp target */
@@ -497,7 +509,8 @@ html:not(.fonts-ready) .msr { visibility: hidden; }
 .example__l { font: var(--type-title-s); letter-spacing: var(--ls-title-s); }
 .example__s { font: var(--type-body-s); letter-spacing: var(--ls-body-s); color: var(--on-surface-variant); }
 .example__go { color: var(--primary); font-size: 20px; }
-.chip--country { padding-left: 8px; }
+.chip--country { padding-left: 6px; }
+.chip--country .avatar { width: 20px; height: 20px; margin: 0; }
 .chips > li { display: flex; }
 
 /* ---------- Snackbar (M3: inverse surface, 48dp min, bottom centre, level 3) ---------- */

@@ -4,13 +4,13 @@
  * Actions: data-action="about"                 → about page
  *          data-action="country" data-k="CH"   → country profile (state.countryId; invalid/missing → DE)
  * Every user-visible English string goes through t() (the English text is the i18n key).
- * Evidence texts (scores, notes, legal forms, sources) stay English, as everywhere else.
+ * Evidence texts (scores, notes, legal forms) are translated via t() too; only source titles/publishers stay in their original language.
  */
 (function (root) {
   'use strict';
   var D = root.SSN_DATA, E = root.SSN_ENGINE, UI = root.SSN_UI;
   var esc = UI.esc, icon = UI.icon, avatar = UI.avatar, dots = UI.dots, critIcon = UI.critIcon,
-    country = UI.country, crit = UI.crit, src = UI.src, srcLink = UI.srcLink, details = UI.details, pageBg = UI.pageBg, eur = UI.eur;
+    country = UI.country, crit = UI.crit, src = UI.src, srcLink = UI.srcLink, details = UI.details, pageBg = UI.pageBg, eur = UI.eur, eurRange = UI.eurRange;
   function A() { return UI.app; }
   /* t() looked up at call time (i18n.js may replace UI.t); T() = translated + HTML-escaped */
   function t(s, vars) { return UI.t ? UI.t(s, vars) : s; }
@@ -22,7 +22,7 @@
   var IDS = D.COUNTRIES.map(function (c) { return c.id; });
 
   function hasAnswers() { var s = A().state; return !!(s && s.answers && Object.keys(s.answers).length); }
-  function asOf() { return new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function asOf() { return new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString(UI.i18n && UI.i18n.lang() === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); }
   function rowOf(res, k) { return res.rows.filter(function (r) { return r.id === k; })[0]; }
   function pct(x) { return Math.round(x * 100) + '%'; }
   function range(a, b, fmt) { return a === b ? fmt(a) : fmt(a) + '–' + fmt(b); }
@@ -104,7 +104,7 @@
       }).join('') + '</tbody></table>';
     var sectors = Object.keys(D.SECTOR_ADJ || {}).map(function (s) {
       var sa = D.SECTOR_ADJ[s];
-      return '<li>' + esc(sa.label) + ' → +1 ' + cn('talent') + ' (' + IDS.filter(function (k) { return sa[k]; }).map(function (k) { return esc(country(k).name); }).join(', ') + ') ' + srcLinks(sa.src, 1) + '</li>';
+      return '<li>' + esc(t(sa.label)) + ' → +1 ' + cn('talent') + ' (' + IDS.filter(function (k) { return sa[k]; }).map(function (k) { return esc(t(country(k).name)); }).join(', ') + ') ' + srcLinks(sa.src, 1) + '</li>';
     }).join('');
     var s3 = '<ul>' +
       '<li>' + cn('residence') + ': ' + T('5 where you live, 4 with that citizenship or free movement, 2 if a visa is needed, 1 if permits are quota-limited. The most favourable of your citizenships counts; without answers the score stays at 3.') + '</li>' +
@@ -143,14 +143,14 @@
 
     /* anchors table — all criteria */
     var anchors = '<table class="tbl anchors"><caption class="sr-only">' + T('Scoring anchors per criterion') + '</caption><thead><tr><th scope="col">' + T('Criterion') + '</th><th scope="col">' + T('Anchor scale (1–5)') + '</th></tr></thead><tbody>' +
-      D.CRITERIA.map(function (c) { return '<tr><th scope="row"><span class="tbl__crit">' + critIcon(c.id) + '<span>' + esc(t(c.name)) + '</span></span></th><td>' + esc(c.anchors) + '</td></tr>'; }).join('') + '</tbody></table>';
+      D.CRITERIA.map(function (c) { return '<tr><th scope="row"><span class="tbl__crit">' + critIcon(c.id) + '<span>' + esc(t(c.name)) + '</span></span></th><td>' + esc(t(c.anchors)) + '</td></tr>'; }).join('') + '</tbody></table>';
 
     /* why Liechtenstein rarely wins */
     var LI = D.SCORES.LI, liRes = E.evaluate({}, true), liRow = rowOf(liRes, 'LI'), liPos = liRes.rows.indexOf(liRow) + 1;
     function liItem(id) {
       var cell = LI[id];
       return '<li><button type="button" class="srow__btn srow__btn--mini" data-action="cell" data-k="LI" data-c="' + id + '">' + critIcon(id) +
-        '<span class="srow__main"><span class="srow__name">' + esc(t(crit(id).short)) + '</span><span class="srow__fact">' + esc(cell.value) + '</span></span>' +
+        '<span class="srow__main"><span class="srow__name">' + esc(t(crit(id).short)) + '</span><span class="srow__fact">' + esc(t(cell.value)) + '</span></span>' +
         '<span class="srow__score">' + dots(cell.score) + '<b>' + cell.score + '</b>' + confTag(cell) + '</span><span class="sr-only">' + T('Show evidence') + '</span></button></li>';
     }
     var liStrong = D.CRITERIA.filter(function (c) { return c.id !== 'residence' && LI[c.id] && LI[c.id].score >= 4; }).map(function (c) { return liItem(c.id); }).join('');
@@ -180,7 +180,7 @@
       '</ul>');
 
     /* literature, course reading, sources */
-    var lit = D.LITERATURE.map(function (l) { return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.c) + '</a><span>' + esc(l.use) + '</span></li>'; }).join('');
+    var lit = D.LITERATURE.map(function (l) { return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.c) + '</a><span>' + esc(t(l.use)) + '</span></li>'; }).join('');
     var reading = (D.COURSE_READING || []).map(function (r) {
       var host = ''; try { host = r.u.split('/')[2].replace(/^www\./, ''); } catch (e) { host = ''; }
       return '<li><a href="' + esc(r.u) + '" target="_blank" rel="noopener noreferrer">' + icon('open_in_new') + '<span>' + esc(r.t) + '<span class="sr-only"> (' + T('opens in a new tab') + ')</span></span></a><span>' + esc(host) + '</span></li>';
@@ -194,7 +194,7 @@
 
     return '<section class="method page page--method has-bg anim">' + pageBg('method') +
       '<div class="method__head"><span class="overline">' + icon('menu_book') + T('Method & sources') + '</span><h1 tabindex="-1">' + T('How it’s calculated') + '</h1>' +
-        (UI.i18n && UI.i18n.lang() === 'de' ? '<p class="disclaimer">' + icon('translate') + T('Evidence texts and sources are shown in their original English.') + '</p>' : '') +
+        (UI.i18n && UI.i18n.lang() === 'de' ? '<p class="disclaimer">' + icon('translate') + T('Source titles are shown in their original language.') + '</p>' : '') +
         '<p class="page__lead">' + T('A deterministic decision helper: no generative AI runs at any point, so every result can be traced back to a source.') + '</p>' +
         '<ul class="chips"><li class="chip">' + icon('verified') + T('Deterministic') + '</li><li class="chip">' + icon('link') + T('Sourced · {n} sources', { n: nSrc }) + '</li><li class="chip">' + icon('repeat') + T('Reproducible') + '</li><li class="chip">' + icon('event') + T('Data as of {d}', { d: asOf() }) + '</li></ul></div>' +
       '<section class="card card--primary formula-card"><span class="label">' + T('Fit score') + '</span><div class="formula">Fit = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
@@ -317,16 +317,16 @@
       ? '<li class="chip chip--warning">' + icon('location_off') + T('Excluded by your answers') + '</li>'
       : '<li class="chip chip--tonal">' + icon('leaderboard') + T('#{p} of 6 for you · fit {s}', { p: pos, s: row.score }) + '</li>') : '';
     var head = '<div class="page__top"><button type="button" class="btn btn--text" data-action="' + (answered ? 'results' : 'home') + '">' + icon('arrow_back') + T(answered ? 'Back to my result' : 'Back to start') + '</button></div>' +
-      '<header class="cp-head"><span class="avatar avatar--xl" aria-hidden="true">' + esc(k) + '</span><div class="cp-head__text">' +
+      '<header class="cp-head">' + avatar(k, false, 'avatar--xl') + '<div class="cp-head__text">' +
         '<span class="overline">' + icon('public') + T('Country profile') + '</span><h1 tabindex="-1">' + esc(t(c.name)) + '</h1>' +
-        '<p class="page__lead">' + esc(c.hub) + ' · ' + esc(c.entity) + '</p>' +
+        '<p class="page__lead">' + esc(t(c.hub)) + ' · ' + esc(t(c.entity)) + '</p>' +
         '<ul class="chips">' + rankChip + '<li class="chip">' + icon('link') + T('{n} sources', { n: Object.keys(srcSet).length }) + '</li><li class="chip">' + icon('event') + T('Data as of {d}', { d: asOf() }) + '</li></ul>' +
       '</div></header>' + countryChips(k, t('Choose a country'));
 
     /* evidence scores */
     var srows = D.CRITERIA.map(function (cr) {
       var cell = S[cr.id] || { score: 3, nodata: true, confidence: 'low', sources: [], value: t('No data yet') };
-      var fact = cell.value, mine = '';
+      var fact = t(cell.value), mine = '';
       if (row) {
         var s = row.scores[cr.id];
         if (cr.id === 'residence' && row.residence) fact = t(row.residence.text);
@@ -350,24 +350,24 @@
     function isRef(f, i) { return !isDE && i === cols.length - 1; }
     var rowsDef = [
       [t('Local name'), function (f) { return esc(f.local); }],
-      [t('Minimum capital'), function (f) { return esc(f.minCapital.text); }],
+      [t('Minimum capital'), function (f) { return esc(t(f.minCapital.text)); }],
       [t('Paid in before registration'), function (f) { return '<b>' + esc(eur(f.minCapital.paidInEur)) + '</b>'; }],
-      [t('Liability'), function (f) { return esc(f.liability); }],
-      [t('Notary'), function (f) { return '<b>' + T(f.notary ? 'Required' : 'Not required') + '</b><br><span class="muted">' + esc(f.notaryText) + '</span>'; }],
-      [t('Profit tax'), function (f) { return esc(f.profitTax); }],
+      [t('Liability'), function (f) { return esc(t(f.liability)); }],
+      [t('Notary'), function (f) { return '<b>' + T(f.notary ? 'Required' : 'Not required') + '</b><br><span class="muted">' + esc(t(f.notaryText)) + '</span>'; }],
+      [t('Profit tax'), function (f) { return esc(t(f.profitTax)); }],
       [t('Setup time'), function (f) { return '<b>' + esc(t('{r} days', { r: range(f.setupDays.min, f.setupDays.max, cnt) })) + '</b>'; }],
-      [t('Setup cost'), function (f) { return '<b>' + esc(range(f.setupCostEur.min, f.setupCostEur.max, eur)) + '</b>'; }],
+      [t('Setup cost'), function (f) { return '<b>' + esc(eurRange(f.setupCostEur.min, f.setupCostEur.max)) + '</b>'; }],
       [t('Mandatory steps'), function (f) { return '<b>' + f.steps + '</b>'; }],
       [t('Sources'), function (f) { return '<div class="tbl__src">' + srcLinks(f.sources, 3) + '</div>'; }]
     ];
     var lfTable = '<table class="tbl tbl--forms" style="--cols:' + cols.length + '"><caption class="sr-only">' + T('Legal forms in {c}', { c: t(c.name) }) + '</caption><thead><tr><td></td>' +
       cols.map(function (f, i) {
-        return '<th scope="col"' + (isRef(f, i) ? ' class="is-ref"' : '') + '><span class="tbl__form">' + esc(f.name) + '</span>' +
-          (isRef(f, i) ? '<span class="chip chip--small">' + icon('compare_arrows') + T('Germany · reference') + '</span>' : (f.typical ? '<span class="chip chip--small chip--tonal">' + icon('star') + T('Typical') + '</span>' : '')) + '</th>';
+        return '<th scope="col"' + (isRef(f, i) ? ' class="is-ref"' : '') + '><span class="tbl__formhead"><span class="tbl__form">' + esc(f.name) + '</span>' +
+          (isRef(f, i) ? '<span class="chip chip--small">' + icon('compare_arrows') + T('Germany · reference') + '</span>' : (f.typical ? '<span class="chip chip--small chip--tonal">' + icon('star') + T('Typical') + '</span>' : '')) + '</span></th>';
       }).join('') + '</tr></thead><tbody>' +
       rowsDef.map(function (r) { return '<tr><th scope="row">' + esc(r[0]) + '</th>' + cols.map(function (f, i) { return '<td' + (isRef(f, i) ? ' class="is-ref"' : '') + '>' + r[1](f) + '</td>'; }).join('') + '</tr>'; }).join('') +
       '</tbody></table>';
-    var notes = forms.map(function (f) { return '<li><b>' + esc(f.name) + '</b><span>' + esc(f.note) + '</span></li>'; }).join('');
+    var notes = forms.map(function (f) { return '<li><b>' + esc(f.name) + '</b><span>' + esc(t(f.note)) + '</span></li>'; }).join('');
 
     var typ = forms.filter(function (f) { return f.typical; })[0] || forms[0];
     var cmp = '';
@@ -375,7 +375,7 @@
     if (typ && ref) {
       var tiles = [
         ['timer', t('Setup time'), t('{r} days', { r: range(typ.setupDays.min, typ.setupDays.max, cnt) }), t('{r} days', { r: range(ref.setupDays.min, ref.setupDays.max, cnt) }), mid(typ.setupDays) - mid(ref.setupDays), ['Faster', 'Slower']],
-        ['shopping_cart', t('Setup cost'), range(typ.setupCostEur.min, typ.setupCostEur.max, eur), range(ref.setupCostEur.min, ref.setupCostEur.max, eur), mid(typ.setupCostEur) - mid(ref.setupCostEur), ['Cheaper', 'Costlier']],
+        ['shopping_cart', t('Setup cost'), eurRange(typ.setupCostEur.min, typ.setupCostEur.max), eurRange(ref.setupCostEur.min, ref.setupCostEur.max), mid(typ.setupCostEur) - mid(ref.setupCostEur), ['Cheaper', 'Costlier']],
         ['savings', t('Capital paid in up front'), eur(typ.minCapital.paidInEur), eur(ref.minCapital.paidInEur), typ.minCapital.paidInEur - ref.minCapital.paidInEur, ['Less', 'More']],
         ['gavel', t('Notary'), t(typ.notary ? 'Required' : 'Not required'), t(ref.notary ? 'Required' : 'Not required'), (typ.notary ? 1 : 0) - (ref.notary ? 1 : 0), ['No notary', 'Notary needed']],
         ['checklist', t('Mandatory steps'), String(typ.steps), String(ref.steps), typ.steps - ref.steps, ['Fewer', 'More']],
@@ -389,7 +389,7 @@
           if (!ug) return '';
           return [
             ['timer', t('Setup time'), t('{r} days', { r: range(ug.setupDays.min, ug.setupDays.max, cnt) }), t('{r} days', { r: range(ref.setupDays.min, ref.setupDays.max, cnt) }), mid(ug.setupDays) - mid(ref.setupDays), ['Faster', 'Slower']],
-            ['shopping_cart', t('Setup cost'), range(ug.setupCostEur.min, ug.setupCostEur.max, eur), range(ref.setupCostEur.min, ref.setupCostEur.max, eur), mid(ug.setupCostEur) - mid(ref.setupCostEur), ['Cheaper', 'Costlier']],
+            ['shopping_cart', t('Setup cost'), eurRange(ug.setupCostEur.min, ug.setupCostEur.max), eurRange(ref.setupCostEur.min, ref.setupCostEur.max), mid(ug.setupCostEur) - mid(ref.setupCostEur), ['Cheaper', 'Costlier']],
             ['savings', t('Capital paid in up front'), eur(ug.minCapital.paidInEur), eur(ref.minCapital.paidInEur), ug.minCapital.paidInEur - ref.minCapital.paidInEur, ['Less', 'More']]
           ].map(function (x) { return tile(x, 'GmbH'); }).join('');
         })() : tiles.map(function (x) { return tile(x, t('Germany')); }).join('')) +
@@ -417,9 +417,9 @@
       var f = x[3], scored = !!crit(x[0]);
       return '<li class="taxitem"><div class="taxitem__head">' + icon(x[1]) + '<h3>' + esc(x[2]) + '</h3>' +
         (scored ? '<span class="taxitem__score" title="' + T('Score') + '">' + dots(f.score) + '<b>' + f.score + '</b></span>' : '<span class="ptag">' + T('not scored') + '</span>') + '</div>' +
-        '<p class="taxitem__value">' + esc(f.value) + '</p>' +
+        '<p class="taxitem__value">' + esc(t(f.value)) + '</p>' +
         '<div class="taxitem__foot">' + srcLinks(f.sources, 2) + (f.confidence ? '<span class="ptag">' + T('{c} confidence', { c: t(f.confidence) }) + '</span>' : '') + '</div>' +
-        (f.note ? details(t('Details'), '<p>' + esc(f.note) + '</p>') : '') + '</li>';
+        (f.note ? details(t('Details'), '<p>' + esc(t(f.note)) + '</p>') : '') + '</li>';
     }).join('');
     var tax = card('cp-tax', 'percent', T('Tax at a glance'), T('scored and informational'), '<ul class="taxgrid">' + taxItems + '</ul>');
 
@@ -430,7 +430,7 @@
       var deItem = function (id) { return (FD && FD.items || []).filter(function (x) { return x.id === id; })[0]; };
       var costRows = F.items.filter(function (it) { return it.id !== 'capitalLocked' && it.id !== 'payrollPerEmployee'; }).map(function (it) {
         var de = deItem(it.id);
-        return '<tr><th scope="row"><span class="tbl__item">' + esc(it.label) + '</span><span class="tbl__note">' + esc(it.note) + '</span></th><td><span class="ptag">' + T(it.oneOff ? 'one-off' : 'per year') + '</span></td><td class="num"><b>' + esc(eur(it.eur)) + '</b></td>' +
+        return '<tr><th scope="row"><span class="tbl__item">' + esc(t(it.label)) + '</span><span class="tbl__note">' + esc(t(it.note)) + '</span></th><td><span class="ptag">' + T(it.oneOff ? 'one-off' : 'per year') + '</span></td><td class="num"><b>' + esc(eur(it.eur)) + '</b></td>' +
           (isDE ? '' : '<td class="num is-ref">' + (de ? esc(eur(de.eur)) : '–') + '</td>') + '</tr>';
       }).join('');
       var total = costK.oneOff + costK.rec, totalDE = costDE.oneOff + costDE.rec, diff = total - totalDE;
@@ -438,7 +438,7 @@
       var lockedRow = function (id, label) {
         var it = F.items.filter(function (x) { return x.id === id; })[0], de = deItem(id);
         if (!it) return '';
-        return '<tr class="tbl__aside"><th scope="row"><span class="tbl__item">' + esc(label) + '</span><span class="tbl__note">' + esc(it.note) + '</span></th><td><span class="ptag">' + T('separate') + '</span></td><td class="num">' + esc(eur(it.eur)) + '</td>' + (isDE ? '' : '<td class="num is-ref">' + (de ? esc(eur(de.eur)) : '–') + '</td>') + '</tr>';
+        return '<tr class="tbl__aside"><th scope="row"><span class="tbl__item">' + esc(label) + '</span><span class="tbl__note">' + esc(t(it.note)) + '</span></th><td><span class="ptag">' + T('separate') + '</span></td><td class="num">' + esc(eur(it.eur)) + '</td>' + (isDE ? '' : '<td class="num is-ref">' + (de ? esc(eur(de.eur)) : '–') + '</td>') + '</tr>';
       };
       var costTable = '<table class="tbl tbl--cost"><caption class="sr-only">' + T('First-year cost estimate') + '</caption><thead><tr><th scope="col">' + T('Item') + '</th><th scope="col">' + T('Type') + '</th><th scope="col" class="num">' + esc(t(c.name)) + '</th>' + (isDE ? '' : '<th scope="col" class="num is-ref">' + T('Germany') + '</th>') + '</tr></thead><tbody>' +
         costRows + sumRow(t('One-off'), costK.oneOff, costDE.oneOff) + sumRow(t('Per year'), costK.rec, costDE.rec) + sumRow(t('Year one in total'), total, totalDE) +
@@ -448,7 +448,7 @@
           (isDE ? '' : '<li class="fact-tile">' + icon(diff <= 0 ? 'trending_down' : 'trending_up') + '<b>' + (diff <= 0 ? '−' : '+') + esc(eur(Math.abs(diff))) + '</b><span>' + T('vs Germany ({d})', { d: eur(totalDE) }) + '</span></li>') +
           (costK.payroll != null ? '<li class="fact-tile">' + icon('groups') + '<b>' + esc(eur(costK.payroll)) + '</b><span>' + T('employer on-costs per €60k employee') + '</span></li>' : '') + '</ul>' +
         tableWrap(costTable, t('First-year cost table')) +
-        (F.note ? '<p class="muted cost-note">' + icon('info') + '<span>' + esc(F.note) + '</span></p>' : ''));
+        (F.note ? '<p class="muted cost-note">' + icon('info') + '<span>' + esc(t(F.note)) + '</span></p>' : ''));
     }
 
     /* roadmap */
@@ -471,8 +471,14 @@
   UI.views.country = viewCountry;
   UI.actions.about = function () { A().go('about'); };
   UI.actions.country = function (el) {
-    var k = el && el.getAttribute('data-k');
-    A().state.countryId = k && country(k) ? k : 'DE';
+    // with data-k: that country; without (top nav): the last profile viewed → the current result's
+    // top country → Germany
+    var st = A().state, k = el && el.getAttribute('data-k');
+    if (!(k && country(k))) {
+      k = st.countryId && country(st.countryId) ? st.countryId : null;
+      if (!k && hasAnswers()) { try { var r = A().evaluate(); k = r && r.top ? r.top.id : null; } catch (e) { k = null; } }
+    }
+    st.countryId = k && country(k) ? k : 'DE';
     A().go('country');
   };
 })(this);

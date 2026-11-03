@@ -89,9 +89,11 @@ body.is-about, body.is-country {
 .tbl--forms thead td, .tbl--forms tbody th { width: 160px; }
 .tbl--forms tbody th { font: var(--type-label-l); letter-spacing: var(--ls-label-l); color: var(--on-surface-variant); }
 .tbl--forms thead th { color: var(--on-surface); }
-.tbl--forms thead th > * { display: block; }
-.tbl__form { font: var(--type-title-m); letter-spacing: var(--ls-title-m); margin-bottom: 8px; }
-.tbl--forms thead .chip { display: inline-flex; }
+/* form name + chip on one line; if the chip does not fit it wraps ABOVE the name (wrap-reverse),
+   so every form name stays on the same bottom line across the columns */
+.tbl__formhead { display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 4px 8px; min-height: 28px; } /* 28px = small chip, so headings with and without a chip line up */
+.tbl__form { font: var(--type-title-m); letter-spacing: var(--ls-title-m); }
+.tbl--forms thead .chip { display: inline-flex; flex-shrink: 0; }
 .tbl--forms td { color: var(--on-surface-variant); }
 .tbl--forms td b { color: var(--on-surface); }
 .tbl__src { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -139,6 +141,7 @@ body.is-about, body.is-country {
 .cp-head { display: flex; align-items: flex-start; gap: 24px; }
 .cp-head__text { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; min-width: 0; }
 .avatar--xl { width: 96px; height: 96px; font: var(--type-headline-m); letter-spacing: var(--ls-headline-m); font-weight: 500; background: var(--primary-container); color: var(--on-primary-container); border-radius: var(--shape-xl); }
+.avatar--xl.avatar--flag { border-radius: var(--shape-full); background: var(--surface-container-highest); }
 .cp-switch { margin: 0 0 8px; }
 /* 48dp target: the transparent border must be --tgt wide (the generic .chip border would otherwise win) */
 .cp-switch .chip--filter { border-width: var(--tgt); background-clip: padding-box; }

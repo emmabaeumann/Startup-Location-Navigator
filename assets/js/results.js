@@ -46,7 +46,16 @@
     var cell = D.SCORES[row.id][c];
     return cell && cell.sources && cell.sources[0] ? cell.sources[0] : null;
   }
-  function factOf(row, c) { return c === 'residence' && row.residence ? t(row.residence.text) : D.SCORES[row.id][c].value; }
+  function factOf(row, c) { return c === 'residence' && row.residence ? t(row.residence.text) : t(D.SCORES[row.id][c].value); }
+  /* engine warning → UI language (dynamic warnings carry tpl + English vars, translated here) */
+  function warnText(w) {
+    if (!w.tpl) return t(w.text);
+    var v = {};
+    Object.keys(w.vars || {}).forEach(function (k) { var x = w.vars[k]; v[k] = Array.isArray(x) ? x.map(function (y) { return t(y); }).join(', ') : t(x); });
+    return t(w.tpl, v);
+  }
+  /* score adjustment "+1: reason" → translated reason */
+  function adjText(x) { var m = /^([+\-−]?\d+): (.*)$/.exec(x); return m ? m[1] + ': ' + t(m[2]) : t(x); }
   /* Number of hires from the answer (engine's firstYearCost expects a number, the question stores a band). */
   var HIRES = { '0': 0, '1to2': 2, '3to5': 4, '6plus': 6 };
   function hiresOf(a) { if (typeof E.hiresOf === 'function') return E.hiresOf(a) || 0; return typeof a.hires === 'number' ? a.hires : (HIRES[a.hires] || 0); }
@@ -130,8 +139,8 @@
       (scoreOpen ? '<p class="infopanel" id="info-score">' + esc(t('How close this country gets to 5/5 on everything you weight (100 = top score on every factor). Gaps of 2–3 points are within data precision.')) + '</p>' : '') +
       verdictHtml(res, state) +
       '<ul class="fact-tiles">' +
-        '<li class="fact-tile">' + icon('domain') + '<b>' + esc(form ? form.name : top.country.entity) + '</b><span>' + esc(t('typical legal form')) + '</span></li>' +
-        '<li class="fact-tile">' + icon('location_city') + '<b>' + esc(top.country.hub) + '</b><span>' + esc(t('hubs')) + '</span></li>' + rob + confidenceTile(res) +
+        '<li class="fact-tile">' + icon('domain') + '<b>' + esc(form ? form.name : t(top.country.entity)) + '</b><span>' + esc(t('typical legal form')) + '</span></li>' +
+        '<li class="fact-tile">' + icon('location_city') + '<b>' + esc(t(top.country.hub)) + '</b><span>' + esc(t('hubs')) + '</span></li>' + rob + confidenceTile(res) +
       '</ul>' +
       (strongest ? '<div class="winner__block"><span class="label">' + esc(t('Strongest for you')) + '</span><ul class="chips">' + strongest + '</ul></div>' : '') +
       '<div class="winner__block"><span class="label">' + esc(t('What makes up {n} points', { n: top.score })) + '</span><div class="contrib__bar" role="img" aria-label="' + esc(t('Score contribution by criterion') + ': ' + parts.map(function (p) { return t(crit(p.id).short) + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><ul class="contrib__legend">' + legend + '</ul></div>' +
@@ -218,7 +227,7 @@
     // engine.warnings() is already specific to the winner (and to the founder's answers)
     var watch = res.warnings.map(function (w) {
       var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []);
-      return '<li class="r-w r-w--' + esc(w.type) + '"><span>' + esc(w.text) + '</span>' + ss.map(function (x) { return srcLink(x); }).join('') + '</li>';
+      return '<li class="r-w r-w--' + esc(w.type) + '"><span>' + esc(warnText(w)) + '</span>' + ss.map(function (x) { return srcLink(x); }).join('') + '</li>';
     });
     return '<div class="insights">' +
       '<section class="insight insight--why" aria-labelledby="ins-h-why"><h3 id="ins-h-why">' + icon('thumb_up') + esc(t('Why it fits')) + '</h3>' + capped('why', why, t('Balanced profile – no single standout.'), state) + '</section>' +
@@ -229,7 +238,7 @@
   /* ---------- legal forms & founding vs Germany ---------- */
   function mid(r) { return (r.min + r.max) / 2; }
   function range(r, unit) { return r.min === r.max ? r.min + unit : r.min + '–' + r.max + unit; }
-  function eurRange(r) { return r.min === r.max ? eur(r.min) : eur(r.min) + '–' + eur(r.max).replace('€', ''); }
+  function eurRange(r) { return UI.eurRange(r.min, r.max); }
   function badge(kind, text) { return '<span class="r-badge r-badge--' + kind + '">' + icon(kind === 'good' ? 'check' : (kind === 'bad' ? 'warning' : 'remove')) + esc(text) + '</span>'; }
   function legalCompare(f, b, bName) {
     var o = {};
@@ -258,22 +267,22 @@
     };
     var capVal = function (x) { return x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' · ' + esc(t('{x} paid in', { x: eur(x.minCapital.paidInEur) })) : esc(t('none')); };
     var table = '<div class="r-lf__wrap"><table class="r-lf"><caption class="sr-only">' + esc(t('{form} in {c} compared with {base}', { form: f.name, c: inName(sel), base: bName })) + '</caption>' +
-      '<thead><tr><th scope="col"><span class="sr-only">' + esc(t('Aspect')) + '</span></th><th scope="col">' + avatar(sel, true) + esc(f.name) + '</th><th scope="col" class="r-lf__base">' + avatar(baseId) + esc(t('vs {b}', { b: b.name })) + '</th></tr></thead><tbody>' +
-      row(t('Minimum capital'), 'account_balance', capVal(f), f.minCapital.text, cmp.cap, capVal(b)) +
-      row(t('Liability'), 'shield', esc(f.liability), '', '', esc(b.liability.split('. ')[0].replace(/\.$/, '') + '.')) +
-      row(t('Notary'), 'gavel', esc(f.notary ? t('Required') : t('Not required')), f.notaryText, cmp.notary, esc(b.notary ? t('Required') : t('Not required'))) +
-      row(t('Profit tax'), 'percent', esc(f.profitTax), '', '', esc(b.profitTax.split(';')[0])) +
+      '<thead><tr><th scope="col"><span class="sr-only">' + esc(t('Aspect')) + '</span></th><th scope="col">' + avatar(sel, true) + '<span class="sr-only">' + esc(tn(sel)) + ': </span>' + esc(f.name) + '</th><th scope="col" class="r-lf__base">' + avatar(baseId) + esc(t('vs {b}', { b: b.name })) + '<span class="sr-only"> (' + esc(tn(baseId)) + ')</span>' + '</th></tr></thead><tbody>' +
+      row(t('Minimum capital'), 'account_balance', capVal(f), t(f.minCapital.text), cmp.cap, capVal(b)) +
+      row(t('Liability'), 'shield', esc(t(f.liability)), '', '', esc(t(b.liability).split(/\.\s+(?=[A-ZÄÖÜ])/)[0].replace(/\.$/, '') + '.')) +
+      row(t('Notary'), 'gavel', esc(f.notary ? t('Required') : t('Not required')), t(f.notaryText), cmp.notary, esc(b.notary ? t('Required') : t('Not required'))) +
+      row(t('Profit tax'), 'percent', esc(t(f.profitTax)), '', '', esc(t(b.profitTax).split(';')[0])) +
       row(t('Setup time'), 'timer', esc(t('{r} days', { r: range(f.setupDays, '') })), f.steps ? t('{n} mandatory steps', { n: f.steps }) : '', cmp.days, esc(t('{r} days', { r: range(b.setupDays, '') }))) +
       row(t('Setup cost'), 'savings', esc(eurRange(f.setupCostEur)), t('notary, register and official fees'), cmp.cost, esc(eurRange(b.setupCostEur))) +
       '</tbody></table></div>';
     var alts = (D.LEGAL_FORMS[sel] || []).filter(function (x) { return x !== f; });
     var altHtml = alts.length ? '<div class="r-lf__alts"><span class="label">' + esc(t('Also possible')) + '</span><ul class="chips">' + alts.map(function (x) {
-      return '<li class="chip chip--small" title="' + esc(x.note || '') + '">' + icon('domain') + esc(x.name) + ' · ' + esc(x.minCapital.eur ? t('from {x}', { x: eur(x.minCapital.eur) }) : t('no minimum capital')) + '</li>';
+      return '<li class="chip chip--small" title="' + esc(t(x.note || '')) + '">' + icon('domain') + esc(x.name) + ' · ' + esc(x.minCapital.eur ? t('from {x}', { x: eur(x.minCapital.eur) }) : t('no minimum capital')) + '</li>';
     }).join('') + '</ul></div>' : '';
     var all = '<table class="r-all"><caption class="sr-only">' + esc(t('Typical legal form in all six countries')) + '</caption><thead><tr><th scope="col">' + esc(t('Country')) + '</th><th scope="col">' + esc(t('Typical form')) + '</th><th scope="col">' + esc(t('Min. capital (paid in)')) + '</th><th scope="col">' + esc(t('Notary')) + '</th><th scope="col">' + esc(t('Profit tax')) + '</th><th scope="col">' + esc(t('Setup days')) + '</th><th scope="col">' + esc(t('Setup cost')) + '</th></tr></thead><tbody>' +
       orderIds.map(function (k) {
         var x = typicalForm(k); if (!x) return '';
-        return '<tr class="' + (k === sel ? 'is-sel' : '') + '"><th scope="row">' + avatar(k, k === top.id) + '<span>' + esc(tn(k)) + '</span></th><td>' + esc(x.name) + '</td><td>' + (x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' <small>(' + esc(eur(x.minCapital.paidInEur)) + ')</small>' : '–') + '</td><td>' + esc(x.notary ? t('Yes') : t('No')) + '</td><td>' + esc(x.profitTax.split(/[;(]/)[0].trim()) + '</td><td>' + esc(range(x.setupDays, '')) + '</td><td>' + esc(eurRange(x.setupCostEur)) + '</td></tr>';
+        return '<tr class="' + (k === sel ? 'is-sel' : '') + '"><th scope="row"><span class="r-all__c">' + avatar(k, k === top.id) + '<span>' + esc(tn(k)) + '</span></span></th><td>' + esc(x.name) + '</td><td>' + (x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' <small>(' + esc(eur(x.minCapital.paidInEur)) + ')</small>' : '–') + '</td><td>' + esc(x.notary ? t('Yes') : t('No')) + '</td><td>' + esc(t(x.profitTax).split(/[;(]/)[0].trim()) + '</td><td>' + esc(range(x.setupDays, '')) + '</td><td>' + esc(eurRange(x.setupCostEur)) + '</td></tr>';
       }).join('') + '</tbody></table>';
     var openAll = !!state.openInfo['legal-all'];
     var srcs = (f.sources || []).slice(0, 4).map(function (s) { return srcLink(s); }).join('');
@@ -281,7 +290,7 @@
       (f.confidence === 'low' ? '<span class="chip chip--small chip--warning">' + icon('warning') + esc(t('Low certainty')) + '</span>' : '<span class="rail__meta">' + esc(t('typical form per country')) + '</span>') + '</div>' +
       chipSet('radio', t('Country for legal form'), orderIds, sel, 'legal') +
       '<p class="r-lede r-lede--strong">' + esc(summary) + '</p>' + table +
-      (f.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(f.note) + '</span></p>' : '') + altHtml +
+      (f.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(t(f.note)) + '</span></p>' : '') + altHtml +
       (srcs ? '<div class="r-srcs">' + srcs + '</div>' : '') +
       '<details class="details r-exp" data-keep="legal-all"' + (openAll ? ' open' : '') + '><summary>' + icon('expand_more') + esc(t('Compare the typical form in all six countries')) + '</summary><div class="details__body"><div class="r-scroll">' + all + '</div></div></details>' +
       '</section>';
@@ -314,13 +323,13 @@
     }).join('') + '</ul><ul class="contrib__legend r-costlegend"><li><i class="c0"></i>' + esc(t('One-off')) + '</li><li><i class="c2"></i>' + esc(t('Recurring')) + '</li>' + (hires ? '<li><i class="c4"></i>' + esc(t('Payroll on-costs')) + '</li>' : '') + '</ul>';
     var c0 = F[top.id], openItems = !!state.openInfo['cost-items'];
     var items = '<ul class="r-items">' + c0.items.map(function (it) {
-      return '<li><div><strong>' + esc(t(it.label)) + '</strong><span>' + esc(it.note || '') + '</span>' + (it.sources || []).slice(0, 2).map(function (s) { return srcLink(s); }).join('') + '</div><b>' + esc(eur(it.eur)) + '</b></li>';
+      return '<li><div><strong>' + esc(t(it.label)) + '</strong><span>' + esc(t(it.note || '')) + '</span>' + (it.sources || []).slice(0, 2).map(function (s) { return srcLink(s); }).join('') + '</div><b>' + esc(eur(it.eur)) + '</b></li>';
     }).join('') + '</ul>';
     var hireNote = hires > 0 ? t('Payroll is shown for {n} hires based on your answer “{a}”.', { n: hires, a: A().answerLabel(A().Q.filter(function (q) { return q.id === 'hires'; })[0]) || '' }) : t('Payroll is not included – you plan no hires in year one (or skipped the question).');
     return '<section class="card r-cost" aria-labelledby="cost-title"><div class="card__head"><h2 id="cost-title">' + icon('savings') + esc(t('First-year cost')) + '</h2><span class="chip chip--small chip--warning">' + icon('info') + esc(t('Estimate')) + '</span></div>' +
       '<p class="r-lede">' + esc(t('Rough cost of setting up and running the typical legal form for one year, in euros. Share capital is shown separately: it stays in the company and is not an expense.')) + ' ' + esc(hireNote) + '</p>' +
       bars + '<div class="r-scroll"><table class="r-costtab"><caption class="sr-only">' + esc(t('Estimated first-year cost by country')) + '</caption><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>' +
-      (c0.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(c0.note) + '</span></p>' : '') +
+      (c0.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(t(c0.note)) + '</span></p>' : '') +
       '<details class="details r-exp" data-keep="cost-items"' + (openItems ? ' open' : '') + '><summary>' + icon('expand_more') + esc(t('Line items for {c}', { c: tn(top.id) })) + '</summary><div class="details__body">' + items + '</div></details></section>';
   }
 
@@ -366,7 +375,7 @@
     return '<section class="card" aria-labelledby="rm-title"><div class="card__head"><h2 id="rm-title">' + icon('route') + esc(t('Founding roadmap')) + '</h2><span class="rail__meta">' + esc(t('{n} steps', { n: D.ROADMAP[tab].length })) + '</span></div>' +
       chipSet('tab', t('Country roadmap'), orderIds, tab, 'tab', ' aria-controls="rm-panel"') +
       '<div id="rm-panel" role="tabpanel" aria-labelledby="tab-' + tab + '" class="r-rmpanel">' +
-      '<ul class="fact-tiles fact-tiles--plain"><li class="fact-tile">' + icon('domain') + '<b>' + esc(f ? f.name : country(tab).entity) + '</b><span>' + esc(t('typical legal form')) + '</span></li>' + (rs ? '<li class="fact-tile">' + icon('badge') + '<b>' + esc(t(rs.text)) + '</b><span>' + esc(t('residence')) + '</span></li>' : '') + '</ul>' +
+      '<ul class="fact-tiles fact-tiles--plain"><li class="fact-tile">' + icon('domain') + '<b>' + esc(f ? f.name : t(country(tab).entity)) + '</b><span>' + esc(t('typical legal form')) + '</span></li>' + (rs ? '<li class="fact-tile">' + icon('badge') + '<b>' + esc(t(rs.text)) + '</b><span>' + esc(t('residence')) + '</span></li>' : '') + '</ul>' +
       '<ol class="roadmap">' + steps + '</ol></div></section>';
   }
 
@@ -403,7 +412,7 @@
       '<div class="grid-2 r-hero">' + winnerCard(res, state) + rankingCard(res) + '</div>' +
       whyOverCard(res) + insights(res, state) + legalCard(res, state, orderIds) + costCard(res, state) +
       matrixCard(res, orderIds) + whatIfCard(res, state) + roadmapCard(res, state, orderIds) + answersCard(res, state) +
-      (UI.i18n && UI.i18n.lang() === 'de' ? '<p class="disclaimer">' + icon('translate') + esc(t('Evidence texts and sources are shown in their original English.')) + '</p>' : '') +
+      (UI.i18n && UI.i18n.lang() === 'de' ? '<p class="disclaimer">' + icon('translate') + esc(t('Source titles are shown in their original language.')) + '</p>' : '') +
       '<p class="disclaimer">' + icon('info') + esc(t('Orientation, not legal or tax advice')) + ' · ' + esc(t('Deterministic · sourced · reproducible')) + ' · <button type="button" class="btn btn--text btn--inline" data-action="method">' + esc(t('How it’s calculated')) + '</button></p>' +
       '<nav class="r-actionbar" aria-label="' + esc(t('Result actions')) + '">' + actionButtons(' r-actionbar__btn') + '</nav>' +
       '</section>';
@@ -418,13 +427,13 @@
       var rsrc = residenceSource(row);
       cell = { value: t(row.residence.text), note: cell.note, sources: rsrc ? [rsrc, 'dahl_sorenson'].filter(function (x, i, a) { return a.indexOf(x) === i; }) : ['dahl_sorenson'], confidence: cell.confidence };
     }
-    var adj = s.adj.length ? '<p class="dialog__adj">' + icon('person') + '<span>' + esc(s.adj.join('; ')) + ' <b>(' + s.base + ' → ' + s.value + ')</b></span></p>' : '';
+    var adj = s.adj.length ? '<p class="dialog__adj">' + icon('person') + '<span>' + esc(s.adj.map(adjText).join('; ')) + ' <b>(' + s.base + ' → ' + s.value + ')</b></span></p>' : '';
     var srcs = cell.sources.length ? cell.sources.map(function (id) { return src(id) ? srcLink(id, src(id).t + ' – ' + src(id).p) : ''; }).join('') : '<span class="muted">' + esc(t('No primary source found – estimate.')) + '</span>';
     document.getElementById('detail-body').innerHTML =
       '<div class="dialog__head">' + avatar(k, true) + '<div><span class="overline">' + esc(tn(k)) + '</span><h2 id="detail-title">' + esc(t(cr.name)) + '</h2></div><button type="button" class="iconbtn" data-action="close" aria-label="' + esc(t('Close')) + '">' + icon('close') + '</button></div>' +
       '<div class="dialog__score">' + dots(s.value) + '<b>' + s.value + '<small>/5</small></b><span class="chip chip--small">' + icon('signal_cellular_alt') + esc(t('{l} confidence', { l: t(cell.confidence) })) + '</span></div>' +
-      '<p class="fact">' + esc(cell.value) + '</p><p>' + esc(cell.note) + '</p>' + adj +
-      '<p class="dialog__scale">' + icon('straighten') + '<span>' + esc(cr.anchors) + '</span></p>' +
+      '<p class="fact">' + esc(t(cell.value)) + '</p><p>' + esc(t(cell.note)) + '</p>' + adj +
+      '<p class="dialog__scale">' + icon('straighten') + '<span>' + esc(t(cr.anchors)) + '</span></p>' +
       '<div class="dialog__srcs">' + srcs + '</div>';
     if (A().dialog.showModal) A().dialog.showModal(); else A().dialog.setAttribute('open', '');
     var btn = A().dialog.querySelector('[data-action="close"]'); if (btn) btn.focus();

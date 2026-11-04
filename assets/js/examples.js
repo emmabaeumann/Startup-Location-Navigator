@@ -7,13 +7,12 @@
 (function (root) {
   'use strict';
   var EXAMPLES = [
-    { id: 'tum-saas', icon: 'school', label: 'TUM student, SaaS, wants VC', desc: 'EU citizen in Munich, German angel, 1–2 hires',
+    { id: 'tum-saas', icon: 'school', label: 'EU student at TUM, SaaS, VC', desc: 'Lives in Munich, German angel, 1–2 hires',
       answers: { citizenship: ['eu'], residence: 'DE', relocation: 'europe', sector: 'software', market: 'dach',
         funding: ['vc', 'grants'], capital: 'lt10', investors: ['DE'], exit: 'sale', esop: 'key', hires: '1to2' } },
-    { id: 'noneu-deeptech', icon: 'public', label: 'Non-EU deeptech founder', desc: 'AI startup, open to move anywhere, needs a visa',
-      answers: { citizenship: ['other'], residence: 'elsewhere', relocation: 'anywhere', sector: 'ai', market: 'global',
-        funding: ['accelerator', 'vc'], capital: 'lt10', investors: ['none'], exit: 'ipo', esop: 'all', hires: '3to5',
-        priorities: { residence: 3 } } },
+    { id: 'tum-noneu', icon: 'badge', label: 'Non-EU student at TUM, robotics', desc: 'Lives in Munich on a student permit, grants first',
+      answers: { citizenship: ['other'], residence: 'DE', relocation: 'europe', sector: 'hardware', market: 'eu',
+        funding: ['grants', 'accelerator'], capital: 'none', investors: ['none'], exit: 'sale', esop: 'key', hires: '1to2' } },
     { id: 'pt-bootstrap', icon: 'savings', label: 'Portuguese bootstrapper', desc: 'Consumer app, own money, keeps the company',
       answers: { citizenship: ['eu'], residence: 'PT', relocation: 'europe', sector: 'consumer', market: 'home',
         funding: ['bootstrap'], capital: 'lt10', investors: ['none'], exit: 'hold', esop: 'no', hires: '0' } },

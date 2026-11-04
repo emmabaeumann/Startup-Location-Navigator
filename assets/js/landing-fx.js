@@ -53,6 +53,10 @@
 
   /* Map-only profile: a US founder, so one route crosses the Atlantic (not shown among the example cards). */
   var MAP_EXTRA = [
+    { id: 'noneu-deeptech', icon: 'public', label: 'Non-EU deeptech founder',
+      answers: { citizenship: ['other'], residence: 'elsewhere', relocation: 'anywhere', sector: 'ai', market: 'global',
+        funding: ['accelerator', 'vc'], capital: 'lt10', investors: ['none'], exit: 'ipo', esop: 'all', hires: '3to5',
+        priorities: { residence: 3 } } },
     { id: 'us-bootstrap', icon: 'flight_takeoff', label: 'US bootstrapper selling to Europe',
       answers: { citizenship: ['us'], residence: 'US', relocation: 'anywhere', sector: 'consumer', market: 'eu',
         funding: ['bootstrap'], capital: '10to25', investors: ['none'], exit: 'hold', esop: 'no', hires: '0' } }

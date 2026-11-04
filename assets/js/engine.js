@@ -141,8 +141,12 @@
     global: { US: 5, UK: 4, DE: 4, CH: 3, PT: 3, LI: 2 }
   };
 
-  var RES_SCORE = { home: 5, citizen: 4, free: 4, visa: 2, limited: 1 };
+  // 'permit' = you live there, but no passport gives free movement there: local roots count, the right to
+  // found depends on the permit you hold (a student permit, for example, allows employment only) → 3.
+  var RES_SCORE = { home: 5, citizen: 4, free: 4, permit: 3, visa: 2, limited: 1 };
   var RES_RANK = { home: 5, citizen: 4, free: 3, visa: 2, limited: 1 };
+  // Passports whose holders, once living in Switzerland or Liechtenstein, already have the quota-limited permit.
+  var EEA_CH = { eu: 1, ch: 1, li: 1 };
 
   var IDS = D.COUNTRIES.map(function (c) { return c.id; });
   var COUNTRY_IN_LIST = { DE: 1, CH: 1, LI: 1, UK: 1, US: 1, PT: 1 };
@@ -219,8 +223,19 @@
 
   /* ---------- residence status ---------- */
   function residenceStatus(a, k) {
-    if (a.residence === k) return { level: 'home', text: 'You already live here' };
     var list = cits(a);
+    var best = passportStatus(list, k);
+    if (a.residence === k) {
+      // Living somewhere is only the full home advantage when a passport also gives the right to found there.
+      // Unknown citizenship keeps the home score (most residents are citizens or have free movement).
+      var noRight = best && (best.level === 'visa' || (best.level === 'limited' && !list.some(function (c) { return EEA_CH[c]; })));
+      if (noRight) return { level: 'permit', text: D.RESIDENT_PERMIT[k] || D.RESIDENT_PERMIT._ };
+      return { level: 'home', text: 'You already live here' };
+    }
+    return best;
+  }
+  // Best right the founder's passport(s) give in country k, ignoring where they live.
+  function passportStatus(list, k) {
     if (!list.length) return null;
     var best = null;
     list.forEach(function (c) {
@@ -289,7 +304,7 @@
     /* HOME-BASE CAP (quoted on the method page)
      * Living in a country and selling to its market are both real advantages, but they describe the
      * same fact – "this is home". So the combined uplift that the home country receives from the
-     * home answers (residence 5 instead of the citizenship-based score, plus market 5 instead of the
+     * home answers (residence 5 – or 3 without free movement – instead of the citizenship-based score, plus market 5 instead of the
      * evidence score when your first customers are "in my home country") is capped at
      * HOME_BASE_CAP = 2 score steps. Any excess is taken off the market uplift; the residence score
      * itself is never reduced (an existing residence permit is a real, separate advantage). Local
@@ -430,6 +445,10 @@
     if (!top) return w;
     var k = top.id;
     var cl = cits(a);
+    if (top.residence && top.residence.level === 'permit') {
+      if (k === 'DE') w.push({ type: 'warn', title: 'Check your residence permit', text: 'Living in Germany is not the same as being allowed to found here. A student permit allows employment only (§16b AufenthG); self-employment needs approval (§21 (6)). With a degree from a German university, a self-employment permit is the standard route if the startup relates to your studies (§21 (2a)). A settlement permit already allows it.', src: 'aufenthg21' });
+      else w.push({ type: 'warn', title: 'Check your residence permit', text: 'You live here, but no passport of yours gives free movement here. Check that your current permit allows self-employment before you register the company; if not, apply for a founder or self-employment permit first.', src: null });
+    }
     if (a.relocation === 'stay' && COUNTRY_IN_LIST[a.residence]) {
       var stayTpl = 'Only {c} is ranked because you stay where you live. A company registered abroad but run from home usually stays tax-resident where it is actually managed (e.g. §10 AO, §1 KStG in Germany).';
       var stayName = D.COUNTRIES[IDS.indexOf(a.residence)].name;
@@ -513,7 +532,11 @@
         if (vi.length) say('visa or permit needed for {list};', { list: vi });
         if (li.length) say('residence quota-limited in {list};', { list: li });
       } else if (q.id === 'residence') {
-        if (COUNTRY_IN_LIST[v]) {
+        var hr = res.rows.filter(function (r) { return r.id === v; })[0];
+        if (COUNTRY_IN_LIST[v] && hr && hr.residence && hr.residence.level === 'permit') {
+          say('{c} gets residence score 3, not 5: you live there, but no passport of yours gives free movement there, so founding depends on your permit.', { c: [v] });
+          if (a.market === 'home') say('With your home market, this home-base uplift is capped at {n} score steps (no double counting).', { n: HOME_BASE_CAP });
+        } else if (COUNTRY_IN_LIST[v]) {
           say('{c} gets the top residence score (5) for your existing home base.', { c: [v] });
           if (a.market === 'home') say('With your home market, this home-base uplift is capped at {n} score steps (no double counting).', { n: HOME_BASE_CAP });
         } else say('Not one of the six countries, so no home-base bonus.');

@@ -134,10 +134,36 @@ test('home-base cap: residence + home-market uplift never exceeds HOME_BASE_CAP 
     const row = E.evaluate(a, true).rows.find(x => x.id === home);
     const upRes = row.scores.residence.value - base.scores.residence.value;
     const upMkt = row.scores.market.value - row.scores.market.base;
-    assert.strictEqual(row.scores.residence.value, 5, 'living there always gives residence 5');
+    const st = E.evaluate(cit.length ? { citizenship: cit } : {}, true).rows.find(x => x.id === home).residence;
+    const noRight = st && (st.level === 'visa' || (st.level === 'limited' && !cit.some(c => ['eu', 'ch', 'li'].includes(c))));
+    assert.strictEqual(row.scores.residence.value, noRight ? 3 : 5, `${cit}/${home}: living there gives 5, or 3 without free movement`);
     assert.ok(upMkt >= 0);
     assert.ok(upMkt === 0 || upRes + upMkt <= E.HOME_BASE_CAP, `${cit}/${home}: res +${upRes}, market +${upMkt}`);
   }
+});
+
+test('living somewhere without free movement there scores 3 (permit), not the full home 5', () => {
+  const res = (a, k) => E.evaluate(a, true).rows.find(x => x.id === k);
+  // non-EU student in Munich: roots count, the right to found depends on the permit
+  const de = res({ citizenship: ['other'], residence: 'DE' }, 'DE');
+  assert.strictEqual(de.residence.level, 'permit');
+  assert.strictEqual(de.scores.residence.value, 3);
+  assert.match(de.residence.text, /§21 \(2a\)/);
+  // EU citizen in Munich, EEA citizen in Liechtenstein, US citizen at home: full home advantage
+  assert.strictEqual(res({ citizenship: ['eu'], residence: 'DE' }, 'DE').scores.residence.value, 5);
+  assert.strictEqual(res({ citizenship: ['eu'], residence: 'LI' }, 'LI').scores.residence.value, 5);
+  assert.strictEqual(res({ citizenship: ['us'], residence: 'US' }, 'US').scores.residence.value, 5);
+  // a second passport with free movement lifts it back to home
+  assert.strictEqual(res({ citizenship: ['other', 'eu'], residence: 'DE' }, 'DE').residence.level, 'home');
+  // third-country national in Switzerland / EU citizen in the UK: permit
+  assert.strictEqual(res({ citizenship: ['us'], residence: 'CH' }, 'CH').residence.level, 'permit');
+  assert.strictEqual(res({ citizenship: ['eu'], residence: 'UK' }, 'UK').residence.level, 'permit');
+  // citizenship unknown: keeps the home score
+  assert.strictEqual(res({ residence: 'DE' }, 'DE').scores.residence.value, 5);
+  // the winner gets a permit warning (DE cites §21 AufenthG); EU founders do not
+  const r = E.evaluate({ citizenship: ['other'], residence: 'DE', relocation: 'stay' });
+  assert.ok(r.warnings.some(w => w.title === 'Check your residence permit' && w.src === 'aufenthg21'));
+  assert.ok(!E.evaluate({ citizenship: ['eu'], residence: 'DE', relocation: 'stay' }).warnings.some(w => w.title === 'Check your residence permit'));
 });
 
 /* ---------- 4. ESOP ---------- */

@@ -141,7 +141,7 @@
       return '<li>' + esc(t(sa.label)) + ' → +1 ' + cn('talent') + ' (' + IDS.filter(function (k) { return sa[k]; }).map(function (k) { return esc(t(country(k).name)); }).join(', ') + ') ' + srcLinks(sa.src, 1) + '</li>';
     }).join('');
     var s3 = '<ul>' +
-      '<li>' + cn('residence') + ': ' + T('5 where you live, 4 with citizenship or free movement, 2 with a visa, 1 if quota-limited. Best citizenship counts; no answers = 3.') + '</li>' +
+      '<li>' + cn('residence') + ': ' + T('5 where you live (3 if no passport of yours gives free movement there: then it depends on your permit), 4 with citizenship or free movement, 2 with a visa, 1 if quota-limited. Best citizenship counts; no answers = 3.') + '</li>' +
       '<li>' + T('Existing investors → +1 VC access where based (CH and LI count together; “Portugal / other EU” lifts PT and DE).') + '</li>' +
       '<li>' + T('US grants: +1 for US citizens, −1 otherwise (SBIR/STTR needs > 50% US ownership).') + '</li>' +
       '<li>' + T('Sector: +1 on ecosystem only where sourced:') + '<ul class="sublist">' + sectors + '</ul>' + T('AI hubs (US, UK) already score 5; software is least location-bound; climate & energy and consumer lack comparable evidence.') + '</li>' +

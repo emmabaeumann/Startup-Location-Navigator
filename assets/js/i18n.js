@@ -13,6 +13,8 @@
     "country profile": "Länderprofil",
     "Source titles are shown in their original language.": "Quellentitel stehen in ihrer Originalsprache.",
     "You already live here": "Du lebst bereits hier",
+    "You live here on a permit: a student permit allows employment only. German graduates can switch to self-employment (§21 (2a) AufenthG)": "Du lebst hier mit Aufenthaltstitel: Ein Studientitel erlaubt nur Beschäftigung. Absolvent:innen deutscher Hochschulen können zur Selbstständigkeit wechseln (§21 Abs. 2a AufenthG)",
+    "You live here on a permit: check that it allows self-employment": "Du lebst hier mit Aufenthaltstitel: Prüfe, ob er Selbstständigkeit erlaubt",
     "EU free movement": "EU-Freizügigkeit",
     "Your passport country – full rights": "Land deines Passes – volle Rechte",
     "Free movement under the EU–Swiss agreement": "Freizügigkeit nach dem Abkommen EU–Schweiz",
@@ -34,6 +36,7 @@
     "free movement in {list};": "Freizügigkeit in {list};",
     "visa or permit needed for {list};": "Visum oder Bewilligung nötig für {list};",
     "residence quota-limited in {list};": "Aufenthalt kontingentiert in {list};",
+    "{c} gets residence score 3, not 5: you live there, but no passport of yours gives free movement there, so founding depends on your permit.": "{c} erhält Aufenthalts-Score 3 statt 5: Du lebst dort, aber keiner deiner Pässe gibt dir dort Freizügigkeit – ob du gründen darfst, hängt von deinem Aufenthaltstitel ab.",
     "{c} gets the top residence score (5) for your existing home base.": "{c} erhält den höchsten Aufenthalts-Score (5) für deinen bestehenden Lebensmittelpunkt.",
     "With your home market, this home-base uplift is capped at {n} score steps (no double counting).": "Zusammen mit deinem Heimatmarkt ist der Heimvorteil auf {n} Score-Stufen begrenzt (keine Doppelzählung).",
     "Only {c} is ranked; the others are shown for reference.": "Nur {c} wird gerankt; die anderen dienen als Vergleich.",
@@ -129,10 +132,11 @@
     'Same answers, same ranking.': 'Gleiche Antworten, gleiches Ranking.',
 
     /* example founders (examples.js) */
-    'TUM student, SaaS, wants VC': 'TUM-Studi, SaaS, sucht VC',
-    'EU citizen in Munich, German angel, 1–2 hires': 'EU-Bürger:in in München, deutscher Angel, 1–2 Einstellungen',
+    'EU student at TUM, SaaS, VC': 'EU-Studi an der TUM, SaaS, VC',
+    'Lives in Munich, German angel, 1–2 hires': 'Wohnt in München, deutscher Angel, 1–2 Einstellungen',
+    'Non-EU student at TUM, robotics': 'TUM-Studi ohne EU-Pass, Robotik',
+    'Lives in Munich on a student permit, grants first': 'Wohnt in München mit Studien-Aufenthaltstitel, erst Fördermittel',
     'Non-EU deeptech founder': 'Deeptech-Gründer:in ohne EU-Pass',
-    'AI startup, open to move anywhere, needs a visa': 'KI-Startup, überall umzugsbereit, braucht ein Visum',
     'Portuguese bootstrapper': 'Bootstrapper aus Portugal',
     'Consumer app, own money, keeps the company': 'Consumer-App, Eigenkapital, behält die Firma',
     'Swiss fintech': 'Schweizer Fintech',
@@ -261,7 +265,7 @@
     'Sourced sector hubs get +1 on talent & ecosystem.': 'Belegte Branchen-Hubs bekommen +1 bei Talent & Ökosystem.',
     'Countries near your first customers score higher on market access.': 'Länder nahe an deinen ersten Kunden punkten beim Marktzugang.',
     'Each funding route adds +1 weight to its criterion.': 'Jeder Finanzierungsweg gibt seinem Kriterium +1 Gewicht.',
-    'Switzerland and Liechtenstein require minimum capital paid in before registration.': 'Die Schweiz und Liechtenstein verlangen eingezahltes Mindestkapital vor der Eintragung.',
+    'Switzerland, Liechtenstein and a German GmbH need capital paid in before registration; a German UG starts from €1.': 'Die Schweiz, Liechtenstein und die deutsche GmbH verlangen eingezahltes Kapital vor der Eintragung; eine deutsche UG startet ab 1 €.',
     'Investors raise VC access where they are based.': 'Investoren heben den VC-Zugang an ihrem Sitz.',
     'Selling weights exit tax; holding weights profit tax.': 'Verkauf gewichtet die Exit-Steuer, Halten die Gewinnsteuer.',
     'Stock-option tax varies widely and affects hiring.': 'Die Steuer auf Mitarbeiteroptionen variiert stark und beeinflusst das Recruiting.',
@@ -436,6 +440,7 @@
     'Watch out': 'Achtung',
     'Nothing to flag.': 'Nichts zu beachten.',
     'you live here': 'dein Wohnort',
+    'check your permit': 'Aufenthaltstitel prüfen',
     'your passport': 'dein Pass',
     'free movement': 'Freizügigkeit',
     'visa needed': 'Visum nötig',
@@ -678,7 +683,7 @@
     'Each priority shifted ±1 level: does the winner hold?': 'Jede Priorität ±1 Stufe: Hält der Sieger?',
     'Market-access score by target market': 'Marktzugang nach Zielmarkt',
     'First customers': 'Erste Kunden',
-    '5 where you live, 4 with citizenship or free movement, 2 with a visa, 1 if quota-limited. Best citizenship counts; no answers = 3.': '5 am Wohnort, 4 mit Staatsangehörigkeit oder Freizügigkeit, 2 mit Visum, 1 bei Kontingent. Die günstigste Staatsangehörigkeit zählt; ohne Antworten = 3.',
+    '5 where you live (3 if no passport of yours gives free movement there: then it depends on your permit), 4 with citizenship or free movement, 2 with a visa, 1 if quota-limited. Best citizenship counts; no answers = 3.': '5 am Wohnort (3, wenn keiner deiner Pässe dort Freizügigkeit gibt: dann entscheidet dein Aufenthaltstitel), 4 mit Staatsangehörigkeit oder Freizügigkeit, 2 mit Visum, 1 bei Kontingent. Die günstigste Staatsangehörigkeit zählt; ohne Antworten = 3.',
     'Existing investors → +1 VC access where based (CH and LI count together; “Portugal / other EU” lifts PT and DE).': 'Bestehende Investoren → +1 VC-Zugang am Sitz (CH und LI zählen zusammen; „Portugal / andere EU“ hebt PT und DE).',
     'US grants: +1 for US citizens, −1 otherwise (SBIR/STTR needs > 50% US ownership).': 'US-Förderung: +1 für US-Bürger:innen, −1 sonst (SBIR/STTR verlangt > 50 % US-Eigentum).',
     'Sector: +1 on ecosystem only where sourced:': 'Branche: +1 beim Ökosystem nur, wo belegt:',
@@ -884,6 +889,7 @@
     // short titles of the "Watch out" items
     'Tax follows where you manage': 'Steuer folgt dem Ort der Geschäftsleitung',
     'Exit tax when leaving Germany': 'Wegzugsteuer beim Verlassen Deutschlands',
+    'Check your residence permit': 'Prüfe deinen Aufenthaltstitel',
     'US tax on worldwide income': 'US-Steuer aufs Welteinkommen',
     'US investors may want a Delaware flip': 'US-Investoren wollen evtl. einen Delaware-Flip',
     'Ask your investors early': 'Frag deine Investoren früh',
@@ -967,7 +973,7 @@
     "EU single market (27 countries)": "EU-Binnenmarkt (27 Länder)",
     "Full access to the EU single market and customs union.": "Voller Zugang zum EU-Binnenmarkt und zur Zollunion.",
     "Depends on your citizenship(s) and where you live": "Hängt von deiner Staatsangehörigkeit und deinem Wohnort ab",
-    "From your answers: 5 = you live here (home advantage); 4 = citizen, or free movement via one of your passports; 2 = visa or permit needed; 1 = residence quota-limited. No answers: neutral 3.": "Aus deinen Antworten: 5 = du lebst hier (Heimvorteil); 4 = Staatsangehörigkeit oder Freizügigkeit über einen deiner Pässe; 2 = Visum oder Aufenthaltstitel nötig; 1 = Aufenthalt kontingentiert. Ohne Antworten: neutral 3.",
+    "From your answers: 5 = you live here (home advantage); 4 = citizen, or free movement via one of your passports; 3 = you live here, but without free movement (founding depends on your permit); 2 = visa or permit needed; 1 = residence quota-limited. No answers: neutral 3.": "Aus deinen Antworten: 5 = du lebst hier (Heimvorteil); 4 = Staatsangehörigkeit oder Freizügigkeit über einen deiner Pässe; 3 = du lebst hier, aber ohne Freizügigkeit (Gründen hängt von deinem Aufenthaltstitel ab); 2 = Visum oder Aufenthaltstitel nötig; 1 = Aufenthalt kontingentiert. Ohne Antworten: neutral 3.",
     "≈ 22% on €60k (≈ €13,400): pension 9.3% + health 8.75% + care 1.8% + unemployment 1.3% + accident/levies": "≈ 22 % bei 60.000 € (≈ 13.400 €): Rentenvers. 9,3 % + Krankenvers. 8,75 % + Pflegevers. 1,8 % + Arbeitslosenvers. 1,3 % + Unfall/Umlagen",
     "Employer 2026: pension 9.3%, unemployment 1.3% (ceiling €101,400/yr), health 7.3% + half the 2.9% average add-on = 8.75%, care 1.8% (ceiling €69,750/yr). €60k is under both ceilings: 21.15%. Plus accident insurance (Berufsgenossenschaft, employer-only, ≈ 0.5–1% office), U3 insolvency levy 0.15%, U2 maternity levy ≈ 0.4% → ≈ 22.3%. ≤ 30 staff: U1 sick-pay levy ≈ 1.5–3% (reimburses sick pay) → up to ≈ 24%. Health add-on varies by insurer.": "Arbeitgeber 2026: Rente 9,3 %, Arbeitslosen 1,3 % (Grenze 101.400 €/Jahr), Kranken 7,3 % + halber Durchschnitts-Zusatzbeitrag von 2,9 % = 8,75 %, Pflege 1,8 % (Grenze 69.750 €/Jahr). 60.000 € liegen unter beiden Grenzen: 21,15 %. Plus Unfallversicherung (Berufsgenossenschaft, nur Arbeitgeber, ≈ 0,5–1 % Büro), U3 Insolvenzgeldumlage 0,15 %, U2 Mutterschaftsumlage ≈ 0,4 % → ≈ 22,3 %. ≤ 30 Beschäftigte: U1-Umlage ≈ 1,5–3 % (erstattet Entgeltfortzahlung) → bis ≈ 24 %. Zusatzbeitrag je nach Krankenkasse.",
     "Forschungszulage: 25% of R&D costs (35% for SMEs), base €12m from 2026 → up to €4.2m/yr, paid out even in loss years": "Forschungszulage: 25 % der FuE-Kosten (35 % für KMU), Bemessungsgrundlage 12 Mio. € ab 2026 → bis 4,2 Mio. €/Jahr, Auszahlung auch in Verlustjahren",
@@ -1108,7 +1114,7 @@
     /* CRITERIA.market */
     "Base: 4 = full access to a large single market (EU/EEA or US); 3 = national market with partial or treaty access to a large market (e.g. Swiss bilaterals, UK–EU Trade and Cooperation Agreement). Adjusted by your target market.": "Basis: 4 = voller Zugang zu einem großen Binnenmarkt (EU/EWR oder USA); 3 = nationaler Markt mit teilweisem oder vertraglichem Zugang zu einem großen Markt (z. B. Bilaterale Schweiz–EU, Handels- und Kooperationsabkommen UK–EU). Angepasst an deinen Zielmarkt.",
     /* CRITERIA.residence */
-    "5 = you live there; 4 = your passport country or free movement for your passport; 3 = unknown; 2 = visa or permit needed; 1 = quota-limited or very hard to get": "5 = du lebst dort; 4 = Land deines Passes oder Freizügigkeit für deinen Pass; 3 = unklar; 2 = Visum oder Aufenthaltstitel nötig; 1 = kontingentiert oder sehr schwer zu bekommen",
+    "5 = you live there; 4 = your passport country or free movement for your passport; 3 = unknown, or you live there without free movement (depends on your permit); 2 = visa or permit needed; 1 = quota-limited or very hard to get": "5 = du lebst dort; 4 = Land deines Passes oder Freizügigkeit für deinen Pass; 3 = unklar, oder du lebst dort ohne Freizügigkeit (hängt vom Aufenthaltstitel ab); 2 = Visum oder Aufenthaltstitel nötig; 1 = kontingentiert oder sehr schwer zu bekommen",
     /* COUNTRIES.DE */
     "GmbH or UG (haftungsbeschränkt)": "GmbH oder UG (haftungsbeschränkt)",
     /* COUNTRIES.CH */
@@ -1330,6 +1336,8 @@
     /* engine.text */
     "Only {c} is ranked because you stay where you live. A company registered abroad but run from home usually stays tax-resident where it is actually managed (e.g. §10 AO, §1 KStG in Germany).": "Nur {c} wird gerankt, weil du bleibst, wo du lebst. Eine im Ausland registrierte, aber von zu Hause geführte Gesellschaft ist in der Regel dort steuerpflichtig, wo sie tatsächlich geleitet wird (in Deutschland z. B. §10 AO, §1 KStG).",
     "You stay in a country outside this comparison. A company registered in one of the six but managed from your home is usually taxed where it is actually managed.": "Du bleibst in einem Land außerhalb dieses Vergleichs. Eine in einem der sechs Länder registrierte, aber von deinem Wohnort aus geleitete Gesellschaft wird in der Regel dort besteuert, wo sie tatsächlich geleitet wird.",
+    "Living in Germany is not the same as being allowed to found here. A student permit allows employment only (§16b AufenthG); self-employment needs approval (§21 (6)). With a degree from a German university, a self-employment permit is the standard route if the startup relates to your studies (§21 (2a)). A settlement permit already allows it.": "In Deutschland zu leben heißt nicht, hier gründen zu dürfen. Ein Aufenthaltstitel zum Studium erlaubt nur Beschäftigung (§16b AufenthG); Selbstständigkeit muss erlaubt werden (§21 Abs. 6). Mit Abschluss einer deutschen Hochschule ist der Titel zur selbstständigen Tätigkeit der Regelweg, wenn das Startup mit deinem Studium zusammenhängt (§21 Abs. 2a). Eine Niederlassungserlaubnis erlaubt es bereits.",
+    "You live here, but no passport of yours gives free movement here. Check that your current permit allows self-employment before you register the company; if not, apply for a founder or self-employment permit first.": "Du lebst hier, aber keiner deiner Pässe gibt dir hier Freizügigkeit. Prüfe vor der Anmeldung der Firma, ob dein Aufenthaltstitel Selbstständigkeit erlaubt; wenn nicht, beantrage zuerst einen Titel für Gründer:innen bzw. Selbstständige.",
     "Leaving Germany while holding ≥ 1% of a company can trigger exit tax on unrealised gains (§6 AStG; since 2022 payable in 7 instalments, usually against security). Plan before you move.": "Wegzug aus Deutschland mit ≥ 1 % an einer Kapitalgesellschaft kann Wegzugsbesteuerung auf nicht realisierte Wertzuwächse auslösen (§6 AStG; seit 2022 in 7 Raten zahlbar, meist gegen Sicherheitsleistung). Vor dem Umzug planen.",
     "US citizens are taxed on worldwide income wherever they live. Check foreign tax credits and reporting before founding abroad.": "US-Bürger sind mit ihrem Welteinkommen steuerpflichtig, egal wo sie leben. Prüfe vor einer Gründung im Ausland die Anrechnung ausländischer Steuern und die Meldepflichten.",
     "US investors may require a \"Delaware flip\" (a US holding above your local company) before investing. Common, but costs time and can have tax consequences.": "US-Investoren verlangen vor einem Investment evtl. einen „Delaware Flip“ (US-Holding über deiner lokalen Gesellschaft). Üblich, kostet aber Zeit und kann steuerliche Folgen haben.",

@@ -32,6 +32,7 @@
     var st = row.residence, k = row.id;
     if (!st) return null;
     if (st.level === 'home') return 'dahl_sorenson';
+    if (st.level === 'permit') return k === 'DE' ? 'aufenthg21' : null;
     if (st.level === 'citizen') return null;
     if (k === 'US') return 'state_e2';
     if (k === 'LI') return st.level === 'limited' ? 'li_quota' : 'eu_sm';
@@ -156,7 +157,7 @@
   }
 
   /* ---------- hero: ranking ---------- */
-  var RES_TAG = { home: 'you live here', citizen: 'your passport', free: 'free movement', visa: 'visa needed', limited: 'residence limited' };
+  var RES_TAG = { home: 'you live here', permit: 'check your permit', citizen: 'your passport', free: 'free movement', visa: 'visa needed', limited: 'residence limited' };
   function rankingCard(res) {
     var eligible = res.rows.filter(function (r) { return !r.excluded; });
     var items = eligible.map(function (r, i) {

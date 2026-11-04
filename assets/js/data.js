@@ -62,7 +62,7 @@
     { id: 'residence', name: 'Easy residence & local roots', short: 'Residence',
       hint: 'Right to live there, local roots',
       info: 'Right to live and work there, and existing roots. Local networks improve founder outcomes (Dahl & Sorenson 2012). Based on your citizenship(s) and residence.',
-      anchors: '5 = you live there; 4 = your passport country or free movement for your passport; 3 = unknown; 2 = visa or permit needed; 1 = quota-limited or very hard to get' }
+      anchors: '5 = you live there; 4 = your passport country or free movement for your passport; 3 = unknown, or you live there without free movement (depends on your permit); 2 = visa or permit needed; 1 = quota-limited or very hard to get' }
   ];
 
   /* S = score table. Each cell: score, value (one-line fact), note, sources, confidence. */
@@ -294,12 +294,19 @@
   };
   // EU citizens are "home" in Germany/Portugal only if they live there – handled in engine.
 
-  var RESIDENCE_SOURCES = ['state_e2', 'e2_table', 'uk_if', 'li_quota', 'pt_sv'];
+  /* Living in a country without free movement there (e.g. a non-EU student in Munich): the local roots are
+     real, but the right to found depends on the permit you hold. The engine scores this 3 ('permit'). */
+  var RESIDENT_PERMIT = {
+    DE: 'You live here on a permit: a student permit allows employment only. German graduates can switch to self-employment (§21 (2a) AufenthG)',
+    _: 'You live here on a permit: check that it allows self-employment'
+  };
+
+  var RESIDENCE_SOURCES = ['state_e2', 'e2_table', 'uk_if', 'li_quota', 'pt_sv', 'aufenthg21'];
 
   /* Residence & home base is calculated from the profile; this base cell is used until citizenship/residence is known. */
   COUNTRIES.forEach(function (c) {
     SCORES[c.id].residence = { score: 3, value: 'Depends on your citizenship(s) and where you live',
-      note: 'From your answers: 5 = you live here (home advantage); 4 = citizen, or free movement via one of your passports; 2 = visa or permit needed; 1 = residence quota-limited. No answers: neutral 3.',
+      note: 'From your answers: 5 = you live here (home advantage); 4 = citizen, or free movement via one of your passports; 3 = you live here, but without free movement (founding depends on your permit); 2 = visa or permit needed; 1 = residence quota-limited. No answers: neutral 3.',
       sources: RESIDENCE_SOURCES.concat(['dahl_sorenson']), confidence: 'medium' };
   });
 
@@ -380,6 +387,7 @@
     kstg8b: { t: '§8b KStG (participation exemption)', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/kstg_1977/__8b.html', type: 'law' },
     estg19a: { t: '§19a EStG – employee equity in start-ups (Future Financing Act 2024)', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/estg/__19a.html', type: 'law' },
     de_invest: { t: 'Steuerliches Investitionssofortprogramm (BGBl. 18 Jul 2025)', p: 'IHK München', u: 'https://www.ihk-muenchen.de/ratgeber/steuern/investitionsprogramm/', type: 'official' },
+    aufenthg21: { t: '§21 AufenthG – residence permit for self-employment (incl. (2a) for graduates of German universities)', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/aufenthg_2004/__21.html', type: 'law' },
     astg6: { t: '§6 AStG – exit taxation on emigration', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/astg/__6.html', type: 'law' },
     ao10: { t: '§10 AO (place of management) & §1 KStG', p: 'Federal Ministry of Justice', u: 'https://www.gesetze-im-internet.de/ao_1977/__10.html', type: 'law' },
     exist: { t: 'EXIST-Gründungsstipendium', p: 'Projektträger Jülich / BMWE', u: 'https://www.ptj.de/foerdermoeglichkeiten/exist/gruendungsstipendium', type: 'official' },
@@ -494,7 +502,7 @@
     LEGAL_FORMS: F.LEGAL_FORMS || {}, FIRST_YEAR_COST: F.FIRST_YEAR_COST || {}, TAX_FACTS: F.TAX_FACTS || {},
     COURSE_READING: F.COURSE_READING || [],
     DATA_AS_OF: DATA_AS_OF, COUNTRIES: COUNTRIES, CRITERIA: CRITERIA, SCORES: SCORES,
-    RESIDENCE: RESIDENCE, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
+    RESIDENCE: RESIDENCE, RESIDENT_PERMIT: RESIDENT_PERMIT, RESIDENCE_SOURCES: RESIDENCE_SOURCES, SECTOR_ADJ: SECTOR_ADJ, SECTOR_NOTES: SECTOR_NOTES,
     ROADMAP: ROADMAP, SOURCES: SOURCES, LITERATURE: LITERATURE
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

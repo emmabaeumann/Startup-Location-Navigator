@@ -57,7 +57,7 @@ Settings → Pages → *Deploy from a branch* → choose the branch and `/ (root
 
 ## Method (short)
 `Match score = 100 × Σ w·(s−1)/4 ÷ Σ w` – 100 means the top score on every criterion the founder weights.
-- **Scores `s` (1–5)** come from fixed anchor scales applied to legal and statistical facts; missing data is the neutral 3 and labelled. *Residence & local roots* is scored from citizenship(s) and current home.
+- **Scores `s` (1–5)** come from fixed anchor scales applied to legal and statistical facts; missing data is the neutral 3 and labelled. *Residence & local roots* is scored from citizenship(s) and current home: living there gives 5, or 3 when no passport gives free movement there (founding then depends on the permit, e.g. a student permit allows employment only).
 - **Weights `w`** come from the founder's priorities (0–3) plus documented answer rules (+1, capped at 4).
 - **Ties:** totals less than 0.5 points apart are shown as a tie; equal totals are ordered by the stronger home base, then the founder's most important criteria.
 - **Robustness:** every priority is shifted by one level; "robust" means no single change flips the winner and the lead is at least 4 points.

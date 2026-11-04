@@ -7,8 +7,8 @@ Built for the TUM seminar *Smart Start – Financial, Tax, and Legal Fundamental
 ## What it answers (T18)
 | Seminar question | Where the tool answers it |
 |---|---|
-| Legal forms: setup requirements, liability, taxation | Results → *Legal forms & founding vs Germany*; country profiles (all forms, capital, liability, notary, profit tax) |
-| Founding process vs Germany: bureaucracy, speed, cost | Same card (days, € cost, notary, steps vs the German GmbH) and *First-year cost* |
+| Legal forms: setup requirements, liability, taxation | Results → *Legal forms & founding*: the winner's typical form vs any other country (Germany by default); country profiles (all forms, capital, liability, notary, profit tax) |
+| Founding process vs Germany: bureaucracy, speed, cost | Same card (days, € cost, notary, steps; compared with the German GmbH by default) and *First-year cost* |
 | Ecosystems, funding, investor networks | Criteria *VC access*, *Public funding & grants*, *R&D incentives*, *Talent & ecosystem* |
 | Tax and legal differences: stock options, exit tax, capital gains | Criteria *Exit tax*, *Employee stock options*, *Profit tax*; tax facts on each country profile |
 | Recommendation and concrete next steps | Ranking with robustness and confidence, *Why X over Y*, *What could flip it*, founding roadmap per country |
@@ -16,7 +16,7 @@ Built for the TUM seminar *Smart Start – Financial, Tax, and Legal Fundamental
 ## Features
 - **11 click-only questions + priorities on 12 criteria.** Every question can be skipped, several citizenships can be selected, and a "why we ask" line explains each one.
 - **Live ranking** that re-scores all six countries with every click and says why a country moved.
-- **Result:** winner with match score, tie / close-call / robust verdict, confidence, *Why X over Y*, why / trade-offs / watch-out, legal forms vs Germany, first-year cost (incl. payroll for planned hires), a 6 × 12 evidence matrix (tap a cell for the source), a what-if priority panel and a founding roadmap.
+- **Result:** winner with match score, tie / close-call / robust verdict, confidence, *Why X over Y*, why / trade-offs / watch-out, legal forms of the winner vs a country you pick (Germany by default), first-year cost (incl. payroll for planned hires), a 6 × 12 evidence matrix (tap a cell for the source), a what-if priority panel and a founding roadmap.
 - **Example founders** on the landing page – one click to a full, realistic result.
 - **Method & sources page** with the formula, every rule, tie-break, robustness and confidence definitions, limitations, peer-reviewed literature, the course reading list and all 149 sources. **Country profiles** and an **About** page.
 - Material Design 3 (light / dark / system theme), keyboard and screen-reader accessible, English and German UI, print-to-PDF layout, share link.

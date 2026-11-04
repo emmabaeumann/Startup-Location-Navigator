@@ -29,7 +29,7 @@
     sector: 'Sourced sector hubs get +1 on talent & ecosystem.',
     market: 'Countries near your first customers score higher on market access.',
     funding: 'Each funding route adds +1 weight to its criterion.',
-    capital: 'Switzerland and Liechtenstein require minimum capital paid in before registration.',
+    capital: 'Switzerland, Liechtenstein and a German GmbH need capital paid in before registration; a German UG starts from €1.',
     investors: 'Investors raise VC access where they are based.',
     exit: 'Selling weights exit tax; holding weights profit tax.',
     esop: 'Stock-option tax varies widely and affects hiring.',

@@ -496,6 +496,8 @@
     'typical form per country': 'typische Form je Land',
     'Country for legal form': 'Land für Rechtsform',
     'Legal form for {c} shown.': 'Rechtsform für {c} angezeigt.',
+    'Compare with': 'Vergleichen mit',
+    'Comparing with {c}.': 'Vergleich mit {c}.',
 
     /* first-year cost */
     'Cost item': 'Kostenposten',

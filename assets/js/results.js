@@ -244,7 +244,7 @@
       (sector ? '<p class="r-note insights__note">' + icon('info') + '<span>' + esc(warnText(sector)) + ' ' + srcsOf(sector) + '</span></p>' : '');
   }
 
-  /* ---------- legal forms & founding vs Germany ---------- */
+  /* ---------- legal forms & founding: winner vs a chosen country (default Germany) ---------- */
   function mid(r) { return (r.min + r.max) / 2; }
   function range(r, unit) { return r.min === r.max ? r.min + unit : r.min + '–' + r.max + unit; }
   function eurRange(r) { return UI.eurRange(r.min, r.max); }
@@ -265,9 +265,13 @@
   function legalCard(res, state, orderIds) {
     if (!D.LEGAL_FORMS || !Object.keys(D.LEGAL_FORMS).length) return '';
     var top = res.top;
-    var sel = state.legalTab && D.LEGAL_FORMS[state.legalTab] ? state.legalTab : top.id;
+    // left column is always the winner; the chips pick the country it is compared with (default Germany)
+    var sel = top.id;
     var f = typicalForm(sel); if (!f) return '';
-    var baseId = sel !== 'DE' ? 'DE' : (top.id !== 'DE' ? top.id : (res.runnerUp ? res.runnerUp.id : 'UK'));
+    var others = orderIds.filter(function (k) { return k !== top.id && typicalForm(k); });
+    var fallback = top.id !== 'DE' ? 'DE' : (res.runnerUp && res.runnerUp.id !== top.id ? res.runnerUp.id : others[0]);
+    var baseId = state.legalTab && state.legalTab !== top.id && others.indexOf(state.legalTab) >= 0 ? state.legalTab : fallback;
+    if (!baseId) return '';
     var b = typicalForm(baseId), bName = b.name + ' (' + tn(baseId) + ')';
     var cmp = legalCompare(f, b, tn(baseId));
     var summary = t('Setting up a {form} in {c} is {fast} and {cheap} than a {base} in {bc}.', { form: f.name, c: inName(sel), fast: t(cmp.fast), cheap: t(cmp.cheap), base: b.name, bc: inName(baseId) });
@@ -291,14 +295,14 @@
     var all = '<table class="r-all"><caption class="sr-only">' + esc(t('Typical legal form in all six countries')) + '</caption><thead><tr><th scope="col">' + esc(t('Country')) + '</th><th scope="col">' + esc(t('Typical form')) + '</th><th scope="col">' + esc(t('Min. capital (paid in)')) + '</th><th scope="col">' + esc(t('Notary')) + '</th><th scope="col">' + esc(t('Profit tax')) + '</th><th scope="col">' + esc(t('Setup days')) + '</th><th scope="col">' + esc(t('Setup cost')) + '</th></tr></thead><tbody>' +
       orderIds.map(function (k) {
         var x = typicalForm(k); if (!x) return '';
-        return '<tr class="' + (k === sel ? 'is-sel' : '') + '"><th scope="row"><span class="r-all__c">' + avatar(k, k === top.id) + '<span>' + esc(tn(k)) + '</span></span></th><td>' + esc(x.name) + '</td><td>' + (x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' <small>(' + esc(eur(x.minCapital.paidInEur)) + ')</small>' : '–') + '</td><td>' + esc(x.notary ? t('Yes') : t('No')) + '</td><td>' + esc(t(x.profitTax).split(/[;(]/)[0].trim()) + '</td><td>' + esc(range(x.setupDays, '')) + '</td><td>' + esc(eurRange(x.setupCostEur)) + '</td></tr>';
+        return '<tr class="' + (k === sel || k === baseId ? 'is-sel' : '') + '"><th scope="row"><span class="r-all__c">' + avatar(k, k === top.id) + '<span>' + esc(tn(k)) + '</span></span></th><td>' + esc(x.name) + '</td><td>' + (x.minCapital.eur ? esc(eur(x.minCapital.eur)) + ' <small>(' + esc(eur(x.minCapital.paidInEur)) + ')</small>' : '–') + '</td><td>' + esc(x.notary ? t('Yes') : t('No')) + '</td><td>' + esc(t(x.profitTax).split(/[;(]/)[0].trim()) + '</td><td>' + esc(range(x.setupDays, '')) + '</td><td>' + esc(eurRange(x.setupCostEur)) + '</td></tr>';
       }).join('') + '</tbody></table>';
     var openAll = !!state.openInfo['legal-all'];
     var srcs = (f.sources || []).slice(0, 4).map(function (s) { return srcLink(s); }).join('');
     var lfTitle = baseId === 'DE' ? t('Legal forms & founding vs Germany') : t('Legal forms & founding vs {c}', { c: tn(baseId) });
     return '<section class="card r-legal" aria-labelledby="lf-title"><div class="card__head"><h2 id="lf-title">' + icon('gavel') + esc(lfTitle) + '</h2>' +
       (f.confidence === 'low' ? '<span class="chip chip--small chip--warning">' + icon('warning') + esc(t('Low certainty')) + '</span>' : '<span class="rail__meta">' + esc(t('typical form per country')) + '</span>') + '</div>' +
-      chipSet('radio', t('Country for legal form'), orderIds, sel, 'legal') +
+      chipSet('radio', t('Compare with'), others, baseId, 'legal') +
       '<p class="r-lede r-lede--strong">' + esc(summary) + '</p>' + table +
       (f.note ? '<p class="r-note">' + icon('info') + '<span>' + esc(t(f.note)) + '</span></p>' : '') + altHtml +
       (srcs ? '<div class="r-srcs">' + srcs + '</div>' : '') +
@@ -486,7 +490,7 @@
   UI.actions.legal = function (el) {
     var app = A(); app.state.legalTab = el.getAttribute('data-k');
     rerenderKeep('[data-action="legal"][data-k="' + app.state.legalTab + '"]');
-    app.announce(t('Legal form for {c} shown.', { c: tn(app.state.legalTab) }));
+    app.announce(t('Comparing with {c}.', { c: tn(app.state.legalTab) }));
   };
   UI.actions.more = function (el) {
     var app = A(), k = el.getAttribute('data-key');

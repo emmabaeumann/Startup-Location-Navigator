@@ -1,115 +1,224 @@
-/* FoundersNavigator – UI layer (vanilla JS, no build step) */
+/* FoundersNavigator – UI layer (vanilla JS, no build step), Material 3
+ * State, navigation, wizard, landing, global chrome (top bar, theme, language, snackbar), events, boot.
+ * Every user-visible string goes through t() (i18n.js, keyed by the English text). */
 (function () {
   'use strict';
-  var D = window.SSN_DATA, E = window.SSN_ENGINE;
+  var D = window.SSN_DATA, E = window.SSN_ENGINE, S = window.SSN_STATE, UI = window.SSN_UI;
+  var EXAMPLES = window.SSN_EXAMPLES || [];
+  var FX = window.SSN_LANDING || null; // landing extras: flight-paths map + demo video (landing-fx.js)
+  var esc = UI.esc, icon = UI.icon, avatar = UI.avatar, critIcon = UI.critIcon, country = UI.country, crit = UI.crit,
+    shapePath = UI.shapePath, pageBg = UI.pageBg;
+  function t(s, vars) { return UI.i18n && UI.i18n.t ? UI.i18n.t(s, vars) : (s == null ? '' : String(s)); }
+  function lang() { return UI.i18n && UI.i18n.lang ? UI.i18n.lang() : 'en'; }
   var Q = E.QUESTIONS;
   var STORE_KEY = 'foundersnavigator-v1';
+  var THEME_KEY = 'foundersnavigator-theme';
   var STEPS = Q.map(function (q) { return { kind: 'q', q: q, block: q.block }; }).concat([{ kind: 'prio', block: 'priorities' }]);
   var app = document.getElementById('app');
   var srStatus = document.getElementById('sr-status');
   var dialog = document.getElementById('detail');
+  var html = document.documentElement;
 
-  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null, openInfo: {} };
+  var state = { view: 'landing', step: 0, answers: {}, skipped: {}, roadmapTab: null, lastMove: null, prevOrder: null, openInfo: {}, example: null, railOpen: false, countryId: null };
 
-  /* ---------- utils ---------- */
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
-  function country(id) { return D.COUNTRIES.filter(function (c) { return c.id === id; })[0]; }
-  function crit(id) { return D.CRITERIA.filter(function (c) { return c.id === id; })[0]; }
-  function src(id) { return D.SOURCES[id]; }
-  function srcLink(id, label) {
-    var s = src(id); if (!s) return '';
-    return '<a class="srclink" href="' + esc(s.u) + '" target="_blank" rel="noopener noreferrer">' + esc(label || ('Source: ' + s.p)) + ' <span aria-hidden="true">↗</span><span class="sr-only"> (opens in a new tab)</span></a>';
-  }
-  function icon(name) {
-    var p = {
-      arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-      back: '<path d="M19 12H5M11 18l-6-6 6-6"/>',
-      lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
-      doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/>',
-      user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
-      scale: '<path d="M12 4v16M6 20h12M4 8h16M7 8l-3 7h6zM17 8l-3 7h6z"/>',
-      close: '<path d="M6 6l12 12M18 6 6 18"/>',
-      link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-      print: '<path d="M7 9V3h10v6M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="7" y="14" width="10" height="7"/>',
-      edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>'
-    }[name] || '';
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
-  }
-  function dots(v) {
-    var out = '<span class="dots" aria-hidden="true">';
-    for (var i = 1; i <= 5; i++) out += '<i class="' + (v >= i ? 'on' : (v >= i - 0.5 ? 'half' : '')) + '"></i>';
-    return out + '</span>';
-  }
-  function wdots(w) {
-    var lvl = w.value === 0 ? 0 : Math.min(w.level, 3);
-    var out = '<span class="wdots" aria-hidden="true">';
-    for (var i = 1; i <= 3; i++) out += '<i class="' + (lvl >= i ? 'on' : '') + '"></i>';
-    if (w.bonus) out += '<b class="wplus">+</b>';
-    return out + '</span>';
-  }
-  function announce(msg) { srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
+  /* "Why we ask" – one line per question (question id → English text, translated at render time) */
+  var WHY = {
+    citizenship: 'Residence rights decide where you can live and run the company.',
+    residence: 'Founders with local roots and a network perform measurably better.',
+    relocation: 'Countries you won’t move to drop out of the ranking.',
+    sector: 'Sourced sector hubs get +1 on talent & ecosystem.',
+    market: 'Countries near your first customers score higher on market access.',
+    funding: 'Each funding route adds +1 weight to its criterion.',
+    capital: 'Switzerland, Liechtenstein and a German GmbH need capital paid in before registration; a German UG starts from €1.',
+    investors: 'Investors raise VC access where they are based.',
+    exit: 'Selling weights exit tax; holding weights profit tax.',
+    esop: 'Stock-option tax varies widely and affects hiring.',
+    hires: 'Hires add employer payroll costs to ranking and first-year cost.'
+  };
 
-  /* ---------- persistence ---------- */
-  function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ view: state.view, step: state.step, answers: state.answers, skipped: state.skipped })); } catch (e) { /* storage unavailable */ }
-  }
-  function load() {
-    try {
-      var raw = localStorage.getItem(STORE_KEY);
-      if (raw) { var s = JSON.parse(raw); state.answers = sanitize(s.answers || {}); state.skipped = s.skipped || {}; state.step = s.step || 0; state.view = s.view || 'landing'; }
-    } catch (e) { /* ignore */ }
-    if (state.view === 'method') state.view = 'landing';
-  }
-  function encodeShare() {
-    var json = JSON.stringify({ v: 1, a: state.answers });
-    return btoa(unescape(encodeURIComponent(json))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-  function readShare() {
-    var m = location.hash.match(/^#r=([A-Za-z0-9_-]+)/);
-    if (!m) return false;
-    try {
-      var b = m[1].replace(/-/g, '+').replace(/_/g, '/');
-      while (b.length % 4) b += '=';
-      var obj = JSON.parse(decodeURIComponent(escape(atob(b))));
-      if (obj && obj.a && typeof obj.a === 'object') { state.answers = sanitize(obj.a); state.view = 'results'; return true; }
-    } catch (e) { /* invalid link */ }
-    return false;
-  }
-  function sanitize(a) {
-    var out = {};
-    Q.forEach(function (q) {
-      var v = a[q.id], vals = q.options.map(function (o) { return o.v; });
-      if (q.type === 'multi' && Array.isArray(v)) { var f = v.filter(function (x) { return vals.indexOf(x) !== -1; }); if (f.length) out[q.id] = f; }
-      else if (q.type === 'single' && vals.indexOf(v) !== -1) out[q.id] = v;
-    });
-    if (a.priorities && typeof a.priorities === 'object') {
-      out.priorities = {};
-      D.CRITERIA.forEach(function (c) { var l = a.priorities[c.id]; if (l === 0 || l === 1 || l === 2 || l === 3) out.priorities[c.id] = l; });
-    }
+  /* ---------- motion (Material 3) ---------- */
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var lastPt = null;
+  function qa(sel) { return Array.prototype.slice.call(app.querySelectorAll(sel)); }
+  function ripple(el, pt, autoOut) {
+    if (reduceMotion || !el) return null;
+    var r = el.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2.2;
+    var x = pt ? pt.x - r.left : r.width / 2, y = pt ? pt.y - r.top : r.height / 2;
+    if (x < 0 || y < 0 || x > r.width || y > r.height) { x = r.width / 2; y = r.height / 2; }
+    var s = document.createElement('span');
+    s.className = 'ripple';
+    s.style.cssText = 'width:' + d + 'px;height:' + d + 'px;left:' + (x - d / 2) + 'px;top:' + (y - d / 2) + 'px';
+    el.appendChild(s);
+    var out = function () { s.classList.add('ripple--out'); setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 450); };
+    if (autoOut) setTimeout(out, 220);
     return out;
   }
+  var RIPPLE_SEL = '.btn, .option, .chip--filter, .seg button, .step, .answer, .cellbtn, .iconbtn, .example, .rail-mobile__toggle';
+  document.addEventListener('pointerdown', function (e) {
+    lastPt = { x: e.clientX, y: e.clientY };
+    var el = e.target.closest(RIPPLE_SEL); if (!el) return;
+    var out = ripple(el, lastPt); if (!out) return;
+    var done = function () { out(); window.removeEventListener('pointerup', done); window.removeEventListener('pointercancel', done); };
+    window.addEventListener('pointerup', done); window.addEventListener('pointercancel', done);
+  });
+  /* after a re-render, re-attach feedback to the element that replaced the one clicked */
+  function flash(sel) {
+    var el = app.querySelector(sel); if (!el) return;
+    el.classList.add('is-changed');
+    ripple(el, lastPt, true);
+  }
+  function snapshotMotion() {
+    var m = { pos: {}, w: {}, n: {}, lead: null };
+    qa('[data-flip]').forEach(function (el) { m.pos[el.getAttribute('data-flip')] = el.offsetTop; });
+    qa('[data-wkey]').forEach(function (el) { m.w[el.getAttribute('data-wkey')] = el.style.width; });
+    qa('[data-ckey]').forEach(function (el) { m.n[el.getAttribute('data-ckey')] = parseFloat(el.textContent); });
+    var l = app.querySelector('.rail .rank-item--lead'); if (l) m.lead = l.getAttribute('data-flip');
+    return m;
+  }
+  function countTo(el, from, to, dur) {
+    var t0 = null;
+    el.textContent = Math.round(from);
+    function frame(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - p, 4); // emphasized-decelerate approximation
+      el.textContent = Math.round(from + (to - from) * e);
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+  function playMotion(m) {
+    if (reduceMotion) return;
+    // FLIP: rows slide to their new rank
+    qa('[data-flip]').forEach(function (el) {
+      var k = el.getAttribute('data-flip'); if (!(k in m.pos)) return;
+      var dy = m.pos[k] - el.offsetTop; if (!dy) return;
+      el.style.transition = 'none'; el.style.transform = 'translateY(' + dy + 'px)';
+      el.getBoundingClientRect();
+      el.style.transition = 'transform 500ms var(--emph)'; el.style.transform = '';
+    });
+    // bars: animate from previous width (or from 0 on first appearance)
+    var fresh = 0;
+    qa('[data-wkey]').forEach(function (el) {
+      var k = el.getAttribute('data-wkey'), to = el.style.width;
+      var from = (k in m.w) ? m.w[k] : '0%';
+      if (from === to) return;
+      el.style.transition = 'none'; el.style.width = from;
+      el.getBoundingClientRect();
+      el.style.transition = 'width 600ms var(--emph-decel) ' + ((k in m.w) ? 0 : 120 + 40 * (fresh++)) + 'ms';
+      el.style.width = to;
+    });
+    // numbers: count between values (or up from 0 where marked)
+    qa('[data-ckey]').forEach(function (el) {
+      var k = el.getAttribute('data-ckey'), to = parseFloat(el.textContent);
+      var from = (k in m.n) ? m.n[k] : (el.hasAttribute('data-count0') ? 0 : to);
+      if (from !== to && !isNaN(from) && !isNaN(to)) countTo(el, from, to, (k in m.n) ? 450 : 900);
+    });
+    // new leader in the live ranking gets a short emphasis pulse
+    var l = app.querySelector('.rail .rank-item--lead');
+    if (l && m.lead && l.getAttribute('data-flip') !== m.lead) l.classList.add('is-new-lead');
+  }
+
+  function announce(msg) { if (!msg) return; srStatus.textContent = ''; setTimeout(function () { srStatus.textContent = msg; }, 30); }
+
+  /* ---------- snackbar (M3: inverse surface, bottom, one at a time, 4–10 s) ---------- */
+  var snack = null, snackTimer = null, snackLeft = 0, snackStart = 0;
+  function snackbarEl() {
+    if (snack) return snack;
+    snack = document.createElement('div');
+    snack.className = 'snackbar';
+    snack.hidden = true;
+    document.body.appendChild(snack);
+    var pause = function () { if (!snackTimer) return; clearTimeout(snackTimer); snackTimer = null; snackLeft -= Date.now() - snackStart; };
+    var resume = function () { if (snackTimer || snack.hidden || !snack.classList.contains('is-open')) return; snackStart = Date.now(); snackTimer = setTimeout(hideSnackbar, Math.max(1500, snackLeft)); };
+    snack.addEventListener('mouseenter', pause); snack.addEventListener('focusin', pause);
+    snack.addEventListener('mouseleave', resume); snack.addEventListener('focusout', function (e) { if (!snack.contains(e.relatedTarget)) resume(); });
+    snack.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideSnackbar(); });
+    return snack;
+  }
+  function hideSnackbar() {
+    if (!snack || snack.hidden) return;
+    clearTimeout(snackTimer); snackTimer = null;
+    var hadFocus = snack.contains(document.activeElement);
+    snack.classList.remove('is-open');
+    var el = snack;
+    setTimeout(function () { if (!el.classList.contains('is-open')) el.hidden = true; }, reduceMotion ? 0 : 160);
+    if (hadFocus) { var h = app.querySelector('h1'); if (h) h.focus({ preventScroll: true }); }
+  }
+  function snackbar(msg, opts) {
+    opts = opts || {};
+    var el = snackbarEl();
+    clearTimeout(snackTimer); snackTimer = null;
+    el.innerHTML = '<p class="snackbar__text">' + esc(msg) + '</p>' +
+      (opts.actionLabel ? '<button type="button" class="btn btn--text snackbar__action">' + esc(opts.actionLabel) + '</button>' : '') +
+      '<button type="button" class="iconbtn snackbar__close" aria-label="' + esc(t('Dismiss')) + '">' + icon('close') + '</button>';
+    var act = el.querySelector('.snackbar__action');
+    if (act) act.addEventListener('click', function () { hideSnackbar(); if (typeof opts.onAction === 'function') opts.onAction(); });
+    el.querySelector('.snackbar__close').addEventListener('click', hideSnackbar);
+    el.hidden = false;
+    el.getBoundingClientRect();
+    el.classList.add('is-open');
+    var ms = typeof opts.timeout === 'number' ? opts.timeout : (opts.actionLabel ? 8000 : 4000);
+    snackLeft = Math.max(4000, Math.min(10000, ms)); snackStart = Date.now();
+    snackTimer = setTimeout(hideSnackbar, snackLeft);
+    announce(msg + (opts.actionLabel ? ' – ' + t('{action}: see message at page bottom.', { action: opts.actionLabel }) : ''));
+  }
+
+  /* ---------- persistence ---------- */
+  // State persistence lives in state.js (pure, tested); these wrappers bind it to this page.
+  function storage() { try { return window.localStorage; } catch (e) { return null; } }
+  function save() { S.save(storage(), STORE_KEY, state); }
+  function load() {
+    var s = S.load(storage(), STORE_KEY, { questions: Q, criteria: D.CRITERIA, maxStep: STEPS.length - 1, countries: D.COUNTRIES.map(function (c) { return c.id; }) });
+    state.answers = s.answers; state.skipped = s.skipped; state.step = s.step; state.view = s.view; state.countryId = s.countryId;
+  }
+  function encodeShare() { return S.encodeShare(state.answers); }
+  function readShare() {
+    var a = S.readShare(location.hash, Q, D.CRITERIA);
+    if (!a) return false;
+    state.answers = a; state.view = 'results'; return true;
+  }
+  function clone(x) { return JSON.parse(JSON.stringify(x || {})); }
 
   /* ---------- navigation ---------- */
+  function focusH1() { var h = app.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } return h; }
   function go(view, opts) {
     state.view = view;
     if (opts && typeof opts.step === 'number') state.step = opts.step;
+    if (view === 'wizard') state.step = askedStep(state.step);
     save(); render();
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
-    var h = app.querySelector('h1'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+    focusH1();
   }
+  /* Steps whose question is not asked for the current answers (engine showIf, e.g. investors
+     when no capital is secured) are skipped by Next/Back and never shown. */
+  function stepAsked(i) { var s = STEPS[i]; return !!s && (s.kind !== 'q' || E.isAsked(s.q, state.answers)); }
+  function askedFrom(i, dir) {
+    for (var j = i; j >= 0 && j < STEPS.length; j += dir) if (stepAsked(j)) return j;
+    return -1;
+  }
+  // nearest asked step at or after i (else before): where a goto / restored step lands
+  function askedStep(i) { var j = askedFrom(i, 1); return j !== -1 ? j : Math.max(0, askedFrom(i, -1)); }
   function nextStep() {
-    if (state.step < STEPS.length - 1) { state.step++; save(); render(); focusHeading(); }
+    state.dir = 'fwd';
+    var j = askedFrom(state.step + 1, 1);
+    if (j !== -1) { state.step = j; save(); render(); focusHeading(); }
     else go('results');
   }
-  function prevStep() { if (state.step > 0) { state.step--; save(); render(); focusHeading(); } else go('landing'); }
+  function prevStep() {
+    state.dir = 'back';
+    var j = askedFrom(state.step - 1, -1);
+    if (j !== -1) { state.step = j; save(); render(); focusHeading(); } else go('landing');
+  }
   function focusHeading() { var h = app.querySelector('.qhead h1'); if (h) h.focus({ preventScroll: true }); var c = app.querySelector('.qcard'); if (c && c.getBoundingClientRect().top < 60) window.scrollTo({ top: 0 }); }
 
   /* ---------- answers ---------- */
-  function snapshotOrder() { var r = E.evaluate(state.answers); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
+  function snapshotOrder() { var r = E.evaluate(state.answers, true); var m = {}; r.rows.forEach(function (x, i) { m[x.id] = { pos: i, total: x.total, excluded: !!x.excluded }; }); return m; }
   function change(mutator, label, qid) {
     state.example = null;
     var before = snapshotOrder();
+    var wasAsked = Q.map(function (q) { return E.isAsked(q, state.answers); });
     mutator();
+    syncAsked(wasAsked);
     var after = snapshotOrder();
     state.prevOrder = before;
     var best = null;
@@ -120,6 +229,19 @@
     });
     state.lastMove = (best && Math.abs(best.d) >= 0.5) ? { k: best.k, d: best.d, label: label } : { none: true, label: label, qid: qid };
     save();
+  }
+  /* Keep conditional questions consistent with the answers they depend on.
+     Not asked (capital 'Nothing yet') → record the auto value ('No investors yet'), drop any skip.
+     Asked again (capital changed away from 'Nothing yet') → clear the value, so the question is
+     really asked. No flag is needed: while the question was hidden its value was always the auto
+     value, so whatever is stored at that transition was filled in automatically. */
+  function syncAsked(wasAsked) {
+    Q.forEach(function (q, i) {
+      if (!q.autoValue) return;
+      var now = E.isAsked(q, state.answers);
+      if (!now) { state.answers[q.id] = q.autoValue.slice(); delete state.skipped[q.id]; }
+      else if (wasAsked && !wasAsked[i]) { delete state.answers[q.id]; delete state.skipped[q.id]; }
+    });
   }
   function setSingle(q, v) { change(function () { state.answers[q.id] = v; delete state.skipped[q.id]; }, q.title, q.id); }
   function toggleMulti(q, v) {
@@ -143,86 +265,224 @@
     var v = state.answers[q.id];
     if (v == null || (Array.isArray(v) && !v.length)) return null;
     var vals = Array.isArray(v) ? v : [v];
-    return vals.map(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return o ? o.l : x; }).join(', ');
+    return vals.map(function (x) { var o = q.options.filter(function (oo) { return oo.v === x; })[0]; return o ? t(o.l) : x; }).join(', ');
+  }
+  function loadExample(id) {
+    var x = EXAMPLES.filter(function (e) { return e.id === id; })[0]; if (!x) return;
+    var prev = { answers: clone(state.answers), skipped: clone(state.skipped), step: state.step, example: state.example };
+    var had = Object.keys(state.answers).length > 0;
+    state.answers = S.sanitize(clone(x.answers), Q, D.CRITERIA);
+    state.skipped = {}; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
+    state.step = STEPS.length - 1;
+    state.example = x.label;
+    go('results');
+    snackbar(t('Example loaded: {name}', { name: t(x.label) }), had ? {
+      actionLabel: t('Undo'),
+      onAction: function () { state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example; go('results', { step: prev.step }); announce(t('Answers restored.')); }
+    } : null);
+  }
+  function restart() {
+    var had = Object.keys(state.answers).length > 0 || Object.keys(state.skipped).length > 0;
+    var prev = { answers: clone(state.answers), skipped: clone(state.skipped), step: state.step, view: state.view, example: state.example };
+    state.answers = {}; state.skipped = {}; state.example = null; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null; state.step = 0;
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    go('landing');
+    if (had) snackbar(t('Answers cleared'), {
+      actionLabel: t('Undo'), timeout: 8000,
+      onAction: function () {
+        state.answers = prev.answers; state.skipped = prev.skipped; state.example = prev.example;
+        go(prev.view === 'landing' ? 'landing' : prev.view, { step: prev.step });
+        announce(t('Answers restored.'));
+      }
+    });
   }
 
   /* ---------- views ---------- */
   var lastRenderKey = null;
+  var VIEW_TITLES = { wizard: 'Questions', results: 'Your result', method: 'Method & sources', about: 'About', country: 'Country profile' };
   function render() {
-    document.getElementById('asof').textContent = new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    renderChrome();
+    ['landing', 'wizard', 'results', 'method', 'about', 'country'].forEach(function (v) { document.body.classList.toggle('is-' + v, state.view === v); });
+    var motion = snapshotMotion();
     if (state.view === 'wizard') app.innerHTML = viewWizard();
-    else if (state.view === 'results') app.innerHTML = viewResults();
-    else if (state.view === 'method') app.innerHTML = viewMethod();
-    else app.innerHTML = viewLanding();
+    else if (state.view !== 'landing' && UI.views[state.view]) app.innerHTML = UI.views[state.view]();
+    else { if (state.view !== 'landing') state.view = 'landing'; app.innerHTML = viewLanding(); }
     var key = state.view + ':' + (state.view === 'wizard' ? state.step : '');
     if (key === lastRenderKey) Array.prototype.forEach.call(app.querySelectorAll('.anim'), function (el) { el.classList.remove('anim'); });
     lastRenderKey = key;
-    document.title = ({ wizard: 'Questions – ', results: 'Your result – ', method: 'Method & sources – ' }[state.view] || '') + 'FoundersNavigator';
+    playMotion(motion);
+    updateParallax();
+    onScroll();
+    observeDecor();
+    if (state.view === 'landing' && FX) FX.mount();
+    var cTitle = state.view === 'country' && state.countryId && country(state.countryId) ? t(country(state.countryId).name) : null;
+    document.title = (cTitle || (VIEW_TITLES[state.view] ? t(VIEW_TITLES[state.view]) : '')).replace(/(.+)/, '$1 – ') + 'FoundersNavigator';
+  }
+
+  /* top bar, footer and other static chrome: data-i18n="English" → textContent, data-i18n-label → aria-label */
+  function renderChrome() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) { el.textContent = t(el.getAttribute('data-i18n')); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-label]'), function (el) { el.setAttribute('aria-label', t(el.getAttribute('data-i18n-label'))); });
+    var asof = document.getElementById('asof');
+    if (asof) asof.textContent = new Date(D.DATA_AS_OF + 'T00:00:00').toLocaleDateString(lang() === 'de' ? 'de-DE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    html.lang = lang();
+    var lb = document.getElementById('lang-toggle');
+    if (lb) {
+      var de = lang() === 'de';
+      lb.removeAttribute('aria-label'); lb.setAttribute('title', de ? 'Switch to English' : 'Auf Deutsch umschalten'); // name = visible label ("Deutsch"/"English")
+      lb.setAttribute('lang', de ? 'en' : 'de');
+      lb.querySelector('.topnav__label').textContent = de ? 'English' : 'Deutsch';
+      lb.querySelector('.lang-code').textContent = de ? 'EN' : 'DE';
+    }
+    renderThemeButton();
+    Array.prototype.forEach.call(document.querySelectorAll('.topnav [data-action]'), function (b) {
+      var a = b.getAttribute('data-action');
+      if (a === 'method' || a === 'about' || a === 'country') { if (state.view === a) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); }
+    });
+  }
+
+  /* ---------- theme: system → light → dark (persisted; meta theme-color follows the surface) ---------- */
+  var THEMES = ['system', 'light', 'dark'];
+  var THEME_META = {
+    system: { icon: 'brightness_auto', label: 'Theme: system' },
+    light: { icon: 'light_mode', label: 'Theme: light' },
+    dark: { icon: 'dark_mode', label: 'Theme: dark' }
+  };
+  function readTheme() { try { var v = localStorage.getItem(THEME_KEY); return THEMES.indexOf(v) !== -1 ? v : 'system'; } catch (e) { return 'system'; } }
+  var theme = readTheme();
+  function applyTheme() {
+    if (theme === 'system') delete html.dataset.theme; else html.dataset.theme = theme;
+    var surface = getComputedStyle(html).getPropertyValue('--surface').trim();
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) {
+      if (!m.hasAttribute('data-default')) m.setAttribute('data-default', m.getAttribute('content'));
+      m.setAttribute('content', theme === 'system' ? m.getAttribute('data-default') : (surface || m.getAttribute('data-default')));
+    });
+    renderThemeButton();
+  }
+  function renderThemeButton() {
+    var b = document.getElementById('theme-toggle'); if (!b) return;
+    var next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    var lbl = t(THEME_META[theme].label) + ' – ' + t('switch to {mode}', { mode: t(next) });
+    b.setAttribute('aria-label', lbl); b.title = lbl;
+    b.querySelector('.msr').textContent = THEME_META[theme].icon;
+  }
+  function cycleTheme() {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length];
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { /* private mode */ }
+    applyTheme();
+    announce(t(THEME_META[theme].label));
+  }
+  function toggleLang() {
+    if (!UI.i18n || !UI.i18n.setLang) return;
+    UI.i18n.setLang(lang() === 'de' ? 'en' : 'de');
+    var y = window.scrollY;
+    render(); window.scrollTo(0, y);
+    var lb = document.getElementById('lang-toggle'); if (lb) lb.focus({ preventScroll: true });
+    announce(lang() === 'de' ? 'Sprache: Deutsch' : 'Language: English');
+  }
+
+  function landingBg() {
+    var pins = [[60, 540], [300, 430], [540, 390], [760, 300], [960, 240], [1160, 90]];
+    var dots = pins.map(function (p, i) {
+      var last = i === pins.length - 1;
+      return '<g class="bg-pin' + (last ? ' bg-pin--lead' : '') + '" style="--i:' + i + '">' + (last ? '<circle class="bg-pin__ring" cx="' + p[0] + '" cy="' + p[1] + '" r="14"/>' : '') +
+        '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (last ? 9 : 6) + '"/></g>';
+    }).join('');
+    function shape(cls, path) { return '<svg class="bg-shape ' + cls + '" viewBox="0 0 200 200"><path d="' + path + '"/></svg>'; }
+    return '<div class="landing-bg" aria-hidden="true">' +
+      '<div class="bg-grid"></div>' +
+      shape('bg-cookie', shapePath(12, .07)) +
+      shape('bg-clover', shapePath(4, .32, Math.PI / 4)) +
+      shape('bg-burst', shapePath(8, .14)) +
+      '<svg class="bg-shape bg-pill" viewBox="0 0 200 80"><rect x="2" y="2" width="196" height="76" rx="38"/></svg>' +
+      '<svg class="bg-shape bg-arch" viewBox="0 0 200 200"><path d="M10 200V100a90 90 0 0 1 180 0v100z"/></svg>' +
+      '<svg class="bg-route" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice"><path class="bg-route__line" d="M60 540C180 540 200 440 300 430S460 400 540 390S680 310 760 300S900 250 960 240S1100 150 1160 90"/>' + dots + '</svg>' +
+      '</div>';
   }
 
   function viewLanding() {
     var started = Object.keys(state.answers).length > 0;
+    // visitors with answers see their real ranking; everyone else a fixed demo order
     var demo = [82, 74, 67, 59, 51, 40];
-    var rows = D.COUNTRIES.map(function (c, i) {
-      return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top"><span class="code' + (i === 0 ? '' : ' code--soft') + '">' + c.id + '</span><span class="rank-item__name">' + esc(c.name) + '</span></div>' +
-        '<div class="bar"><span class="grow" style="--w:' + demo[i] + '%;animation-delay:' + (i * 90) + 'ms"></span></div></li>';
+    var rows = started ? rankItems(E.evaluate(state.answers, true), 'demo-', false) : D.COUNTRIES.map(function (c, i) {
+      return '<li class="rank-item' + (i === 0 ? ' rank-item--lead' : '') + '"><div class="rank-item__top">' + avatar(c.id, i === 0) + '<span class="rank-item__name">' + esc(t(c.name)) + '</span><span class="rank-item__score" data-ckey="demo-' + c.id + '" data-count0>' + demo[i] + '</span></div>' +
+        '<div class="bar"><span data-wkey="demo-' + c.id + '" style="width:' + demo[i] + '%"></span></div></li>';
     }).join('');
-    var chips = D.COUNTRIES.map(function (c) { return '<span class="chip"><span class="code code--soft">' + c.id + '</span>' + esc(c.name) + '</span>'; }).join('');
-    return '<section class="landing anim">' +
-      '<div class="hero"><div>' +
-        '<span class="eyebrow">Founder decision helper · 6 countries · 10 criteria</span>' +
-        '<h1>Where should you <em>found</em> your startup?</h1>' +
-        '<p class="hero__lead">Answer a few click-only questions about you, your startup and your money. Get a first, evidence-based orientation on your most advantageous founding location – with every reason, trade-off and source on the table.</p>' +
-        '<div class="countries-strip" aria-label="Countries compared">' + chips + '</div>' +
-        '<div class="hero__cta"><button class="btn btn--primary btn--lg" type="button" data-action="start">' + (started ? 'Continue where you left off' : 'Find my most advantageous location') + icon('arrow') + '</button>' +
-        (started ? '<button class="btn btn--ghost btn--lg" type="button" data-action="results">See my result</button>' : '<button class="btn btn--ghost btn--lg" type="button" data-action="method">How it works</button>') + '</div>' +
-        '<p class="hero__meta">10 questions + priorities · about 3 minutes · every question can be skipped</p>' +
+    var chips = D.COUNTRIES.map(function (c) {
+      return '<li><button type="button" class="chip chip--filter chip--country" data-action="country" data-k="' + esc(c.id) + '" >' + avatar(c.id) + esc(t(c.name)) + '<span class="sr-only"> – ' + esc(t('country profile')) + '</span></button></li>';
+    }).join('');
+    var stats = [['public', D.COUNTRIES.length, 'countries'], ['tune', D.CRITERIA.length, 'criteria'], ['checklist', Q.length, 'questions'], ['lock', 0, 'data sent']].map(function (s) {
+      return '<li class="stat">' + icon(s[0]) + '<b>' + s[1] + '</b><span>' + esc(t(s[2])) + '</span></li>';
+    }).join('');
+    var feats = [['verified', 'Evidence-based', 'Every score links to its source.'], ['person', 'Personal', 'Your answers set the weights.'], ['balance', 'Deterministic, reproducible', 'Same answers, same ranking.']].map(function (f) {
+      return '<li class="feature"><span class="feature__icon">' + icon(f[0]) + '</span><h3>' + esc(t(f[1])) + '</h3><p>' + esc(t(f[2])) + '</p></li>';
+    }).join('');
+    var examples = EXAMPLES.length ? '<section class="examples" aria-labelledby="ex-title"><div class="examples__head"><h2 id="ex-title">' + esc(t('Example founders')) + '</h2><p>' + esc(t('One click fills all answers; edit afterwards.')) + '</p></div><ul class="examples__list">' +
+      EXAMPLES.map(function (x) {
+        return '<li><button type="button" class="example" data-action="example" data-k="' + esc(x.id) + '"><span class="example__icon">' + icon(x.icon) + '</span><span class="example__text"><span class="example__l">' + esc(t(x.label)) + '</span>' + (x.desc ? '<span class="example__s">' + esc(t(x.desc)) + '</span>' : '') + '</span>' + icon('arrow_forward', 'example__go') + '</button></li>';
+      }).join('') + '</ul></section>' : '';
+    return '<section class="landing anim">' + landingBg() +
+      '<div class="hero"><div class="hero__main">' +
+        '<span class="chip chip--assist">' + icon('explore') + esc(t('Founder decision helper')) + '</span>' +
+        '<h1>' + t('Where should you <em>found</em> your startup?') + '</h1>' +
+        '<p class="hero__lead">' + esc(t('{n} questions. One ranked, sourced answer.', { n: Q.length })) + '</p>' +
+        '<div class="hero__cta"><button class="btn btn--filled btn--lg" type="button" data-action="start">' + esc(started ? t('Continue') : t('Find my location')) + icon('arrow_forward') + '</button>' +
+        (started ? '<button class="btn btn--outlined btn--lg" type="button" data-action="results">' + esc(t('See my result')) + '</button>' : '<button class="btn btn--outlined btn--lg" type="button" data-action="method">' + esc(t('How it works')) + '</button>') + '</div>' +
+        '<ul class="chips" aria-label="' + esc(t('Compared countries: open a profile')) + '">' + chips + '</ul>' +
       '</div>' +
-      '<div class="hero__side"><aside class="hero__card preview" aria-label="Example of the live ranking"><div class="rail__head"><h2>Live ranking</h2><span class="preview__tag">Example view</span></div>' +
+      '<aside class="card card--elevated preview" aria-label="' + esc(started ? t('Your live ranking') : t('Example ranking')) + '"><div class="card__head"><h2>' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="chip chip--small' + (started ? ' chip--tonal' : '') + '">' + esc(started ? t('Your result') : t('Example')) + '</span></div>' +
         '<ol class="rank-list">' + rows + '</ol>' +
-        '<p class="rail__why"><strong>Why it moved:</strong> each answer re-scores all six countries – and tells you why.</p>' +
-      '</aside>' +
-      '<p class="hero__note">' + icon('doc') + '<span><strong>A first orientation, not a final verdict.</strong> FoundersNavigator simplifies complex tax and legal rules into comparable scores. Use the result to shortlist and prepare – then confirm the details with a tax adviser or lawyer.</span></p>' +
-      '</div>' +
-      '</div>' +
-      '<div class="features">' +
-        '<div class="feature"><span class="feature__icon">' + icon('doc') + '</span><h3>Evidence, not opinion</h3><p>Built on statutes, tax authorities, OECD, Eurostat and WIPO data – every score links to its source and date.</p></div>' +
-        '<div class="feature"><span class="feature__icon">' + icon('user') + '</span><h3>Personal by design</h3><p>Your citizenship, home, investors and exit plans change the weights – grounded in research on founder location choices.</p></div>' +
-        '<div class="feature"><span class="feature__icon">' + icon('scale') + '</span><h3>Transparent and deterministic</h3><p>No AI and no black box: the same answers always give the same result, and a robustness check tells you how close the call is.</p></div>' +
-      '</div></section>';
+        '<p class="preview__foot">' + icon('bolt') + esc(t('Re-scores with every click.')) + '</p>' +
+      '</aside></div>' +
+      (FX ? (FX.setAnswers(state.answers), FX.routesHtml()) : '') +
+      examples +
+      '<h2 class="sr-only">' + esc(t('At a glance')) + '</h2>' +
+      '<ul class="stats">' + stats + '</ul>' +
+      '<ul class="features">' + feats + '</ul>' +
+      (FX ? FX.demoHtml() : '') +
+      '</section>';
   }
 
-
+  function stepDone(s) { return s.kind === 'prio' ? !!state.answers.priorities : (!E.isAsked(s.q, state.answers) || isAnswered(s.q) || !!state.skipped[s.q.id]); }
   function viewWizard() {
+    state.step = askedStep(state.step); // e.g. a restored step that is no longer asked
     var step = STEPS[state.step];
     var res = E.evaluate(state.answers);
+    // only steps that are asked count for the rail, progress bar and "Question n of m"
+    var blockSteps = E.BLOCKS.map(function (b) { return STEPS.map(function (s, j) { return s.block === b.id && stepAsked(j) ? j : -1; }).filter(function (j) { return j !== -1; }); });
+    var askedQ = STEPS.map(function (s, j) { return j; }).filter(function (j) { return STEPS[j].kind === 'q' && stepAsked(j); });
+    var askedAll = askedQ.length + 1; // + priorities step
     var blocksHtml = E.BLOCKS.map(function (b, i) {
-      var idxs = STEPS.map(function (s, j) { return s.block === b.id ? j : -1; }).filter(function (j) { return j !== -1; });
+      var idxs = blockSteps[i];
       var current = idxs.indexOf(state.step) !== -1;
-      var done = !current && idxs.every(function (j) { var s = STEPS[j]; return s.kind === 'prio' ? !!state.answers.priorities : (isAnswered(s.q) || state.skipped[s.q.id]); });
-      return '<button type="button" class="step' + (current ? ' step--current' : '') + (done ? ' step--done' : '') + '" data-action="goto" data-step="' + idxs[0] + '"' + (current ? ' aria-current="step"' : '') + '><span class="step__dot">' + (done ? '✓' : (i + 1)) + '</span>' + esc(b.name) + '</button>';
+      var done = !current && idxs.every(function (j) { return stepDone(STEPS[j]); });
+      var lbl = t(b.name) + (done ? ' (' + t('done') + ')' : '');
+      return '<button type="button" class="step' + (current ? ' step--current' : '') + (done ? ' step--done' : '') + '" data-action="goto" data-step="' + idxs[0] + '"' + (current ? ' aria-current="step"' : '') + ' aria-label="' + esc(lbl) + '"><span class="step__dot" aria-hidden="true">' + (done ? icon('check') : (i + 1)) + '</span><span>' + esc(t(b.name)) + '</span></button>';
     }).join('');
-    var pct = Math.round((state.step) / STEPS.length * 100);
+    // one progress indicator, segmented like the step rail; the current step counts as reached → 100 % on the last step
+    var pct = Math.round((step.kind === 'prio' ? askedAll : askedQ.indexOf(state.step) + 1) / askedAll * 100);
+    var segs = blockSteps.map(function (idxs, i) {
+      var reached = idxs.filter(function (j) { return j <= state.step; }).length;
+      var w = Math.round(reached / idxs.length * 100);
+      return '<span class="progress__seg" style="flex-grow:' + idxs.length + '"><span data-wkey="prog-' + i + '" style="width:' + w + '%"></span></span>';
+    }).join('');
     var block = E.BLOCKS.filter(function (b) { return b.id === step.block; })[0];
     var blockIdx = E.BLOCKS.indexOf(block) + 1;
-    var body = step.kind === 'prio' ? viewPriorities() : viewQuestion(step.q);
-    var leader = res.top;
-    var mobile = '<div class="rail-mobile" role="note"><span>Leading now: <b>' + (leader ? esc(leader.country.name) : '–') + '</b>' + (leader ? ' · ' + leader.score : '') + '</span><span class="rail-mobile__list">' +
-      res.rows.slice(1, 4).filter(function (r) { return !r.excluded; }).map(function (r) { return r.id + ' ' + r.score; }).join(' · ') + '</span></div>';
-    return '<section class="wizard">' +
-      '<nav class="steps" aria-label="Progress"><p class="steps__title">Your profile</p>' + blocksHtml +
-      '<p class="steps__note">' + icon('lock') + '<span>Saved only in this browser. Nothing leaves your device.</span></p></nav>' +
-      '<div>' + mobile + '<div class="qcard anim" data-step="' + state.step + '">' +
-        '<div class="progress" role="progressbar" aria-label="Questionnaire progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><span style="width:' + Math.max(pct, 3) + '%"></span></div>' +
-        '<div class="qhead"><span class="eyebrow">Step ' + blockIdx + ' of ' + E.BLOCKS.length + ' · ' + esc(block.name) + '</span>' + body.head + '</div>' +
+    var body = step.kind === 'prio' ? viewPriorities(res) : viewQuestion(step.q);
+    // the priorities step is not one of the {Q.length} questions: label it as the final step instead
+    var countLbl = step.kind === 'prio' ? t('Final step: your priorities') : t('Question {n} of {m}', { n: askedQ.indexOf(state.step) + 1, m: askedQ.length });
+    return '<section class="wizard has-bg">' + pageBg('wizard') +
+      '<nav class="steps" aria-label="' + esc(t('Questionnaire sections')) + '">' + blocksHtml +
+      '<p class="steps__note">' + icon('lock') + '<span>' + esc(t('Stays on this device.')) + '</span></p></nav>' +
+      '<div class="wizard__main">' + viewRailMobile(res) + '<div class="qcard anim' + (state.dir === 'back' ? ' anim--back' : ' anim--fwd') + (step.kind === 'prio' ? ' qcard--prio' : '') + '" data-step="' + state.step + '">' +
+        '<div class="progress" role="progressbar" aria-label="' + esc(t('Questionnaire progress')) + '" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '" aria-valuetext="' + esc(countLbl) + '">' + segs + '</div>' +
+        '<div class="qhead"><p class="overline"><span>' + esc(t('Step {n} of {m}', { n: blockIdx, m: E.BLOCKS.length }) + ': ' + t(block.name)) + '</span><span class="overline__count">' + esc(countLbl) + '</span></p>' + body.head + '</div>' +
         body.main +
         '<div class="qfoot">' +
-          '<button type="button" class="btn btn--ghost" data-action="prev">' + icon('back') + 'Back</button>' +
+          '<button type="button" class="btn btn--text" data-action="prev">' + icon('arrow_back') + esc(t('Back')) + '</button>' +
           '<span class="qfoot__spacer"></span>' +
-          '<div class="qfoot__main">' +
-            '<button type="button" class="btn btn--primary" data-action="next">' + (state.step === STEPS.length - 1 ? 'Show recommended location' : 'Continue') + icon('arrow') + '</button>' +
-            (step.kind === 'q' ? '<button type="button" class="textbtn textbtn--small" data-action="skip">Not sure yet – skip</button>' : '') +
-          '</div>' +
+          (step.kind === 'q' ? '<button type="button" class="btn btn--text" data-action="skip">' + esc(t('Skip')) + '</button>' : '') +
+          '<button type="button" class="btn btn--filled" data-action="next">' + esc(state.step === STEPS.length - 1 ? t('See result') : t('Continue')) + icon('arrow_forward') + '</button>' +
         '</div>' +
       '</div></div>' +
       viewRail(res) +
@@ -232,308 +492,287 @@
   function viewQuestion(q) {
     var multi = q.type === 'multi';
     var v = state.answers[q.id];
-    var opts = q.options.map(function (o) {
+    var anyOn = !multi && q.options.some(function (o) { return v === o.v; });
+    var opts = q.options.map(function (o, i) {
       var on = multi ? (Array.isArray(v) && v.indexOf(o.v) !== -1) : v === o.v;
-      return '<button type="button" class="option' + (multi ? ' option--multi' : '') + '" aria-pressed="' + on + '" data-action="' + (multi ? 'toggle' : 'pick') + '" data-v="' + esc(o.v) + '">' +
-        '<span class="option__l">' + esc(o.l) + '</span>' + (o.s ? '<span class="option__s">' + esc(o.s) + '</span>' : '') + '<span class="option__check" aria-hidden="true"></span></button>';
+      var mark = multi ? (on ? 'check_box' : 'check_box_outline_blank') : (on ? 'radio_button_checked' : 'radio_button_unchecked');
+      var tab = multi ? '0' : ((on || (!anyOn && i === 0)) ? '0' : '-1');
+      return '<button type="button" class="option" role="' + (multi ? 'checkbox' : 'radio') + '" aria-checked="' + on + '" tabindex="' + tab + '" data-action="' + (multi ? 'toggle' : 'pick') + '" data-v="' + esc(o.v) + '">' +
+        icon(mark, 'option__check') + '<span class="option__text"><span class="option__l">' + esc(t(o.l)) + '</span>' + (o.s ? '<span class="option__s">' + esc(t(o.s)) + '</span>' : '') + '</span></button>';
     }).join('');
+    var why = WHY[q.id];
     return {
-      head: '<h1 tabindex="-1">' + esc(q.title) + '</h1><p>' + esc(q.help) + (multi ? '' : '') + '</p>' + (state.skipped[q.id] ? '<p class="skipped-note">You skipped this – it currently has no effect on the result.</p>' : ''),
-      main: '<div class="options" role="group" aria-label="' + esc(q.title) + (multi ? ' (select all that apply)' : '') + '">' + opts + '</div>'
+      head: '<h1 id="q-title" tabindex="-1">' + esc(t(q.title)) + '</h1>' +
+        ((q.help || multi) ? '<p class="qhead__help" id="q-help">' + (q.help ? '<span>' + esc(t(q.help)) + '</span>' : '') + (multi ? '<span class="chip chip--small chip--tonal">' + icon('done_all') + esc(t('Select all that apply')) + '</span>' : '') + '</p>' : '') +
+        (why ? '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(t(why)) + '</span></p>' : '') +
+        (state.skipped[q.id] ? '<p class="skipped-note">' + icon('block') + esc(t('Skipped: no effect.')) + '</p>' : ''),
+      main: '<div class="options" role="' + (multi ? 'group' : 'radiogroup') + '" aria-labelledby="q-title"' + (q.help ? ' aria-describedby="q-help"' : '') + '>' + opts + '</div>'
     };
   }
 
+  var LEVEL_SHORT = ['Not', 'Somewhat', 'Important', 'Crucial'];
+  var LEVEL_TINY = ['Not', 'Some', 'Imp.', 'Crucial'];
   function prioRows(withHint) {
     var pr = state.answers.priorities || {};
+    var W = withHint ? E.computeWeights(state.answers) : null;
     return D.CRITERIA.map(function (c) {
       var lvl = typeof pr[c.id] === 'number' ? pr[c.id] : E.defaultLevel(c.id, state.answers);
-      var btns = E.LEVELS.map(function (L) {
-        return '<button type="button" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-pressed="' + (lvl === L.v) + '">' + L.l + '</button>';
-      }).join('');
       var key = (withHint ? 'q-' : 'r-') + c.id;
+      var btns = E.LEVELS.map(function (L) {
+        var on = lvl === L.v;
+        return '<button type="button" role="radio" aria-checked="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-action="prio" data-c="' + c.id + '" data-level="' + L.v + '" aria-label="' + esc(t(L.l)) + '" title="' + esc(t(L.l)) + '">' +
+          (on ? icon('check') : '') + '<span class="seg__full">' + esc(t(LEVEL_SHORT[L.v])) + '</span><span class="seg__short" aria-hidden="true">' + esc(t(LEVEL_TINY[L.v])) + '</span></button>';
+      }).join('');
       var open = !!state.openInfo[key];
-      var info = c.info ? '<button type="button" class="infobtn" data-action="info" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="info-' + key + '" title="' + esc(c.info) + '"><span aria-hidden="true">i</span><span class="sr-only">What does ' + esc(c.name) + ' mean?</span></button>' : '';
-      return '<div class="prio__row"><div class="prio__label"><strong id="pl-' + key + '">' + esc(c.name) + info + '</strong>' + (withHint ? '<span>' + esc(c.hint) + '</span>' : '') +
-        (open ? '<p class="infopanel" id="info-' + key + '">' + esc(c.info) + '</p>' : '') + '</div><div class="seg" role="group" aria-labelledby="pl-' + key + '">' + btns + '</div></div>';
+      var w = W && W[c.id];
+      var bonus = w && w.bonus > 0 && w.value > 0 ? '<span class="chip chip--small chip--tonal prio__bonus" title="' + esc(w.reasons.map(t).join('; ')) + '">' + icon('add') + esc(t('+1 from your answers')) + '<span class="sr-only">: ' + esc(w.reasons.map(t).join('; ')) + '</span></span>' : '';
+      var info = c.info ? '<button type="button" class="iconbtn iconbtn--small" data-action="info" data-key="' + key + '" aria-expanded="' + open + '" aria-controls="info-' + key + '" title="' + esc(t(c.info)) + '">' + icon('info') + '<span class="sr-only">' + esc(t('What does “{name}” mean?', { name: t(c.name) })) + '</span></button>' : '';
+      return '<div class="prio__row"><div class="prio__label"><span class="prio__icon">' + critIcon(c.id) + '</span><span class="prio__text"><strong id="pl-' + key + '">' + esc(t(c.name)) + '</strong>' + (withHint ? '<span>' + esc(t(c.hint)) + '</span>' : '') + bonus + '</span>' + info + '</div>' +
+        (open ? '<p class="infopanel" id="info-' + key + '">' + esc(t(c.info)) + '</p>' : '') + '<div class="seg" role="radiogroup" aria-labelledby="pl-' + key + '">' + btns + '</div></div>';
     }).join('');
   }
-  function viewPriorities() {
+  function viewPriorities(res) {
+    var bumped = D.CRITERIA.filter(function (c) { var w = res.weights[c.id]; return w && w.bonus > 0 && w.value > 0; }).length;
     return {
-      head: '<h1 tabindex="-1">How important is each of these to you?</h1><p>Pick one level per goal. Untouched goals count as “somewhat important”; easy residence &amp; local roots starts at “important” because home advantage is strongly supported by research (unless you would move anywhere). Tap <span class="infobtn infobtn--inline" aria-hidden="true">i</span> for an explanation. You can fine-tune this on the results page.</p>',
-      main: '<div class="prio">' + prioRows(true) + '</div>'
+      head: '<h1 id="q-title" tabindex="-1">' + esc(t('How much does each goal matter?')) + '</h1><p class="qhead__help">' + esc(t('Defaults are set; change what matters.')) + '</p>' +
+        '<p class="qhead__why">' + icon('lightbulb') + '<span><strong>' + esc(t('Why we ask:')) + '</strong> ' + esc(bumped ? t('Your answers added +1 to {n} goals. Set base levels here.', { n: bumped }) : t('Priorities are the ranking weights. Set base levels here.')) + '</span></p>',
+      main: '<div class="prio prio--grid">' + prioRows(true) + '</div>'
     };
   }
 
-  function viewRail(res) {
+  function rankItems(res, keyPrefix, withMoves) {
     var prev = state.prevOrder;
-    var items = res.rows.map(function (r, i) {
+    return res.rows.map(function (r, i) {
       var mv = '';
-      if (prev && prev[r.id]) {
+      if (withMoves && prev && prev[r.id]) {
         var d = prev[r.id].pos - i;
-        if (d > 0) mv = '<span class="rank-item__move move-up" aria-label="up ' + d + '">▲' + d + '</span>';
-        else if (d < 0) mv = '<span class="rank-item__move move-down" aria-label="down ' + (-d) + '">▼' + (-d) + '</span>';
+        if (d > 0) mv = '<span class="rank-item__move move-up">' + icon('arrow_upward') + d + '<span class="sr-only"> ' + esc(t('up')) + '</span></span>';
+        else if (d < 0) mv = '<span class="rank-item__move move-down">' + icon('arrow_downward') + (-d) + '<span class="sr-only"> ' + esc(t('down')) + '</span></span>';
       }
       if (!mv) mv = '<span class="rank-item__move" aria-hidden="true"></span>';
-      return '<li class="rank-item' + (i === 0 && !r.excluded ? ' rank-item--lead' : '') + (r.excluded ? ' rank-item--excluded' : '') + '">' +
-        '<div class="rank-item__top"><span class="code' + (i === 0 && !r.excluded ? '' : ' code--soft') + '">' + r.id + '</span><span class="rank-item__name">' + esc(r.country.name) + (r.excluded ? ' <span class="sr-only">(excluded)</span>' : '') + '</span><span class="rank-item__score">' + r.score + '</span>' + mv + '</div>' +
-        '<div class="bar"><span style="width:' + r.score + '%"></span></div></li>';
+      var lead = i === 0 && !r.excluded;
+      var flip = withMoves ? ' data-flip="' + keyPrefix + r.id + '"' : '';
+      if (r.excluded) {
+        // excluded countries are not ranked: no fit number and no bar, only the reason (as on the results page)
+        var divider = (i === 0 || !res.rows[i - 1].excluded) ? '<li class="rank-divider" aria-hidden="true"><span>' + esc(t('Not ranked')) + '</span></li>' : '';
+        return divider + '<li class="rank-item rank-item--excluded"' + flip + '>' +
+          '<div class="rank-item__top">' + avatar(r.id) + '<span class="rank-item__name">' + esc(t(r.country.name)) + ' <span class="sr-only">(' + esc(t('not ranked')) + ')</span><small class="rank-item__reason">' + esc(t(r.excluded)) + '</small></span>' + mv + '</div></li>';
+      }
+      return '<li class="rank-item' + (lead ? ' rank-item--lead' : '') + '"' + flip + '>' +
+        '<div class="rank-item__top">' + avatar(r.id, lead) + '<span class="rank-item__name">' + esc(t(r.country.name)) + '</span><span class="rank-item__score" data-ckey="' + keyPrefix + r.id + '">' + r.score + '</span>' + mv + '</div>' +
+        '<div class="bar"><span data-wkey="' + keyPrefix + r.id + '" style="width:' + r.score + '%"></span></div></li>';
     }).join('');
+  }
+  function viewRail(res) {
     var why = '';
     if (state.lastMove && state.lastMove.none) {
-      var reason = 'this answer does not affect any score for your current profile.';
-      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = 'this passport gives no additional rights compared with your other one(s).';
-      else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = ef.effect.charAt(0).toLowerCase() + ef.effect.slice(1); }
-      why = '<p class="rail__why"><strong>No change:</strong> ' + esc(reason) + '</p>';
+      var reason = t('This answer changes no score for your profile.');
+      if (state.lastMove.qid === 'citizenship' && Array.isArray(state.answers.citizenship) && state.answers.citizenship.length > 1) reason = t('This passport adds no rights beyond your other one(s).');
+      else if (state.lastMove.qid) { var ef = (res.effects || []).filter(function (e) { return e.q === state.lastMove.qid; })[0]; if (ef) reason = UI.effectText(ef); }
+      why = '<p class="rail__why">' + icon('remove') + '<span><strong>' + esc(t('No change:')) + '</strong> ' + esc(reason) + '</span></p>';
     } else if (state.lastMove) {
-      var c = country(state.lastMove.k);
-      why = '<p class="rail__why"><strong>Why it moved:</strong> your answer to “' + esc(state.lastMove.label) + '” moved ' + esc(c.name) + ' ' + (state.lastMove.d > 0 ? 'up' : 'down') + ' ' + Math.abs(Math.round(state.lastMove.d)) + ' point' + (Math.abs(Math.round(state.lastMove.d)) === 1 ? '' : 's') + '.</p>';
+      var c = country(state.lastMove.k), pts = Math.abs(Math.round(state.lastMove.d));
+      why = '<p class="rail__why">' + icon(state.lastMove.d > 0 ? 'trending_up' : 'trending_down') + '<span><strong>' + esc(t(c.name)) + ' ' + (state.lastMove.d > 0 ? '+' : '−') + pts + '</strong> ' + esc(t('after “{q}”', { q: t(state.lastMove.label) })) + '</span></p>';
     } else {
-      why = '<p class="rail__why">Each click re-scores all six countries against the evidence base.</p>';
+      why = '<p class="rail__why">' + icon('bolt') + '<span>' + esc(t('Every click re-scores all six.')) + '</span></p>';
     }
-    return '<aside class="rail" aria-label="Live ranking"><div class="rail__head"><h2>Live ranking</h2><span>fit score / 100</span></div><ol class="rank-list">' + items + '</ol>' + why +
-      '<p class="rail__foot">100 = top score on every factor you weight. Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers.</p></aside>';
+    return '<aside class="rail" aria-labelledby="rail-title"><div class="card__head"><h2 id="rail-title">' + icon('leaderboard') + esc(t('Live ranking')) + '</h2><span class="rail__meta">' + esc(t('Match score')) + '</span></div><ol class="rank-list">' + rankItems(res, 'rail-', true) + '</ol>' + why +
+      '<p class="rail__foot">' + esc(t('{n} of {m} answered', { n: res.answered, m: res.totalQuestions })) + '</p></aside>';
   }
-
-  /* ---------- results ---------- */
-  var CONTRIB_COLORS = ['#FD0262', '#FF7AA8', '#9CC8F2', '#5FA2E3', '#2F80D1', '#C9DEF5', '#7C93B4', '#B4C3D8', '#E3ECF7', '#4A6FA5'];
-
-  function viewResults() {
-    var res = E.evaluate(state.answers);
-    var top = res.top;
-    if (!top) return '<section class="results"><div class="card"><h1>No location left</h1><p>Your filters excluded every country. <button class="textbtn" data-action="goto" data-step="2">Change your relocation answer</button>.</p></div></section>';
-    var verdictPill = res.verdict === 'robust' ? '<span class="pill pill--robust">Robust result</span>' :
-      res.verdict === 'close' ? '<span class="pill pill--close">Close call with ' + esc(res.runnerUp.country.name) + '</span>' : '<span class="pill pill--only">Only option under your filters</span>';
-    var robText = res.robustness && res.robustness.total ? 'Stays #1 in ' + res.robustness.same + ' of ' + res.robustness.total + ' cases when any one priority shifts by a level.' : '';
-    var parts = D.CRITERIA.map(function (c) { return { id: c.id, v: top.contrib[c.id] }; }).filter(function (p) { return p.v > 0.4; }).sort(function (a, b) { return b.v - a.v; });
-    var bar = parts.map(function (p, i) { return '<span style="width:' + p.v.toFixed(2) + '%;background:' + CONTRIB_COLORS[i % CONTRIB_COLORS.length] + '" title="' + esc(crit(p.id).short) + ': ' + p.v.toFixed(1) + ' points"></span>'; }).join('');
-    var legend = parts.map(function (p, i) { return '<span><i style="background:' + CONTRIB_COLORS[i % CONTRIB_COLORS.length] + '"></i>' + esc(crit(p.id).short) + ' ' + Math.round(p.v) + '</span>'; }).join('');
-    var whyNames = res.explain.why.map(function (id) { return crit(id).short.toLowerCase(); });
-    var lead = 'Recommended set-up: <strong>' + esc(top.country.entity) + '</strong> · hubs: ' + esc(top.country.hub) + '.' +
-      (whyNames.length ? ' Strongest for you on ' + esc(whyNames.join(', ').replace(/, ([^,]*)$/, ' and $1')) + '.' : '');
-    var scoreInfoOpen = !!state.openInfo.score;
-
-    var winner = '<section class="card winner anim" aria-labelledby="winner-title">' +
-      '<span class="eyebrow">Your most advantageous location</span>' +
-      '<h1 id="winner-title" class="winner__name" tabindex="-1">' + esc(top.country.name) + '</h1>' +
-      '<div class="winner__row"><div class="scorebig"><b>' + top.score + '</b><span>/ 100 fit</span></div>' +
-        '<button type="button" class="infobtn infobtn--dark" data-action="info" data-key="score" aria-expanded="' + scoreInfoOpen + '" aria-controls="info-score" title="What does the fit score mean?"><span aria-hidden="true">i</span><span class="sr-only">What does the fit score mean?</span></button>' + verdictPill + '</div>' +
-      (scoreInfoOpen ? '<p class="infopanel infopanel--dark" id="info-score">The fit score shows how close this country comes to the best possible result for <em>your</em> priorities. 100 would mean the top score (5 of 5) on every factor you weight; 0 the lowest score everywhere. It is not a probability or a grade, and differences of 2–3 points are within the precision of the data.</p>' : '') +
-      '<p class="winner__lead">' + lead + '</p>' +
-      '<div class="contrib"><span style="font-size:13px;color:#9CC8F2;font-weight:600">What makes up the ' + top.score + ' points</span><div class="contrib__bar" role="img" aria-label="Score contribution by criterion: ' + esc(parts.map(function (p) { return crit(p.id).short + ' ' + Math.round(p.v); }).join(', ')) + '">' + bar + '</div><div class="contrib__legend">' + legend + '</div></div>' +
-      (robText ? '<p style="font-size:13.5px;color:#D3E3F5;position:relative;z-index:1">' + esc(robText) + '</p>' : '') +
-      changeHtml(res) +
-      '</section>';
-
-    var ranking = '<section class="card" aria-labelledby="rank-title"><h2 id="rank-title">Full ranking</h2><p class="card__sub">Fit score for your priorities (100 = top score on every factor you weight).</p><ol class="ranking">' +
-      res.rows.map(function (r, i) {
-        var tag = r.excluded ? r.excluded : (r.residence ? ({ home: 'you live here', citizen: 'your passport', free: 'free movement', visa: 'visa needed', limited: 'residence limited' })[r.residence.level] : '');
-        return '<li class="' + (r.excluded ? 'is-excluded' : '') + '"><span class="ranking__pos">' + (r.excluded ? '–' : (i + 1)) + '</span><span class="code' + (i === 0 ? '' : ' code--soft') + '">' + r.id + '</span>' +
-          '<span class="ranking__body"><span class="ranking__name">' + esc(r.country.name) + (tag ? '<small>' + esc(tag) + '</small>' : '') + '</span><span class="bar"><span style="width:' + r.score + '%"></span></span></span>' +
-          '<span class="ranking__score">' + r.score + '</span></li>';
-      }).join('') + '</ol></section>';
-
-    var whyList = res.explain.why.length ? res.explain.why.map(function (c) {
-      var cell = D.SCORES[top.id][c];
-      var fact = c === 'residence' && top.residence ? top.residence.text : cell.value;
-      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(fact) + ' ' + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
-    }).join('') : '<li class="empty">No single standout: the score comes from a balanced profile.</li>';
-    var tradeList = res.explain.tradeoffs.length ? res.explain.tradeoffs.map(function (c) {
-      var cell = D.SCORES[top.id][c];
-      var fact = c === 'residence' && top.residence ? top.residence.text : cell.value;
-      var better = res.rows.filter(function (r) { return !r.excluded && r.id !== top.id; }).sort(function (a, b) { return b.scores[c].value - a.scores[c].value; })[0];
-      return '<li><strong>' + esc(crit(c).name) + '</strong>' + esc(fact) + (better && better.scores[c].value > top.scores[c].value ? ' – ' + esc(better.country.name) + ' is stronger here. ' : ' ') + (cell.sources[0] ? srcLink(cell.sources[0]) : '') + '</li>';
-    }).join('') : '<li class="empty">No major weakness on the factors you care about.</li>';
-    var watchList = res.warnings.length ? res.warnings.map(function (w) { var ss = Array.isArray(w.src) ? w.src : (w.src ? [w.src] : []); return '<li>' + esc(w.text) + ' ' + ss.map(function (x) { return srcLink(x); }).join(' ') + '</li>'; }).join('') : '<li class="empty">Nothing specific to flag for your profile.</li>';
-    var insights = '<div class="insights">' +
-      '<section class="insight insight--why"><h3>Why it fits</h3><ul>' + whyList + '</ul></section>' +
-      '<section class="insight insight--trade"><h3>Trade-offs</h3><ul>' + tradeList + '</ul></section>' +
-      '<section class="insight insight--watch"><h3>Watch out</h3><ul>' + watchList + '</ul></section></div>';
-
-    var orderIds = res.rows.map(function (r) { return r.id; });
-
-    // roadmap
-    var tab = state.roadmapTab && country(state.roadmapTab) ? state.roadmapTab : top.id;
-    var tabs = orderIds.map(function (k) { return '<button type="button" role="tab" class="tab" aria-selected="' + (k === tab) + '" data-action="tab" data-k="' + k + '"><span class="code' + (k === tab ? '' : ' code--soft') + '">' + k + '</span>' + esc(country(k).name) + '</button>'; }).join('');
-    var steps = D.ROADMAP[tab].map(function (s) { return '<li><div><strong>' + esc(s.t) + '</strong><p>' + esc(s.d) + ' ' + srcLink(s.src) + '</p></div></li>'; }).join('');
-    var rs = res.rows.filter(function (r) { return r.id === tab; })[0].residence;
-    var roadmap = '<section class="card" aria-labelledby="rm-title"><h2 id="rm-title">Your founding roadmap</h2><p class="card__sub">Your first five steps to found in ' + esc(country(tab).name) + ' – with a source to check each one.</p>' +
-      '<div class="tabs" role="tablist" aria-label="Country roadmap">' + tabs + '</div>' +
-      '<div class="entity-box"><span>Legal form: <b>' + esc(country(tab).entity) + '</b></span>' + (rs ? '<span>Residence: <b>' + esc(rs.text) + '</b></span>' : '') + '</div>' +
-      '<ol class="roadmap">' + steps + '</ol></section>';
-
-    var answers = '<section class="card" aria-labelledby="ans-title"><h2 id="ans-title">Your answers</h2><p class="card__sub">Click to change an answer. Skipped questions have no effect.</p><div class="answers">' +
-      Q.map(function (q, i) { var l = answerLabel(q); var ef = res.effects[i]; return '<button type="button" class="answer' + (l ? '' : ' is-skipped') + '" data-action="goto" data-step="' + i + '" title="' + esc(ef ? ef.effect : '') + '"><small>' + esc(q.title) + '</small><span>' + esc(l || 'Not answered') + '</span></button>'; }).join('') +
-      '</div></section>';
-
-    // matrix
-    var head = '<tr><th scope="col">Criterion · your weight</th>' + orderIds.map(function (k) { return '<th scope="col" class="' + (k === top.id ? 'col-win' : '') + '">' + k + '</th>'; }).join('') + '</tr>';
-    var bodyRows = D.CRITERIA.map(function (c) {
-      var w = res.weights[c.id];
-      return '<tr><th scope="row">' + esc(c.name) + '<small>' + wdots(w) + ' ' + esc(E.LEVELS[w.level].l) + (w.isDefault && c.id === 'residence' && w.level === 2 ? ' (default – strong evidence for home advantage)' : '') + (w.bonus ? ' +' + w.bonus + ' from your answers' : '') + (w.value === 0 && w.level > 0 ? ' · set to 0 by your answers' : '') + '</small></th>' +
-        orderIds.map(function (k) {
-          var s = res.rows.filter(function (r) { return r.id === k; })[0].scores[c.id];
-          var cell = D.SCORES[k][c.id];
-          var tag = cell.nodata ? '<span class="conf-low" aria-hidden="true">no data</span>' : (cell.confidence === 'low' ? '<span class="conf-low" aria-hidden="true">est.</span>' : '');
-          return '<td class="' + (k === top.id ? 'col-win' : '') + '"><button type="button" class="cellbtn" data-action="cell" data-k="' + k + '" data-c="' + c.id + '" aria-label="' + esc(country(k).name + ', ' + c.name + ': ' + s.value + ' of 5. Show evidence') + '">' + dots(s.value) + tag + '</button></td>';
-        }).join('') + '</tr>';
-    }).join('');
-    var matrix = '<section class="card" aria-labelledby="mx-title"><h2 id="mx-title">Compare all six, criterion by criterion</h2><p class="card__sub">Click any cell to see the fact, the reasoning and the source.</p>' +
-      '<div class="howto"><strong>How to read this</strong><ul>' +
-        '<li><b>Country dots (1–5):</b> how well the country meets this goal, using fixed evidence thresholds. More dots is always better – for taxes that means <em>lower</em> tax (e.g. profit tax ≤ 13% = 5 dots, ≤ 18% = 4). Some values are adjusted to your answers.</li>' +
-        '<li><b>Your weight (0–3 squares):</b> how much the criterion counts for you: Not important = 0, Somewhat important = 1, Important = 2, Crucial = 3. “+1 from your answers” means an answer (e.g. planning VC) raised it.</li>' +
-        '<li><b>est. / no data:</b> estimate from secondary data, or no reliable data (set to the neutral 3).</li></ul></div>' +
-      '<div class="matrix-wrap"><table class="matrix"><caption class="sr-only">Scores from 1 to 5 per country and criterion</caption><thead>' + head + '</thead><tbody>' + bodyRows + '</tbody></table></div></section>';
-
-    var whatif = '<section class="card whatif-card" aria-labelledby="wi-title"><h2 id="wi-title">What if your priorities change?</h2><p class="card__sub">Adjust a level and the whole page updates instantly.</p><div class="prio whatif">' + prioRows(false) + '</div></section>';
-
-    return '<section class="results">' +
-      (state.example ? '<div class="example-banner"><span>Example profile: <b>' + esc(state.example) + '</b></span><button type="button" class="textbtn" data-action="goto" data-step="0">Make it yours – edit the answers</button></div>' : '') +
-      '<div class="results__bar"><span class="answered">Based on ' + res.answered + ' of ' + res.totalQuestions + ' answers' + (res.answered < res.totalQuestions ? ' – add more for a sharper result' : '') + '</span>' +
-      '<div class="results__actions"><button type="button" class="btn btn--ghost" data-action="goto" data-step="0">' + icon('edit') + 'Edit answers</button><button type="button" class="btn btn--ghost" data-action="share">' + icon('link') + 'Copy share link</button><button type="button" class="btn btn--dark" data-action="print">' + icon('print') + 'Save as PDF</button></div></div>' +
-      '<div class="grid-2 grid-2--equal">' + winner + ranking + '</div>' + insights + roadmap + answers + matrix + whatif +
-      '<p class="result-note"><strong>How to use this result:</strong> it is an evidence-based orientation built on simplified, standardised cases – a starting point for your shortlist, not legal or tax advice. Confirm the details for your situation with an adviser before you act.</p>' +
-      '<p style="font-size:13px;color:var(--muted)">Deterministic result: no AI involved. <button type="button" class="textbtn" data-action="method">See exactly how it is calculated</button></p>' +
-      '</section>';
-  }
-
-  function changeHtml(res) {
-    if (!res.changes) return '';
-    if (!res.changes.length) return '<div class="changes"><strong>What would change the result?</strong><p>No single priority change would move another country to #1.</p></div>';
-    return '<div class="changes"><strong>What would change the result?</strong><ul>' + res.changes.map(function (c) {
-      return '<li>If “' + esc(crit(c.c).name) + '” were <b>' + esc(E.LEVELS[c.to].l.toLowerCase()) + '</b> (now ' + esc(E.LEVELS[c.from].l.toLowerCase()) + '), <b>' + esc(country(c.winner).name) + '</b> would lead.</li>';
-    }).join('') + '</ul></div>';
-  }
-
-  /* ---------- method page ---------- */
-  function viewMethod() {
-    var anchors = D.CRITERIA.map(function (c) { return '<tr><th scope="row">' + esc(c.name) + '</th><td>' + esc(c.anchors) + '</td></tr>'; }).join('');
-    var groups = [['law', 'Statutes & legal texts'], ['official', 'Government & official bodies'], ['intl', 'International organisations'], ['academic', 'Academic'], ['report', 'Industry reports'], ['expert', 'Expert & adviser publications']];
-    var srcs = groups.map(function (g) {
-      var items = Object.keys(D.SOURCES).filter(function (k) { return D.SOURCES[k].type === g[0]; });
-      if (!items.length) return '';
-      return '<h3 style="font-size:16px;margin-top:18px">' + g[1] + ' (' + items.length + ')</h3><ul class="srclist">' + items.map(function (k) { var s = D.SOURCES[k]; return '<li><a href="' + esc(s.u) + '" target="_blank" rel="noopener noreferrer"><span class="badge badge--' + s.type + '">' + s.type + '</span>' + esc(s.t) + '</a><span>' + esc(s.p) + ' · accessed ' + esc(D.DATA_AS_OF) + '</span></li>'; }).join('') + '</ul>';
-    }).join('');
-    var lit = D.LITERATURE.map(function (l) { return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener noreferrer">' + esc(l.c) + '</a><span>' + esc(l.use) + '</span></li>'; }).join('');
-    return '<section class="method anim">' +
-      '<div><span class="eyebrow">Method &amp; sources</span><h1 tabindex="-1">How the recommendation is calculated</h1><p style="margin-top:10px;font-size:17px">A transparent multi-criteria model. No AI is used at run time – identical answers always produce identical results.</p></div>' +
-      '<div class="card"><h2>1 · Evidence scores (1–5)</h2><p>For each country and criterion we collected the current legal and statistical facts (statutes, tax authorities, OECD, Eurostat, WIPO, national registers) and translated them into a 1–5 score using fixed anchor scales. Anchors are absolute, not relative to the six countries, so a score means the same thing everywhere. Where we found no reliable data, the score is set to the neutral midpoint 3 and labelled “no data”, so missing evidence does not penalise a country.</p><table class="anchors"><tbody>' + anchors + '</tbody></table></div>' +
-      '<div class="card"><h2>2 · Weights from your priorities</h2><p>Each criterion is phrased as a goal (e.g. “Low tax on company profits”), and you say how important it is: Not important = 0, Somewhat important = 1 (default), Important = 2, Crucial = 3. Exception: “Easy residence &amp; local roots” starts at Important, because home advantage is one of the most robust findings in location research (Dahl &amp; Sorenson 2012); if you say you would move anywhere, it starts at Somewhat important. Some answers add one level (capped at 4), and every change is shown in the comparison matrix:</p><ul>' +
-        '<li>Planning venture capital → +1 on VC access; grants or business angels → +1 on public funding (angel tax reliefs such as UK SEIS/EIS are scored there); accelerator → +1 on talent &amp; ecosystem. Each criterion is raised by at most one level.</li><li>Own money, friends &amp; family → +1 on corporate tax and living cost</li><li>Exit by sale or IPO → +1 on exit tax; building to keep → +1 on corporate tax</li><li>Broad employee equity → +1 on ESOP; no equity → ESOP weight 0</li><li>An explicit “Not important” always stays 0.</li></ul></div>' +
-      '<div class="card"><h2>3 · Profile adjustments to scores</h2><p>All adjustments are whole steps and keep scores within 1–5:</p><ul>' +
-        '<li><b>Easy residence &amp; local roots</b> is scored from your answers: 5 where you already live (home advantage, Dahl &amp; Sorenson 2012), 4 in your passport country or with free movement (a passport is not required to found a company, but decides where you may live and work), 2 if a visa or permit is needed, 1 if residence is quota-limited. With several citizenships, the most favourable one counts. Without answers it stays at 3.</li>' +
-        '<li>Existing investors based in a country → +1 on “local roots” for that country: investors are part of your network, not of the local VC market.</li>' +
-        '<li>US grants: −1 for non-US founders because SBIR/STTR requires &gt; 50% US ownership; +1 for US citizens.</li>' +
-        '<li>Sector: +1 on the ecosystem score only where a source supports it – fintech (Zurich in the GFCI top 10; Liechtenstein’s blockchain law TVTG), health &amp; life sciences (Lausanne/Basel clusters), hardware &amp; industrial (manufacturing ≈ 19% of GDP in Germany, ≈ 18% in Switzerland). For AI, the leading hubs (US, UK) already hold the maximum ecosystem and VC scores, so a bonus would change nothing; software &amp; SaaS is the least location-bound sector; for climate &amp; energy we found no comparable evidence. The results page explains how your sector was treated.</li>' +
-        '<li>Target market: market-access score set from a fixed table for your target region (EU single market, DACH, UK, US, global or home).</li>' +
-        '<li>Less than €10k secured: −1 on setup in Switzerland and Liechtenstein, where the minimum capital must be fully paid in.</li></ul></div>' +
-      '<div class="card"><h2>4 · Fit score: what 100 means</h2><p>The fit score is an additive multi-attribute value model (Keeney &amp; Raiffa):</p><div class="formula">Fit(country) = 100 × Σ w<sub>c</sub> · (s<sub>c</sub> − 1) / 4  ÷  Σ w<sub>c</sub></div>' +
-        '<p style="margin-top:12px"><b>100</b> means the country reaches the top score (5 of 5) on every factor you weight; <b>0</b> means the lowest score (1 of 5) everywhere. The score is relative to your priorities: it is not a probability and not a grade. Because the underlying scores are whole steps, differences of 2–3 points should not be over-interpreted; the robustness check tells you how solid the lead is.</p></div>' +
-      '<div class="card"><h2>5 · Filters, robustness and limits</h2><ul>' +
-        '<li>Relocation answers exclude countries (Europe only → no US; staying put → only your home country). Excluded countries remain visible.</li>' +
-        '<li>Robustness: every weight is shifted up and down by one level; we count how often the winner stays #1. “Robust” requires ≥ 85% and a lead of at least 4 points, otherwise we call it a close call. These thresholds are a convention, not an empirical result.</li>' +
-        '<li>Scores are country-level; city costs (London, Zurich, Bay Area) can differ markedly.</li>' +
-        '<li>Liechtenstein is not covered by most international indices; several of its scores are estimates or “no data”.</li>' +
-        '<li>Exit tax compares the standard case (shares held privately). Holding structures exist in several countries and are shown as tips, not scored.</li>' +
-        '<li>Some legal details still need verification against primary texts that were not accessible during research (e.g. whether Swiss GmbH formation always needs a public deed, Liechtenstein permit quotas, Art. 180a PGR). They are marked in the evidence cells.</li>' +
-        '<li>This tool supports a decision; it is not legal or tax advice.</li></ul></div>' +
-      '<div class="card"><h2>Peer-reviewed foundations</h2><ul class="srclist">' + lit + '</ul></div>' +
-      '<div class="card"><h2>All data sources (' + Object.keys(D.SOURCES).length + ')</h2><p>Research cut-off ' + esc(D.DATA_AS_OF) + '. Primary legal and official sources are preferred; secondary sources are used where primary data was not accessible and are labelled as such.</p>' + srcs + '</div>' +
-      '<div><button type="button" class="btn btn--primary" data-action="' + (Object.keys(state.answers).length ? 'results' : 'start') + '">' + (Object.keys(state.answers).length ? 'Back to my result' : 'Find my most advantageous location') + icon('arrow') + '</button></div>' +
-      '</section>';
-  }
-
-  /* ---------- detail dialog ---------- */
-  function openCell(k, c) {
-    var res = E.evaluate(state.answers);
-    var row = res.rows.filter(function (r) { return r.id === k; })[0];
-    var s = row.scores[c], cell = D.SCORES[k][c], cr = crit(c);
-    if (c === 'residence' && row.residence) cell = { value: row.residence.text, note: cell.note, sources: cell.sources, confidence: cell.confidence };
-    var adj = s.adj.length ? '<p><b>Adjusted for your profile:</b> ' + esc(s.adj.join('; ')) + ' (base ' + s.base + ' → ' + s.value + ')</p>' : '';
-    var srcs = cell.sources.length ? cell.sources.map(function (id) { return srcLink(id, src(id).t + ' – ' + src(id).p); }).join('<br>') : '<span style="color:var(--muted)">No primary source found – score is an estimate.</span>';
-    document.getElementById('detail-body').innerHTML =
-      '<div class="dialog__head"><div><span class="eyebrow">' + esc(country(k).name) + '</span><h2 id="detail-title">' + esc(cr.name) + '</h2></div><button type="button" class="dialog__close" data-action="close" aria-label="Close">' + icon('close') + '</button></div>' +
-      '<div style="display:flex;align-items:center;gap:10px">' + dots(s.value) + '<b>' + s.value + ' / 5</b></div>' +
-      '<p class="fact">' + esc(cell.value) + '</p><p>' + esc(cell.note) + '</p>' + adj +
-      '<p class="meta"><span>Data confidence: <b>' + esc(cell.confidence) + '</b></span><span>Scale: ' + esc(cr.anchors) + '</span></p>' +
-      '<div style="font-size:14px;display:flex;flex-direction:column;gap:6px">' + srcs + '</div>';
-    if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
-    var btn = dialog.querySelector('.dialog__close'); if (btn) btn.focus();
+  /* compact live ranking for narrow screens: collapsed pill, tap to expand */
+  function viewRailMobile(res) {
+    var leader = res.top, open = !!state.railOpen;
+    var rest = res.rows.filter(function (r) { return !r.excluded && (!leader || r.id !== leader.id); }).slice(0, 3)
+      .map(function (r) { return '<span>' + esc(r.id) + ' ' + r.score + '</span>'; }).join('');
+    return '<div class="rail-mobile' + (open ? ' is-open' : '') + '">' +
+      '<button type="button" class="rail-mobile__toggle" data-action="railToggle" aria-expanded="' + open + '" aria-controls="rail-mobile-panel">' +
+        icon('leaderboard', 'rail-mobile__icon') +
+        '<span class="rail-mobile__lead">' + (leader ? avatar(leader.id, true) + '<span><span class="sr-only">' + esc(t('Leading:')) + ' </span><b>' + esc(t(leader.country.name)) + '</b> <span class="rail-mobile__score">' + leader.score + '</span></span>' : '–') + '</span>' +
+        '<span class="rail-mobile__list" aria-hidden="true">' + rest + '</span>' +
+        '<span class="sr-only">' + esc(open ? t('Hide full ranking') : t('Show full ranking')) + '</span>' +
+        icon('expand_more', 'rail-mobile__chev') +
+      '</button>' +
+      (open ? '<div class="rail-mobile__panel" id="rail-mobile-panel"><p class="rail__meta">' + esc(t('Match score')) + '</p><ol class="rank-list">' + rankItems(res, 'mrail-', false) + '</ol></div>' : '<div id="rail-mobile-panel" hidden></div>') +
+      '</div>';
   }
 
   /* ---------- events ---------- */
   var advanceTimer = null;
+  function isPointerClick(e) { return !!e && e.detail > 0; } // keyboard-activated clicks have detail 0
   document.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-action]');
-    if (!t) return;
-    var a = t.getAttribute('data-action');
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var a = el.getAttribute('data-action');
     var step = STEPS[state.step];
     switch (a) {
       case 'home': e.preventDefault(); go('landing'); break;
       case 'start': go('wizard', { step: firstOpenStep() }); break;
       case 'method': go('method'); break;
       case 'results': go('results'); break;
-      case 'restart':
-        if (!Object.keys(state.answers).length || window.confirm('Start over? Your answers in this browser will be cleared.')) {
-          state.answers = {}; state.skipped = {}; state.example = null; state.prevOrder = null; state.lastMove = null; state.roadmapTab = null;
-          if (location.hash) history.replaceState(null, '', location.pathname + location.search);
-          go('landing');
-        }
+      case 'restart': clearTimeout(advanceTimer); restart(); break;
+      case 'example': loadExample(el.getAttribute('data-k')); break;
+      case 'theme': cycleTheme(); break;
+      case 'lang': toggleLang(); break;
+      case 'railToggle':
+        state.railOpen = !state.railOpen;
+        var ys = window.scrollY; render(); window.scrollTo(0, ys);
+        var tg = app.querySelector('.rail-mobile__toggle'); if (tg) tg.focus({ preventScroll: true });
         break;
-      case 'goto': go('wizard', { step: parseInt(t.getAttribute('data-step'), 10) || 0 }); break;
+      case 'goto': state.dir = (parseInt(el.getAttribute('data-step'), 10) || 0) < state.step && state.view === 'wizard' ? 'back' : 'fwd'; go('wizard', { step: parseInt(el.getAttribute('data-step'), 10) || 0 }); break;
       case 'next': clearTimeout(advanceTimer); nextStep(); break;
       case 'prev': clearTimeout(advanceTimer); prevStep(); break;
-      case 'skip': skip(step.q); announce('Skipped.'); nextStep(); break;
+      case 'skip': clearTimeout(advanceTimer); skip(step.q); announce(t('Skipped.')); nextStep(); break;
       case 'pick':
-        setSingle(step.q, t.getAttribute('data-v')); render();
-        announce(answerLabel(step.q) + ' selected. ' + liveSummary());
+        if (!step || step.kind !== 'q') break;
+        var v = el.getAttribute('data-v');
+        var psel = '[data-action="pick"][data-v="' + v + '"]';
+        setSingle(step.q, v); render(); flash(psel);
+        var pb = app.querySelector(psel); if (pb) pb.focus({ preventScroll: true });
+        announce(t('{answer} selected.', { answer: answerLabel(step.q) }) + ' ' + liveSummary());
         clearTimeout(advanceTimer);
-        advanceTimer = setTimeout(nextStep, 380);
+        // auto-advance only for pointer clicks; keyboard users (Enter/Space/arrows → detail 0) stay and press Continue
+        if (isPointerClick(e)) advanceTimer = setTimeout(nextStep, 380);
         break;
       case 'toggle':
-        toggleMulti(step.q, t.getAttribute('data-v')); render();
-        var sel = app.querySelector('[data-action="toggle"][data-v="' + t.getAttribute('data-v') + '"]'); if (sel) sel.focus();
+        if (!step || step.kind !== 'q') break;
+        toggleMulti(step.q, el.getAttribute('data-v')); render(); flash('[data-action="toggle"][data-v="' + el.getAttribute('data-v') + '"]');
+        var sel = app.querySelector('[data-action="toggle"][data-v="' + el.getAttribute('data-v') + '"]'); if (sel) sel.focus({ preventScroll: true });
         announce(liveSummary());
         break;
       case 'prio':
         var y = window.scrollY;
-        setPriority(t.getAttribute('data-c'), parseInt(t.getAttribute('data-level'), 10)); render();
+        setPriority(el.getAttribute('data-c'), parseInt(el.getAttribute('data-level'), 10)); render();
         window.scrollTo(0, y);
-        var b = app.querySelector('[data-action="prio"][data-c="' + t.getAttribute('data-c') + '"][data-level="' + t.getAttribute('data-level') + '"]'); if (b) b.focus({ preventScroll: true });
+        var bsel = '[data-action="prio"][data-c="' + el.getAttribute('data-c') + '"][data-level="' + el.getAttribute('data-level') + '"]';
+        flash(bsel); var b = app.querySelector(bsel); if (b) b.focus({ preventScroll: true });
         announce(liveSummary());
         break;
-      case 'tab': state.roadmapTab = t.getAttribute('data-k'); var yy = window.scrollY; render(); window.scrollTo(0, yy); var tb = app.querySelector('[data-action="tab"][data-k="' + state.roadmapTab + '"]'); if (tb) tb.focus({ preventScroll: true }); break;
       case 'info':
-        var ik = t.getAttribute('data-key'); state.openInfo[ik] = !state.openInfo[ik];
+        var ik = el.getAttribute('data-key'); state.openInfo[ik] = !state.openInfo[ik];
         var y2 = window.scrollY; render(); window.scrollTo(0, y2);
         var ib = app.querySelector('[data-action="info"][data-key="' + ik + '"]'); if (ib) ib.focus({ preventScroll: true });
+        var ip = document.getElementById('info-' + ik); if (ip) ip.classList.add('is-changed');
         break;
-      case 'cell': openCell(t.getAttribute('data-k'), t.getAttribute('data-c')); break;
-      case 'close': dialog.close(); break;
-      case 'share':
-        var url = location.origin + location.pathname + '#r=' + encodeShare();
-        var done = function () { t.innerHTML = icon('link') + 'Link copied'; announce('Share link copied.'); setTimeout(function () { t.innerHTML = icon('link') + 'Copy share link'; }, 2200); };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link:', url); });
-        else window.prompt('Copy this link:', url);
-        break;
-      case 'print': window.print(); break;
+      case 'close': closeDialog(); break;
+      default:
+        if (UI.actions[a]) UI.actions[a](el, e);
+        else if (UI.views[a]) { e.preventDefault(); go(a); }
     }
   });
-  dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+  /* radio groups (options, segmented priorities): roving tabindex + arrow keys select (WAI-ARIA radio pattern) */
+  document.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    var r = e.target.closest && e.target.closest('[role="radio"]'); if (!r) return;
+    var g = r.closest('[role="radiogroup"]'); if (!g) return;
+    var step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    var items = Array.prototype.slice.call(g.querySelectorAll('[role="radio"]'));
+    var i = items.indexOf(r), n;
+    if (step) n = (i + step + items.length) % items.length;
+    else if (e.key === 'Home') n = 0;
+    else if (e.key === 'End') n = items.length - 1;
+    else return;
+    e.preventDefault();
+    clearTimeout(advanceTimer);
+    items[n].click(); // detail 0 → selects without auto-advance; the handler restores focus on the new radio
+  });
+  /* skip link: move focus to the view's heading (or main) */
+  var skipLink = document.querySelector('.skip-link');
+  if (skipLink) skipLink.addEventListener('click', function (e) { e.preventDefault(); if (!focusH1()) document.getElementById('main').focus(); });
+
+  /* dialog: native showModal() traps focus; on close, focus returns to the control that opened it */
+  var lastOutside = null;
+  document.addEventListener('focusin', function (e) {
+    if (dialog.contains(e.target) || (snack && snack.contains(e.target))) return;
+    var el = e.target;
+    lastOutside = { el: el, action: el.getAttribute && el.getAttribute('data-action'), k: el.getAttribute && el.getAttribute('data-k'), c: el.getAttribute && el.getAttribute('data-c') };
+  });
+  dialog.addEventListener('close', function () {
+    var o = lastOutside; if (!o) return;
+    var target = o.el && document.contains(o.el) ? o.el : null;
+    if (!target && o.action) {
+      var s = '[data-action="' + o.action + '"]' + (o.k ? '[data-k="' + o.k + '"]' : '') + (o.c ? '[data-c="' + o.c + '"]' : '');
+      target = document.querySelector(s);
+    }
+    if (target) target.focus({ preventScroll: true });
+  });
+  function closeDialog() {
+    if (!dialog.open) return;
+    if (reduceMotion) { dialog.close(); return; }
+    dialog.classList.add('is-closing');
+    setTimeout(function () { dialog.classList.remove('is-closing'); dialog.close(); }, 200);
+  }
+  dialog.addEventListener('click', function (e) { if (e.target === dialog) closeDialog(); });
+  dialog.addEventListener('cancel', function (e) { e.preventDefault(); closeDialog(); });
+
+  /* glass top bar while content scrolls underneath (with hysteresis against flicker) */
+  var topbar = document.querySelector('.topbar');
+  function updateBars() {
+    if (!topbar) return;
+    var y = window.scrollY;
+    var top = topbar.classList.contains('topbar--scrolled');
+    if (!top && y > 12) topbar.classList.add('topbar--scrolled');
+    else if (top && y < 2) topbar.classList.remove('topbar--scrolled');
+  }
+  /* subtle parallax for the landing background layers */
+  function updateParallax() {
+    if (reduceMotion) return;
+    var bg = app.querySelector('.landing-bg, .page-bg');
+    if (bg) bg.style.setProperty('--scroll', window.scrollY.toFixed(1) + 'px');
+  }
+  function onScroll() { updateBars(); updateParallax(); }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+
+  /* pause ambient decor when it is off-screen or the tab is hidden (global.css: .is-paused hook) */
+  var decorIO = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { en.target.classList.toggle('is-paused', !en.isIntersecting); });
+  }) : null;
+  function observeDecor() {
+    if (!decorIO) return;
+    decorIO.disconnect();
+    qa('.landing-bg, .page-bg, .winner__decor').forEach(function (el) { decorIO.observe(el); });
+  }
+  document.addEventListener('visibilitychange', function () { document.body.classList.toggle('is-paused', document.hidden); });
+
+  /* icon font: hide ligature names until the font is ready (styles.css: html:not(.fonts-ready) .msr) */
+  (function () {
+    var done = function () { html.classList.add('fonts-ready'); };
+    if (!document.fonts || !document.fonts.load) { done(); return; }
+    setTimeout(done, 3000); // never keep icons hidden if the font fails to load
+    var probe = function () { document.fonts.load('24px "Material Symbols Rounded"', 'home').then(function () { return document.fonts.ready; }).then(done, done); };
+    // the icon stylesheet loads non-blocking (media="print" → "all" on load): wait for it before probing the font
+    var link = document.querySelector('link[href*="Material+Symbols"]');
+    if (link && link.media === 'print') link.addEventListener('load', function () { setTimeout(probe, 0); });
+    else probe();
+  })();
 
   function liveSummary() {
-    var r = E.evaluate(state.answers);
-    return r.top ? 'Leading: ' + r.top.country.name + ' with ' + r.top.score + '.' : '';
+    var r = E.evaluate(state.answers, true);
+    if (!r.top) return '';
+    var prevLead = null, prev = state.prevOrder;
+    if (prev) Object.keys(prev).forEach(function (k) { if (!prev[k].excluded && (prevLead === null || prev[k].pos < prev[prevLead].pos)) prevLead = k; });
+    var name = t(r.top.country.name);
+    return prevLead && prevLead !== r.top.id ? t('{c} now leads with {s}.', { c: name, s: r.top.score }) : t('{c} leads with {s}.', { c: name, s: r.top.score });
   }
   function firstOpenStep() {
     for (var i = 0; i < STEPS.length; i++) {
       var s = STEPS[i];
-      if (s.kind === 'q' && !isAnswered(s.q) && !state.skipped[s.q.id]) return i;
+      if (s.kind === 'q' && E.isAsked(s.q, state.answers) && !isAnswered(s.q) && !state.skipped[s.q.id]) return i;
       if (s.kind === 'prio' && !state.answers.priorities) return i;
     }
     return 0;
   }
 
+  /* ---------- shared context for view modules (see ui.js) ---------- */
+  UI.app = {
+    state: state, root: app, dialog: dialog, Q: Q, STEPS: STEPS, EXAMPLES: EXAMPLES,
+    evaluate: function () { return E.evaluate(state.answers); },
+    render: render, go: go, save: save, announce: announce, flash: flash, snackbar: snackbar, encodeShare: encodeShare,
+    prioRows: prioRows, answerLabel: answerLabel, closeDialog: closeDialog, isAnswered: isAnswered, t: t
+  };
+
   /* ---------- boot ---------- */
+  applyTheme();
   load();
   readShare();
   render();

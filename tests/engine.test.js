@@ -64,7 +64,7 @@ test('living in a country gives the home-base maximum', () => {
 });
 
 test('all adjusted scores are whole steps', () => {
-  const r = E.evaluate({ citizenship: ['eu'], investors: ['EU', 'CHLI'], sector: 'fintech', market: 'dach', capital: 'none' });
+  const r = E.evaluate({ citizenship: ['eu'], investors: ['EU', 'CHLI'], sector: 'fintech', market: 'dach', capital: 'lt10' });
   for (const row of r.rows) for (const k of Object.keys(row.scores)) assert.ok(Number.isInteger(row.scores[k].value));
 });
 
@@ -79,10 +79,14 @@ test('residence defaults to important unless the founder would move anywhere', (
   assert.strictEqual(E.computeWeights({ relocation: 'anywhere', priorities: { residence: 3 } }).residence.value, 3);
 });
 
-test('US investors raise the US (local roots), even though US VC access is already at the maximum', () => {
-  const base = E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'US').total;
-  const withInv = E.evaluate({ citizenship: ['eu'], investors: ['US'] }).rows.find(r => r.id === 'US').total;
-  assert.ok(withInv > base);
+test('local investors raise VC access (+1, clamped at 5), never residence', () => {
+  const base = E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'DE');
+  const withInv = E.evaluate({ citizenship: ['eu'], investors: ['DE'] }).rows.find(r => r.id === 'DE');
+  assert.strictEqual(withInv.scores.vc.value, Math.min(5, base.scores.vc.value + 1));
+  assert.strictEqual(withInv.scores.residence.value, base.scores.residence.value);
+  const us = E.evaluate({ citizenship: ['eu'], investors: ['US'] }).rows.find(r => r.id === 'US');
+  assert.ok(us.scores.vc.value <= 5);
+  assert.strictEqual(us.scores.residence.value, E.evaluate({ citizenship: ['eu'] }).rows.find(r => r.id === 'US').scores.residence.value);
 });
 
 test('business angels raise the weight of public funding (once)', () => {
@@ -103,4 +107,50 @@ test('own passport country counts like free movement; only living there gives 5'
   assert.strictEqual(r.rows.find(x => x.id === 'UK').scores.residence.value, 2);
   const home = E.evaluate({ citizenship: ['ch'], residence: 'CH' });
   assert.strictEqual(home.rows.find(x => x.id === 'CH').scores.residence.value, 5);
+});
+
+test('every scored cell cites at least one source (cells marked nodata excepted)', () => {
+  const missing = [];
+  for (const c of D.COUNTRIES) for (const k of D.CRITERIA) {
+    const cell = D.SCORES[c.id][k.id];
+    assert.ok(cell, `${c.id}.${k.id} missing`);
+    assert.ok(['high', 'medium', 'low'].includes(cell.confidence), `${c.id}.${k.id} confidence`);
+    if (!cell.nodata && !(Array.isArray(cell.sources) && cell.sources.length)) missing.push(`${c.id}.${k.id}`);
+  }
+  assert.deepStrictEqual(missing, []);
+});
+
+test('"Not sure yet" scores exactly like skipping the question', () => {
+  const base = { citizenship: ['eu'], residence: 'DE', relocation: 'anywhere', hires: '1to2' };
+  const scores = a => E.evaluate(a).rows.map(r => r.id + ':' + r.score + ':' + JSON.stringify(r.scores));
+  for (const [q, v] of [['market', 'unsure'], ['funding', ['unsure']], ['esop', 'unsure']]) {
+    assert.deepStrictEqual(scores({ ...base, [q]: v }), scores(base), q);
+    const ex = E.evaluate({ ...base, [q]: v }).effects.find(x => x.q === q);
+    assert.match(ex.effect, /Not sure yet/, q);
+  }
+});
+
+test('investors is not asked when no capital is secured', () => {
+  const inv = E.QUESTIONS.find(q => q.id === 'investors');
+  assert.strictEqual(E.isAsked(inv, {}), true);
+  assert.strictEqual(E.isAsked(inv, { capital: 'lt10' }), true);
+  assert.strictEqual(E.isAsked(inv, { capital: 'none' }), false);
+  for (const q of E.QUESTIONS) if (q.id !== 'investors') assert.strictEqual(E.isAsked(q, { capital: 'none' }), true, q.id);
+});
+
+test('capital "Nothing yet" forces investors to "No investors yet" (no VC bonus, no investor warnings)', () => {
+  const base = { citizenship: ['eu'], residence: 'DE', funding: ['vc'], capital: 'none', exit: 'sale', esop: 'key' };
+  const stale = E.evaluate(Object.assign({ investors: ['US', 'elsewhere', 'DE'] }, base));
+  const clean = E.evaluate(Object.assign({ investors: ['none'] }, base));
+  assert.deepStrictEqual(stale.rows.map(r => [r.id, r.total]), clean.rows.map(r => [r.id, r.total]));
+  for (const r of stale.rows) assert.ok(!(r.scores.vc.adj || []).some(s => /investors/.test(s)), r.id);
+  assert.ok(!stale.warnings.some(w => /investor/i.test(w.title)));
+  assert.deepStrictEqual(E.normalize(Object.assign({ investors: ['US'] }, base)).investors, ['none']);
+  // the stored answers are not mutated
+  const a = Object.assign({ investors: ['US'] }, base); E.evaluate(a); assert.deepStrictEqual(a.investors, ['US']);
+  // the auto-recorded answer counts: a full profile stays 11 of 11 answered
+  const full = Object.assign({ market: 'dach', sector: 'software', relocation: 'europe', hires: '0' }, base);
+  const r = E.evaluate(full);
+  assert.strictEqual(r.totalQuestions, 11);
+  assert.strictEqual(r.answered, 11);
 });

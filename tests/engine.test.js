@@ -69,8 +69,10 @@ test('all adjusted scores are whole steps', () => {
 });
 
 test('unknown data is neutral, not penalised', () => {
+  for (const k of Object.keys(D.SCORES)) for (const c of Object.keys(D.SCORES[k])) {
+    if (D.SCORES[k][c].nodata) assert.strictEqual(D.SCORES[k][c].score, 3, k + '.' + c);
+  }
   assert.strictEqual(D.SCORES.LI.grants.score, 3);
-  assert.ok(D.SCORES.LI.grants.nodata);
 });
 
 test('residence defaults to important unless the founder would move anywhere', () => {

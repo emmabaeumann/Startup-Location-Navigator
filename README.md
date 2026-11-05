@@ -66,6 +66,6 @@ Settings → Pages → *Deploy from a branch* → choose the branch and `/ (root
 The full method, the literature and all sources are on the in-app *Method & sources* page.
 
 ## Maintaining the data
-All facts live in `assets/js/data.js` and `assets/js/facts.js`; each cell carries its sources and a confidence level. When a law or statistic changes, update the cell's `score`, `value`, `note` and `sources`, then bump `DATA_AS_OF`. Data as of: **3 November 2026**.
+All facts live in `assets/js/data.js` and `assets/js/facts.js`; each cell carries its sources and a confidence level. When a law or statistic changes, update the cell's `score`, `value`, `note` and `sources`, then bump `DATA_AS_OF`. Data as of: **5 November 2026**.
 
 *Orientation, not legal or tax advice.*
